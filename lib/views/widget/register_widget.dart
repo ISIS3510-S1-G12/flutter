@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+// Or, if using a relative path:
+import '../../viewmodels/auth_viewmodel.dart';
 
 class RegisterWidget extends StatefulWidget {
   final Color accentColor;
+  final String who;
   
   const RegisterWidget({super.key,
     required this.accentColor,
+    required this.who,
   });
 
   @override
@@ -13,6 +18,20 @@ class RegisterWidget extends StatefulWidget {
 
 class _RegisterWidgetState extends State<RegisterWidget> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _confirmPasswordController = TextEditingController();
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -25,6 +44,7 @@ class _RegisterWidgetState extends State<RegisterWidget> {
             height: 70, 
             width: 200,
             child: TextFormField(
+              controller: _nameController,
               style: TextStyle(fontSize: 15),
               textAlign: TextAlign.center,
               decoration: InputDecoration(
@@ -56,6 +76,7 @@ class _RegisterWidgetState extends State<RegisterWidget> {
             height: 70, 
             width: 200,
             child: TextFormField(
+              controller: _emailController,
               style:  TextStyle(fontSize: 15),
               textAlign: TextAlign.center,
               decoration:  InputDecoration(
@@ -87,6 +108,7 @@ class _RegisterWidgetState extends State<RegisterWidget> {
             height: 70,
             width: 200,
             child: TextFormField(
+              controller: _passwordController,
               style:  TextStyle(fontSize: 15),
               textAlign: TextAlign.center,
               obscureText: true,
@@ -119,6 +141,7 @@ class _RegisterWidgetState extends State<RegisterWidget> {
             height: 70, 
             width: 200,
             child: TextFormField(
+              controller: _confirmPasswordController,
               style:  TextStyle(fontSize: 15),
               textAlign: TextAlign.center,
               obscureText: true,
@@ -142,6 +165,9 @@ class _RegisterWidgetState extends State<RegisterWidget> {
                 if (value == null || value.isEmpty) {
                   return 'Enter your Password';
                 }
+                if (value != _passwordController.text) {
+                  return 'Passwords do not match';
+                }
                 return null;
               },
             ),
@@ -149,9 +175,27 @@ class _RegisterWidgetState extends State<RegisterWidget> {
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 16.0),
             child: ElevatedButton(
-              onPressed: () {
+              onPressed: () async {
                 if (_formKey.currentState!.validate()) {
-                  // Process data.
+                  if (_passwordController.text != _confirmPasswordController.text) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("Passwords do not match")),
+                    );
+                    return;
+                  }
+
+                  try {
+                    final authVM = Provider.of<AuthViewModel>(context, listen: false);
+                    await authVM.register(
+                      widget.who,
+                      _nameController.text.trim(),
+                      _emailController.text.trim(),
+                      _passwordController.text.trim(),
+                    );
+
+                  } catch (e) {
+                    // Handle registration error
+                  }
                 }
               },
               style: ElevatedButton.styleFrom(
