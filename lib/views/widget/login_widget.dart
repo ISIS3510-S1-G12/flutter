@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:moviles/views/pages/user/user_home_page.dart';
 
 class LoginWidget extends StatefulWidget {
   final Color accentColor;
@@ -88,6 +89,10 @@ class _LoginWidgetState extends State<LoginWidget> {
             child: ElevatedButton(
               onPressed: () {
                 if (_formKey.currentState!.validate()) {
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(builder: (context) => const UserHomePage()), // agregado para llevar a HomePage
+                  );
                   // Process data.
                 }
               },
