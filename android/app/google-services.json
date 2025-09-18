@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "747885108061",
+    "project_id": "sumaq-a2de4",
+    "storage_bucket": "sumaq-a2de4.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:747885108061:android:72c66c7ed3b3fa576ae6b4",
+        "android_client_info": {
+          "package_name": "com.example.moviles"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDI6X1v9eWxRq3Edyp20nYBuvEpaKt8H6A"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
