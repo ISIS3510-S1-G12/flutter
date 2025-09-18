@@ -11,6 +11,9 @@ import 'package:moviles/repositories/user_repository.dart';
 import 'package:moviles/viewmodels/auth_viewmodel.dart';
 import 'package:moviles/viewmodels/user_viewmodel.dart';
 
+
+
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(

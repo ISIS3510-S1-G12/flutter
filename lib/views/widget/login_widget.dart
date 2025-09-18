@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
+
 import 'package:provider/provider.dart';
 
 import '../../viewmodels/auth_viewmodel.dart';
-
 
 class LoginWidget extends StatefulWidget {
   final Color accentColor;
@@ -104,7 +104,6 @@ class _LoginWidgetState extends State<LoginWidget> {
             child: ElevatedButton(
               onPressed: () async{
                 if (_formKey.currentState!.validate()) {
-
                   try {
                     final authVM = Provider.of<AuthViewModel>(context, listen: false);
                     await authVM.login(
