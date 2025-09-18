@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:moviles/views/pages/user/user_home_page.dart';
+
+import 'package:provider/provider.dart';
+
+import '../../viewmodels/auth_viewmodel.dart';
 
 class LoginWidget extends StatefulWidget {
   final Color accentColor;
@@ -15,6 +18,16 @@ class LoginWidget extends StatefulWidget {
 class _LoginWidgetState extends State<LoginWidget> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();  
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();    
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Form(
@@ -26,6 +39,7 @@ class _LoginWidgetState extends State<LoginWidget> {
             height: 70, 
             width: 200,
             child: TextFormField(
+              controller: _emailController,
               style: TextStyle(fontSize: 15),
               textAlign: TextAlign.center,
               decoration: InputDecoration(
@@ -57,6 +71,7 @@ class _LoginWidgetState extends State<LoginWidget> {
             height: 70,
             width: 200,
             child: TextFormField(
+              controller: _passwordController,
               style: TextStyle(fontSize: 15),
               textAlign: TextAlign.center,
               obscureText: true,
@@ -87,12 +102,17 @@ class _LoginWidgetState extends State<LoginWidget> {
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 16.0),
             child: ElevatedButton(
-              onPressed: () {
+              onPressed: () async{
                 if (_formKey.currentState!.validate()) {
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(builder: (context) => const UserHomePage()), // agregado para llevar a HomePage
-                  );
+                  try {
+                    final authVM = Provider.of<AuthViewModel>(context, listen: false);
+                    await authVM.login(
+                      _emailController.text.trim(),
+                      _passwordController.text.trim(),
+                    );
+                  } catch (e) {
+                    // Handle login error
+                  }
                   // Process data.
                 }
               },
