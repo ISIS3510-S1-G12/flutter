@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 
 import '../../viewmodels/auth_viewmodel.dart';
 
+import '../pages/user/user_home_page.dart';
+
 
 class LoginWidget extends StatefulWidget {
   final Color accentColor;
@@ -111,6 +113,19 @@ class _LoginWidgetState extends State<LoginWidget> {
                       _emailController.text.trim(),
                       _passwordController.text.trim(),
                     );
+
+                    if (authVM.error == null) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const UserHomePage(),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Login failed: ${authVM.error}")),
+        );
+      }
                   } catch (e) {
                     // Handle login error
                   }
