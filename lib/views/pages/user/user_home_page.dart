@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
-import 'package:moviles/views/pages/user/lyr/restaurant_card.dart';
+import '/views/widget/restaurant_card.dart';
+
+
 
 final List<Restaurant> restaurants = [
   Restaurant(
