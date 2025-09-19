@@ -6,6 +6,7 @@ import 'package:latlong2/latlong.dart';
 import '/views/widget/restaurant_card.dart';
 
 
+
 final List<Restaurant> restaurants = [
   Restaurant(
     name: "La Bella Italia",
