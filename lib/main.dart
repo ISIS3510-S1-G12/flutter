@@ -16,11 +16,13 @@ import 'package:moviles/viewmodels/user_viewmodel.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
+  final app = await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+  print('Firebase initialized: ${app.name}');
   runApp(const Sumaq());
 }
+
 
 class Sumaq extends StatelessWidget {
   const Sumaq({super.key});

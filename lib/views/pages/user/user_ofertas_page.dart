@@ -256,7 +256,7 @@ class UserOfertasPage extends StatelessWidget {
                                   style: const TextStyle(
                                       fontSize: 14, color: Colors.white),
                                 ),
-const SizedBox(height: 4),
+                                const SizedBox(height: 4),
                                 Container(
                                   padding: const EdgeInsets.symmetric(
                                       horizontal: 8, vertical: 4),

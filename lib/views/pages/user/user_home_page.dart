@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
-
+import '/views/pages/user/user_favorites_page.dart';
 import '/views/widget/restaurant_card.dart';
 import '/views/pages/user/user_restaurant_detail_page.dart';
 import '/views/pages/user/user_ofertas_page.dart';
-
+import '/views/pages/user/user_review_history.dart';
 
 
 final List<Restaurant> restaurants = [
@@ -64,16 +64,31 @@ class UserHomePage extends StatelessWidget {
           ),
           bottom: TabBar(
             onTap: (index) {
-          if (index == 2) { // 👈 el índice del tab Offers
-            // Evita que el tab se seleccione
-            Future.delayed(Duration.zero, () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => UserOfertasPage()),
-              );
-            });
-          }
-        },
+              if (index == 1) { 
+                Future.delayed(Duration.zero, () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => UserFavoritesPage()),
+                  );
+                });
+              }
+              if (index == 2) { // 👈 el índice del tab Offers
+                Future.delayed(Duration.zero, () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => UserOfertasPage()),
+                  );
+                });
+              }
+              if (index == 3) { 
+                Future.delayed(Duration.zero, () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => UserReviewHistoryPage()),
+                  );
+                });
+              }
+            },
             tabAlignment: TabAlignment.fill,
             isScrollable: false,
             labelColor: Colors.black,
@@ -244,8 +259,6 @@ class UserHomePage extends StatelessWidget {
                 ),
               ),
             ),
-
-            // 🔹 Lista de restaurantes
             Expanded(
               child: ListView.builder(
                 padding: const EdgeInsets.all(16),
