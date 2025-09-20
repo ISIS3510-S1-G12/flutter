@@ -78,43 +78,57 @@ class RestaurantUploadMenuPage extends StatelessWidget {
         ),
         centerTitle: false,
       ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Text(
-              "Upload your new menu",
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.brown,
+      body: Center( // 👈 asegura centrado horizontal de todo
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 30),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.center, // 👈 centra hijos
+            children: [
+              const Text(
+                "Upload your new menu",
+                style: TextStyle(
+                  fontSize: 26,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.brown,
+                ),
+                textAlign: TextAlign.center,
               ),
-            ),
-            const SizedBox(height: 20),
-            Image.asset(
-              "images/upload.png", 
-              height: 100,
-            ),
+              const SizedBox(height: 30),
 
-            const SizedBox(height: 20),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color.fromARGB(255, 107, 184, 194),
-                padding: const EdgeInsets.symmetric(
-                    vertical: 12.0, horizontal: 24.0),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
+              // 🔹 Imagen centrada
+              Image.asset(
+                "images/upload.png",
+                height: 280,
+              ),
+
+              const SizedBox(height: 40),
+
+              // 🔹 Botón centrado
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color.fromARGB(255, 107, 184, 194),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 14.0,
+                    horizontal: 40.0,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                onPressed: () {
+                  _showSuccessDialog(context);
+                },
+                child: const Text(
+                  "Upload Menu",
+                  style: TextStyle(
+                    fontSize: 18,
+                    color: Colors.white,
+                  ),
                 ),
               ),
-              onPressed: () {
-                _showSuccessDialog(context);
-              },
-              child: const Text(
-                "Upload Menu",
-                style: TextStyle(fontSize: 16, color: Colors.white),
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
