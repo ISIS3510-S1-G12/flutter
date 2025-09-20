@@ -68,11 +68,13 @@ flutter:
 
   assets:
     - images/483891256-e6bd4888-8904-4028-911f-dff62cc98965.png
-    - images/chickenLovers.png
-    - images/laPuerta.png
+    - images/upload.png
+    - images/bbq.png
     - images/andres.png
     - images/bacon.png
-    - images/bbq.png
+    - images/chickenLovers.png
+    - images/chicknchips.png
+    - images/laPuerta.png
     - images/pollo.png
 
 

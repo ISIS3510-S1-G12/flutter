@@ -1,12 +1,9 @@
 import 'package:flutter/material.dart';
-
 import 'package:flutter_map/flutter_map.dart';
-import 'package:latlong2/latlong.dart';
 import 'package:moviles/views/pages/restaurant/lyr/restaurant_ofertas_page.dart';
 
 import '/views/widget/restaurant_card.dart';
-
-
+import 'restaurant_upload_menu_page.dart'; // 👈 importa tu nueva página
 
 final List<Restaurant> restaurants = [
   Restaurant(
@@ -38,7 +35,7 @@ class RestaurantHomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 4,
+      length: 3,
       child: Scaffold(
         backgroundColor: Colors.white,
         appBar: AppBar(
@@ -63,22 +60,21 @@ class RestaurantHomePage extends StatelessWidget {
           ),
           bottom: TabBar(
             onTap: (index) {
-          if (index == 1) { // 👈 el índice del tab Offers
-            // Evita que el tab se seleccione
-            Future.delayed(Duration.zero, () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => RestaurantOfertasPage()),
-              );
-            });
-          }
-        },
+              if (index == 1) {
+                Future.delayed(Duration.zero, () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const RestaurantOfertasPage()),
+                  );
+                });
+              }
+            },
             tabAlignment: TabAlignment.fill,
             isScrollable: false,
             labelColor: Colors.black,
             indicatorColor: Color.fromARGB(255, 214, 145, 104),
-            labelPadding: EdgeInsets.symmetric(horizontal: 3.0),
-            tabs: [
+            labelPadding: const EdgeInsets.symmetric(horizontal: 3.0),
+            tabs: const [
               Tab(text: "Menu"),
               Tab(text: "Offers"),
               Tab(text: "Reviews"),
@@ -87,7 +83,7 @@ class RestaurantHomePage extends StatelessWidget {
         ),
         body: Column(
           children: [
-                        // 🔹 FlutterMap
+            // 🔹 Mapa
             Container(
               height: 200,
               margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -99,10 +95,8 @@ class RestaurantHomePage extends StatelessWidget {
                 borderRadius: BorderRadius.circular(12),
                 child: FlutterMap(
                   options: MapOptions(
-
                     onTap: (tapPosition, latLng) {
                       print("Tapped at: $latLng");
-                      
                     },
                     maxZoom: 12.0,
                   ),
@@ -116,36 +110,34 @@ class RestaurantHomePage extends StatelessWidget {
               ),
             ),
 
-// 🔹 Nuevo botón tipo "Busiest Hours"
-Padding(
-  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-  child: Container(
-    decoration: BoxDecoration(
-      color: const Color.fromARGB(255, 39, 111, 121), // verde-azulado como la imagen
-      borderRadius: BorderRadius.circular(8),
-    ),
-    child: TextButton.icon(
-      style: TextButton.styleFrom(
-        foregroundColor: Colors.white, // texto e ícono blancos
-        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
-      ),
-      onPressed: () {
-        print("Busiest Hours pressed");
-        // aquí puedes navegar o abrir un gráfico
-      },
-      icon: const Icon(Icons.bar_chart), // ícono de gráfico
-      label: const Text(
-        "Busiest Hours",
-        style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-      ),
-    ),
-  ),
-),
+            // 🔹 Botón Busiest Hours
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: const Color.fromARGB(255, 39, 111, 121),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: TextButton.icon(
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+                  ),
+                  onPressed: () {
+                    print("Busiest Hours pressed");
+                  },
+                  icon: const Icon(Icons.bar_chart),
+                  label: const Text(
+                    "Busiest Hours",
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ),
+            ),
 
-const SizedBox(height: 8),
             const SizedBox(height: 8),
 
-            // 🔹 Barra de búsqueda + filtro + chat
+            // 🔹 Barra de búsqueda + filtro
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Row(
@@ -154,10 +146,10 @@ const SizedBox(height: 8),
                     child: TextField(
                       decoration: InputDecoration(
                         hintText: "Search here...",
-                        hintStyle: TextStyle(color: Colors.white),
+                        hintStyle: const TextStyle(color: Colors.white),
                         prefixIcon: const Icon(Icons.search, color: Colors.white),
                         filled: true,
-                        fillColor: Color.fromARGB(255, 214, 145, 104),
+                        fillColor: const Color.fromARGB(255, 214, 145, 104),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(30),
                           borderSide: BorderSide.none,
@@ -166,10 +158,9 @@ const SizedBox(height: 8),
                     ),
                   ),
                   const SizedBox(width: 10),
-                  // Botón de filtro
                   Container(
                     decoration: BoxDecoration(
-                      color: Color.fromARGB(255, 214, 145, 104),
+                      color: const Color.fromARGB(255, 214, 145, 104),
                       borderRadius: BorderRadius.circular(30),
                     ),
                     child: IconButton(
@@ -178,8 +169,7 @@ const SizedBox(height: 8),
                         showModalBottomSheet(
                           context: context,
                           shape: const RoundedRectangleBorder(
-                            borderRadius:
-                                BorderRadius.vertical(top: Radius.circular(20)),
+                            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
                           ),
                           builder: (BuildContext context) {
                             bool filter1 = false;
@@ -240,8 +230,7 @@ const SizedBox(height: 8),
                                       const SizedBox(height: 10),
                                       ElevatedButton(
                                         onPressed: () {
-                                          print(
-                                              "Filtros aplicados: $filter1, $filter2, $filter3, $filter4");
+                                          print("Filtros aplicados");
                                           Navigator.pop(context);
                                         },
                                         child: const Text("Apply Filters"),
@@ -256,12 +245,9 @@ const SizedBox(height: 8),
                       },
                     ),
                   ),
-                  const SizedBox(width: 10),
                 ],
               ),
             ),
-
-            // 🔹 Lista de restaurantes
             Expanded(
               child: ListView.builder(
                 padding: const EdgeInsets.all(16),
@@ -269,7 +255,7 @@ const SizedBox(height: 8),
                 itemBuilder: (context, index) {
                   final restaurant = restaurants[index];
                   return Card(
-                    color: Color.fromARGB(255,107, 184, 194),
+                    color: const Color.fromARGB(255, 107, 184, 194),
                     margin: const EdgeInsets.only(bottom: 16),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -311,16 +297,14 @@ const SizedBox(height: 8),
                                 ),
                                 const SizedBox(height: 4),
                                 Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 8, vertical: 4),
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                   decoration: BoxDecoration(
-                                    color: Color.fromARGB(255, 39, 111, 121),
+                                    color: const Color.fromARGB(255, 39, 111, 121),
                                     borderRadius: BorderRadius.circular(12),
                                   ),
-                                  child: Text(
+                                  child: const Text(
                                     "Edit",
-                                    style: const TextStyle(
-                                        fontSize: 12, color: Colors.white),
+                                    style: TextStyle(fontSize: 12, color: Colors.white),
                                   ),
                                 ),
                               ],
@@ -342,55 +326,58 @@ const SizedBox(height: 8),
                 },
               ),
             ),
-          Padding(
+
+            Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-  child: Row(
+              child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
-    children: [  
-   Container(
-    decoration: BoxDecoration(
-      color: const Color.fromARGB(255, 39, 111, 121),// verde-azulado como la imagen
-      borderRadius: BorderRadius.circular(8),
-    ),
-    child: TextButton.icon(
-      style: TextButton.styleFrom(
-        foregroundColor: Colors.white, // texto e ícono blancos
-        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
-      ),
-      onPressed: () {
-        print("Create New Dish");
-        // aquí puedes navegar o abrir un gráfico
-      },
-      icon: const Icon(Icons.restaurant_menu), // ícono de gráfico
-      label: const Text(
-        "New Dish",
-        style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-      ),
-    ),
-  ),
-  Container(
-    decoration: BoxDecoration(
-      color:  Color.fromARGB(255, 214, 145, 104),
-      borderRadius: BorderRadius.circular(8),
-    ),
-    child: TextButton.icon(
-      style: TextButton.styleFrom(
-        foregroundColor: Colors.white, // texto e ícono blancos
-        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
-      ),
-      onPressed: () {
-        print("Marked as Favorite");
-        // aquí puedes navegar o abrir un gráfico
-      },
-      icon: const Icon(Icons.restaurant_outlined), // ícono de gráfico
-      label: const Text(
-        "Edit Menu",
-        style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-      ),
-    ),
-  ),
-  ],
-  ),),
+                children: [
+                  Container(
+                    decoration: BoxDecoration(
+                      color: const Color.fromARGB(255, 39, 111, 121),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: TextButton.icon(
+                      style: TextButton.styleFrom(
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+                      ),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const RestaurantUploadMenuPage()),
+                        );
+                      },
+                      icon: const Icon(Icons.restaurant_menu),
+                      label: const Text(
+                        "New Dish",
+                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: const Color.fromARGB(255, 214, 145, 104),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: TextButton.icon(
+                      style: TextButton.styleFrom(
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+                      ),
+                      onPressed: () {
+                        print("Edit Menu pressed");
+                      },
+                      icon: const Icon(Icons.restaurant_outlined),
+                      label: const Text(
+                        "Edit Menu",
+                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
       ),
