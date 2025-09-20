@@ -6,7 +6,7 @@ class RestaurantUploadMenuPage extends StatelessWidget {
   void _showSuccessDialog(BuildContext context) {
     showDialog(
       context: context,
-      barrierDismissible: false, // para que no se cierre tocando afuera
+      barrierDismissible: false, 
       builder: (BuildContext context) {
         return Dialog(
           shape: RoundedRectangleBorder(
@@ -16,7 +16,7 @@ class RestaurantUploadMenuPage extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: const Color.fromARGB(255, 198, 226, 229), // fondo azulito como en tu captura
+              color: const Color.fromARGB(255, 198, 226, 229),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Column(
@@ -43,7 +43,7 @@ class RestaurantUploadMenuPage extends StatelessWidget {
                 const SizedBox(height: 20),
                 TextButton(
                   onPressed: () {
-                    Navigator.pop(context); // cierra el popup
+                    Navigator.pop(context);
                   },
                   child: const Text(
                     "OK",
@@ -91,7 +91,11 @@ class RestaurantUploadMenuPage extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 20),
-            const Icon(Icons.upload, size: 80, color: Colors.brown),
+            Image.asset(
+              "images/upload.png", 
+              height: 100,
+            ),
+
             const SizedBox(height: 20),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
