@@ -43,7 +43,6 @@ dependencies:
   firebase_auth: ^6.0.2
   provider: ^6.1.5+1
   firebase_core: ^4.1.0
-  flutter_map: ^8.2.1
 
 dev_dependencies:
   flutter_test:
@@ -72,6 +71,10 @@ flutter:
     - images/chickenLovers.png
     - images/laPuerta.png
     - images/andres.png
+    - images/bacon.png
+    - images/bbq.png
+    - images/pollo.png
+
 
 
   # An image asset can refer to one or more resolution-specific "variants", see
