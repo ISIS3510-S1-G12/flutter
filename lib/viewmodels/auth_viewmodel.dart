@@ -27,7 +27,7 @@ class AuthViewModel extends ChangeNotifier {
   }
 
   // Login
-  Future<void> login(String email, String password) async {
+  Future<void> login(String who, String email, String password) async {
     _loading = true;
     notifyListeners();
     try {

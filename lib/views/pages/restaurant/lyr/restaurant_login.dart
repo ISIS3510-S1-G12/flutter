@@ -22,6 +22,7 @@ Widget build(BuildContext context) {
           Text("WELCOME!", style: TextStyle(color: Color.fromARGB(255,39, 111, 121), fontSize:40, fontWeight: FontWeight.bold)),
           Padding(padding: EdgeInsets.symmetric(vertical: 16.0)),
             const LoginWidget(
+              who: "restaurant",
               accentColor: Color.fromARGB(255,39, 111, 121),
             )
           ],

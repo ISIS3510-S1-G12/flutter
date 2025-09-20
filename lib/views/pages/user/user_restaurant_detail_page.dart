@@ -4,42 +4,40 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
 import '/views/widget/restaurant_card.dart';
-import '/views/pages/user/user_restaurant_detail_page.dart';
-import '/views/pages/user/user_ofertas_page.dart';
 
 
 
 final List<Restaurant> restaurants = [
   Restaurant(
-    name: "La Bella Italia",
-    typeOfFood: "Italiana",
+    name: "Bacon Sandwich",
+    typeOfFood: "ANVORGUESA CON BACON",
     rating: 4.5,
     offer: "20% off",
-    imageUrl: "images/laPuerta.png",
+    imageUrl: "images/bacon.png",
   ),
   Restaurant(
-    name: "Chicken Lovers",
-    typeOfFood: "Pollo",
+    name: "bbq Sandwich",
+    typeOfFood: "ANVORGUESA CON BBQ",
     rating: 4.0,
     offer: "15% off",
-    imageUrl: "images/chickenLovers.png",
+    imageUrl: "images/bbq.png",
   ),
   Restaurant(
-    name: "Andres carne de res",
-    typeOfFood: "Carne",
+    name: "Chicken Sandwich",
+    typeOfFood: "ANVORGUESA CON POLLO",
     rating: 3.5,
     offer: "Buy 1 Get 1",
-    imageUrl: "images/andres.png",
+    imageUrl: "images/pollo.png",
   ),
 ];
 
-class UserHomePage extends StatelessWidget {
-  const UserHomePage({super.key});
+class UserRestaurantDetailPage extends StatelessWidget {
+  const UserRestaurantDetailPage({super.key});
 
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 4,
+      length: 3,
       child: Scaffold(
         backgroundColor: Colors.white,
         appBar: AppBar(
@@ -62,33 +60,22 @@ class UserHomePage extends StatelessWidget {
               ),
             ],
           ),
-          bottom: TabBar(
-            onTap: (index) {
-          if (index == 2) { // 👈 el índice del tab Offers
-            // Evita que el tab se seleccione
-            Future.delayed(Duration.zero, () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => UserOfertasPage()),
-              );
-            });
-          }
-        },
-            tabAlignment: TabAlignment.fill,
+          bottom: const TabBar(
             isScrollable: false,
             labelColor: Colors.black,
             indicatorColor: Color.fromARGB(255, 214, 145, 104),
             labelPadding: EdgeInsets.symmetric(horizontal: 3.0),
             tabs: [
-              Tab(text: "Home"),
-              Tab(text: "Favorites"),
+              Tab(text: "Menu"),
               Tab(text: "Offers"),
-              Tab(text: "My Reviews"),
+              Tab(text: "Reviews"),
             ],
           ),
         ),
         body: Column(
           children: [
+
+            const SizedBox(height: 8),
             // 🔹 Barra de búsqueda + filtro + chat
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -146,7 +133,7 @@ class UserHomePage extends StatelessWidget {
                                       ),
                                       const SizedBox(height: 10),
                                       CheckboxListTile(
-                                        title: const Text("Price"),
+                                        title: const Text("Cheapest"),
                                         value: filter1,
                                         onChanged: (val) {
                                           setState(() {
@@ -155,7 +142,7 @@ class UserHomePage extends StatelessWidget {
                                         },
                                       ),
                                       CheckboxListTile(
-                                        title: const Text("Type of Food"),
+                                        title: const Text("Most Ordered"),
                                         value: filter2,
                                         onChanged: (val) {
                                           setState(() {
@@ -164,7 +151,7 @@ class UserHomePage extends StatelessWidget {
                                         },
                                       ),
                                       CheckboxListTile(
-                                        title: const Text("With Offer"),
+                                        title: const Text("Restaurant Favorites"),
                                         value: filter3,
                                         onChanged: (val) {
                                           setState(() {
@@ -173,7 +160,7 @@ class UserHomePage extends StatelessWidget {
                                         },
                                       ),
                                       CheckboxListTile(
-                                        title: const Text("Without Offer"),
+                                        title: const Text("Highest Discount"),
                                         value: filter4,
                                         onChanged: (val) {
                                           setState(() {
@@ -201,22 +188,10 @@ class UserHomePage extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 10),
-                  // Botón de chat
-                  Container(
-                    decoration: const BoxDecoration(
-                      color: Color.fromARGB(255, 214, 145, 104),
-                      shape: BoxShape.circle,
-                    ),
-                    child: IconButton(
-                      icon: const Icon(Icons.chat, color: Colors.white),
-                      onPressed: () {},
-                    ),
-                  ),
                 ],
               ),
             ),
-
-            // 🔹 FlutterMap
+                        // 🔹 FlutterMap
             Container(
               height: 200,
               margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -245,6 +220,58 @@ class UserHomePage extends StatelessWidget {
               ),
             ),
 
+// 🔹 Nuevo botón tipo "Busiest Hours"
+Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+  child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    children: [  
+   Container(
+    decoration: BoxDecoration(
+      color: Color.fromARGB(255, 121, 39, 101), // verde-azulado como la imagen
+      borderRadius: BorderRadius.circular(8),
+    ),
+    child: TextButton.icon(
+      style: TextButton.styleFrom(
+        foregroundColor: Colors.white, // texto e ícono blancos
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+      ),
+      onPressed: () {
+        print("Busiest Hours pressed");
+        // aquí puedes navegar o abrir un gráfico
+      },
+      icon: const Icon(Icons.bar_chart), // ícono de gráfico
+      label: const Text(
+        "Busiest Hours",
+        style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+      ),
+    ),
+  ),
+  Container(
+    decoration: BoxDecoration(
+      color: Color.fromARGB(255, 121, 39, 101), // verde-azulado como la imagen
+      borderRadius: BorderRadius.circular(8),
+    ),
+    child: TextButton.icon(
+      style: TextButton.styleFrom(
+        foregroundColor: Colors.white, // texto e ícono blancos
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+      ),
+      onPressed: () {
+        print("Marked as Favorite");
+        // aquí puedes navegar o abrir un gráfico
+      },
+      icon: const Icon(Icons.star), // ícono de gráfico
+      label: const Text(
+        "Mark as Favorite",
+        style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+      ),
+    ),
+  ),
+  ],
+  ),),
+
+            const SizedBox(height: 8),
             // 🔹 Lista de restaurantes
             Expanded(
               child: ListView.builder(
@@ -252,17 +279,7 @@ class UserHomePage extends StatelessWidget {
                 itemCount: restaurants.length,
                 itemBuilder: (context, index) {
                   final restaurant = restaurants[index];
-                  return InkWell(
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => UserRestaurantDetailPage(
-              ),
-            ),
-          );
-        },
-                  child: Card(
+                  return Card(
                     color: Color.fromARGB(255,170,98,153),
                     margin: const EdgeInsets.only(bottom: 16),
                     shape: RoundedRectangleBorder(
@@ -299,24 +316,11 @@ class UserHomePage extends StatelessWidget {
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  "Tipo de comida: ${restaurant.typeOfFood}",
+                                  "Description: ${restaurant.typeOfFood}",
                                   style: const TextStyle(
                                       fontSize: 14, color: Colors.white),
                                 ),
-                                const SizedBox(height: 4),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 8, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: Colors.green[100],
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Text(
-                                    "Offers: ${restaurant.offer}",
-                                    style: const TextStyle(
-                                        fontSize: 12, color: Colors.green),
-                                  ),
-                                ),
+
                               ],
                             ),
                           ),
@@ -326,18 +330,44 @@ class UserHomePage extends StatelessWidget {
                             child: Image.asset(
                               restaurant.imageUrl,
                               width: 80,
-                              height: 80,
                               fit: BoxFit.cover,
                             ),
                           ),
                         ],
                       ),
                     ),
-                  ),
-                );
+                  );
                 },
               ),
             ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+  child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+    children: [  
+   Container(
+    decoration: BoxDecoration(
+      color: Color.fromARGB(255, 121, 39, 101), // verde-azulado como la imagen
+      borderRadius: BorderRadius.circular(8),
+    ),
+    child: TextButton.icon(
+      style: TextButton.styleFrom(
+        foregroundColor: Colors.white, // texto e ícono blancos
+      ),
+      onPressed: () {
+        print("Create New Dish");
+        // aquí puedes navegar o abrir un gráfico
+      },
+      icon: const Icon(Icons.edit), // ícono de gráfico
+      label: const Text(
+        "Write a Review",
+        style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+      ),
+    ),
+  ),
+  
+  ],
+  ),),
           ],
         ),
       ),

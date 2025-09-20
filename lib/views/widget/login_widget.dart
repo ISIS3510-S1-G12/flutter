@@ -6,12 +6,15 @@ import '../../viewmodels/auth_viewmodel.dart';
 
 
 import '../pages/user/user_home_page.dart';
+import '../pages/restaurant/restaurant_home_page.dart';
 
 class LoginWidget extends StatefulWidget {
   final Color accentColor;
+  final String who;
 
   const LoginWidget({super.key,
     required this.accentColor,
+    required this.who,
   });
 
   @override
@@ -110,24 +113,36 @@ class _LoginWidgetState extends State<LoginWidget> {
                   try {
                     final authVM = Provider.of<AuthViewModel>(context, listen: false);
                     await authVM.login(
+                      widget.who,
                       _emailController.text.trim(),
                       _passwordController.text.trim(),
                     );
 
                     if (authVM.error == null) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => const UserHomePage(),
-          ),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Login failed: ${authVM.error}")),
-        );
-      }
+  if (widget.who == "restaurant") {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const RestaurantHomePage(),
+      ),
+    );
+  } else if (widget.who == "user") {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const UserHomePage(),
+      ),
+    );
+  }
+} else {
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(content: Text("Login failed: ${authVM.error}")),
+  );
+}
                   } catch (e) {
-                    // Handle login error
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text("Error: $e")),
+                    );
                   }
                   // Process data.
                 }
