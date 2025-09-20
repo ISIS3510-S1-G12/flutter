@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
-import 'package:latlong2/latlong.dart';
 import 'package:moviles/views/pages/restaurant/lyr/restaurant_ofertas_page.dart';
 
 import '/views/widget/restaurant_card.dart';

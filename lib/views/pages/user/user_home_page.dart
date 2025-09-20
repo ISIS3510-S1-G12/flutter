@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import 'package:flutter_map/flutter_map.dart';
-import 'package:latlong2/latlong.dart';
 import '/views/pages/user/user_favorites_page.dart';
 import '/views/widget/restaurant_card.dart';
 import '/views/pages/user/user_restaurant_detail_page.dart';
