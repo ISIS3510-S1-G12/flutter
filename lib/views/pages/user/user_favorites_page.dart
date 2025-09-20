@@ -35,284 +35,236 @@ final List<Restaurant> restaurants = [
     imageUrl: "images/chicknchips.png",
   ),
 ];
-
 class UserFavoritesPage extends StatelessWidget {
   const UserFavoritesPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return DefaultTabController(
-      length: 4,
-      child: Scaffold(
-        backgroundColor: Colors.white,
-        appBar: AppBar(
-          backgroundColor: Colors.white,
-          elevation: 0,
-          title: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Row(
             children: [
-              Image.asset(
-                "images/483891256-e6bd4888-8904-4028-911f-dff62cc98965.png",
-                height: MediaQuery.of(context).size.height * 0.08,
-              ),
-              InkWell(
-                onTap: () {},
-                child: const CircleAvatar(
-                  radius: 28,
-                  backgroundColor: Color.fromARGB(255, 214, 145, 104),
-                  child: Icon(Icons.person, color: Colors.white),
-                ),
-              ),
-            ],
-          ),
-          bottom: TabBar(
-            onTap: (index) {
-          if (index == 2) { // 👈 el índice del tab Offers
-            // Evita que el tab se seleccione
-            Future.delayed(Duration.zero, () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => UserOfertasPage()),
-              );
-            });
-          }
-        },
-            tabAlignment: TabAlignment.fill,
-            isScrollable: false,
-            labelColor: Colors.black,
-            indicatorColor: Color.fromARGB(255, 214, 145, 104),
-            labelPadding: EdgeInsets.symmetric(horizontal: 3.0),
-            tabs: [
-              Tab(text: "Home"),
-              Tab(text: "Favorites"),
-              Tab(text: "Offers"),
-              Tab(text: "My Reviews"),
-            ],
-          ),
-        ),
-        body: Column(
-          children: [
-            // 🔹 Barra de búsqueda + filtro + chat
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      decoration: InputDecoration(
-                        hintText: "Search here...",
-                        hintStyle: TextStyle(color: Colors.white),
-                        prefixIcon: const Icon(Icons.search, color: Colors.white),
-                        filled: true,
-                        fillColor: Color.fromARGB(255, 214, 145, 104),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(30),
-                          borderSide: BorderSide.none,
-                        ),
-                      ),
+              Expanded(
+                child: TextField(
+                  decoration: InputDecoration(
+                    hintText: "Search here...",
+                    hintStyle: const TextStyle(color: Colors.white),
+                    prefixIcon: const Icon(Icons.search, color: Colors.white),
+                    filled: true,
+                    fillColor: const Color.fromARGB(255, 214, 145, 104),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(30),
+                      borderSide: BorderSide.none,
                     ),
                   ),
-                  const SizedBox(width: 10),
-                  // Botón de filtro
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Color.fromARGB(255, 214, 145, 104),
-                      borderRadius: BorderRadius.circular(30),
-                    ),
-                    child: IconButton(
-                      icon: const Icon(Icons.filter_list, color: Colors.white),
-                      onPressed: () {
-                        showModalBottomSheet(
-                          context: context,
-                          shape: const RoundedRectangleBorder(
-                            borderRadius:
-                                BorderRadius.vertical(top: Radius.circular(20)),
-                          ),
-                          builder: (BuildContext context) {
-                            bool filter1 = false;
-                            bool filter2 = false;
-                            bool filter3 = false;
-                            bool filter4 = false;
+                ),
+              ),
+              const SizedBox(width: 10),
+              // Botón de filtro
+              Container(
+                decoration: BoxDecoration(
+                  color: const Color.fromARGB(255, 214, 145, 104),
+                  borderRadius: BorderRadius.circular(30),
+                ),
+                child: IconButton(
+                  icon: const Icon(Icons.filter_list, color: Colors.white),
+                  onPressed: () {
+                    showModalBottomSheet(
+                      context: context,
+                      shape: const RoundedRectangleBorder(
+                        borderRadius: BorderRadius.vertical(
+                          top: Radius.circular(20),
+                        ),
+                      ),
+                      builder: (BuildContext context) {
+                        bool filter1 = false;
+                        bool filter2 = false;
+                        bool filter3 = false;
+                        bool filter4 = false;
 
-                            return StatefulBuilder(
-                              builder: (context, setState) {
-                                return Padding(
-                                  padding: const EdgeInsets.all(16.0),
-                                  child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      const Text(
-                                        "Filtros",
-                                        style: TextStyle(
-                                            fontSize: 20,
-                                            fontWeight: FontWeight.bold),
-                                      ),
-                                      const SizedBox(height: 10),
-                                      CheckboxListTile(
-                                        title: const Text("Price"),
-                                        value: filter1,
-                                        onChanged: (val) {
-                                          setState(() {
-                                            filter1 = val ?? false;
-                                          });
-                                        },
-                                      ),
-                                      CheckboxListTile(
-                                        title: const Text("With Offer"),
-                                        value: filter2,
-                                        onChanged: (val) {
-                                          setState(() {
-                                            filter2 = val ?? false;
-                                          });
-                                        },
-                                      ),
-                                      CheckboxListTile(
-                                        title: const Text("Without Offer"),
-                                        value: filter3,
-                                        onChanged: (val) {
-                                          setState(() {
-                                            filter3 = val ?? false;
-                                          });
-                                        },
-                                      ),
-                                      CheckboxListTile(
-                                        title: const Text("Fish"),
-                                        value: filter4,
-                                        onChanged: (val) {
-                                          setState(() {
-                                            filter4 = val ?? false;
-                                          });
-                                        },
-                                      ),
-                                      const SizedBox(height: 10),
-                                      ElevatedButton(
-                                        onPressed: () {
-                                          print(
-                                              "Filtros aplicados: $filter1, $filter2, $filter3, $filter4");
-                                          Navigator.pop(context);
-                                        },
-                                        child: const Text("Apply Filters"),
-                                      ),
-                                    ],
+                        return StatefulBuilder(
+                          builder: (context, setState) {
+                            return Padding(
+                              padding: const EdgeInsets.all(16.0),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Text(
+                                    "Filtros",
+                                    style: TextStyle(
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.bold),
                                   ),
-                                );
-                              },
+                                  const SizedBox(height: 10),
+                                  CheckboxListTile(
+                                    title: const Text("Price"),
+                                    value: filter1,
+                                    onChanged: (val) {
+                                      setState(() {
+                                        filter1 = val ?? false;
+                                      });
+                                    },
+                                  ),
+                                  CheckboxListTile(
+                                    title: const Text("With Offer"),
+                                    value: filter2,
+                                    onChanged: (val) {
+                                      setState(() {
+                                        filter2 = val ?? false;
+                                      });
+                                    },
+                                  ),
+                                  CheckboxListTile(
+                                    title: const Text("Without Offer"),
+                                    value: filter3,
+                                    onChanged: (val) {
+                                      setState(() {
+                                        filter3 = val ?? false;
+                                      });
+                                    },
+                                  ),
+                                  CheckboxListTile(
+                                    title: const Text("Fish"),
+                                    value: filter4,
+                                    onChanged: (val) {
+                                      setState(() {
+                                        filter4 = val ?? false;
+                                      });
+                                    },
+                                  ),
+                                  const SizedBox(height: 10),
+                                  ElevatedButton(
+                                    onPressed: () {
+                                      print(
+                                          "Filtros aplicados: $filter1, $filter2, $filter3, $filter4");
+                                      Navigator.pop(context);
+                                    },
+                                    child: const Text("Apply Filters"),
+                                  ),
+                                ],
+                              ),
                             );
                           },
                         );
                       },
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  // Botón de chat
-                  Container(
-                    decoration: const BoxDecoration(
-                      color: Color.fromARGB(255, 214, 145, 104),
-                      shape: BoxShape.circle,
-                    ),
-                    child: IconButton(
-                      icon: const Icon(Icons.chat, color: Colors.white),
-                      onPressed: () {},
-                    ),
-                  ),
-                ],
+                    );
+                  },
+                ),
               ),
-            ),
-            Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.all(16),
-                itemCount: restaurants.length,
-                itemBuilder: (context, index) {
-                  final restaurant = restaurants[index];
-                  return InkWell(
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => UserRestaurantDetailPage(
+              const SizedBox(width: 10),
+              // Botón de chat
+              Container(
+                decoration: const BoxDecoration(
+                  color: Color.fromARGB(255, 214, 145, 104),
+                  shape: BoxShape.circle,
+                ),
+                child: IconButton(
+                  icon: const Icon(Icons.chat, color: Colors.white),
+                  onPressed: () {},
+                ),
               ),
-            ),
-          );
-        },
-                  child: Card(
-                    color: Color.fromARGB(255,170,98,153),
-                    margin: const EdgeInsets.only(bottom: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    elevation: 4,
-                    child: Padding(
-                      padding: const EdgeInsets.all(12.0),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: List.generate(
-                                    5,
-                                    (i) => Icon(
-                                      i < restaurant.rating.floor()
-                                          ? Icons.star
-                                          : Icons.star_border,
-                                      color: Colors.amber,
-                                      size: 18,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(height: 6),
-                                Text(
-                                  restaurant.name,
-                                  style: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.white),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  "Tipo de comida: ${restaurant.typeOfFood}",
-                                  style: const TextStyle(
-                                      fontSize: 14, color: Colors.white),
-                                ),
-                                const SizedBox(height: 4),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 8, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: Colors.green[100],
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Text(
-                                    "Offers: ${restaurant.offer}",
-                                    style: const TextStyle(
-                                        fontSize: 12, color: Colors.green),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(12),
-                            child: Image.asset(
-                              restaurant.imageUrl,
-                              width: 80,
-                              height: 80,
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                );
-                },
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
-      ),
+        Expanded(
+          child: ListView.builder(
+            padding: const EdgeInsets.all(16),
+            itemCount: restaurants.length,
+            itemBuilder: (context, index) {
+              final restaurant = restaurants[index];
+              return InkWell(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const UserRestaurantDetailPage(),
+                    ),
+                  );
+                },
+                child: Card(
+                  color: const Color.fromARGB(255, 170, 98, 153),
+                  margin: const EdgeInsets.only(bottom: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  elevation: 4,
+                  child: Padding(
+                    padding: const EdgeInsets.all(12.0),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: List.generate(
+                                  5,
+                                  (i) => Icon(
+                                    i < restaurant.rating.floor()
+                                        ? Icons.star
+                                        : Icons.star_border,
+                                    color: Colors.amber,
+                                    size: 18,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                restaurant.name,
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                "Tipo de comida: ${restaurant.typeOfFood}",
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: Colors.green[100],
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(
+                                  "Offers: ${restaurant.offer}",
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.green,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: Image.asset(
+                            restaurant.imageUrl,
+                            width: 80,
+                            height: 80,
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 }

@@ -1,7 +1,7 @@
 class Restaurant {
   final String name;
   final String typeOfFood;
-  final double rating; // Ej: 4.5
+  final double rating;
   final String offer;
   final String imageUrl;
 
