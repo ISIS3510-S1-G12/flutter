@@ -27,18 +27,22 @@ class AuthViewModel extends ChangeNotifier {
   }
 
   // Login
-  Future<void> login(String who, String email, String password) async {
-    _loading = true;
-    notifyListeners();
-    try {
-      await _repo.login(email: email, password: password);
-      _error = null;
-    } catch (e) {
-      _error = e.toString();
-    }
-    _loading = false;
-    notifyListeners();
+Future<void> login(String who, String email, String password) async {
+  _loading = true;
+  notifyListeners();
+  try {
+    await _repo.login(
+      email: email,
+      password: password,
+      expectedRole: who, // 👈 aquí va el rol correcto
+    );
+    _error = null;
+  } catch (e) {
+    _error = e.toString();
   }
+  _loading = false;
+  notifyListeners();
+}
 
   // Logout
   Future<void> logout() async {

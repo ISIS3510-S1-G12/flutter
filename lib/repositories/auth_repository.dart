@@ -5,53 +5,33 @@ class AuthRepository {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
-  // Registrar un usuario
+  // Registrar un usuario o restaurante
   Future<void> register({
-    required String who,
+    required String who, // "user" o "restaurant"
     required String name,
     required String email,
     required String password,
   }) async {
     try {
-      if (who == "user") {
-      
-      // 1. Crear el usuario en Authentication
       final UserCredential cred = await _auth.createUserWithEmailAndPassword(
         email: email.trim(),
         password: password,
       );
       final uid = cred.user!.uid;
 
-      // 2. Guardar sus datos en Firestore
-      await _db.collection("Users").doc(uid).set({
-        "email": email.trim(),
-        "favorite_restaurants": null,
-        "name": name,
-        "preferences": null,
-        "profile_picture": null,
-        "password": password,
-
-      });
-      } else if (who == "restaurant") {
-        // 1. Crear el usuario en Authentication
-        final UserCredential cred = await _auth.createUserWithEmailAndPassword(
-          email: email.trim(),
-          password: password,
-        );
-        final uid = cred.user!.uid;
-  
-        // 2. Guardar sus datos en Firestore
-        await _db.collection("Restaurants").doc(uid).set({
-          "address": null,
-          "busiest_hours": null,
-          "closing_time": null,
+      if (who == "user") {
+        await _db.collection("Users").doc(uid).set({
           "email": email.trim(),
-          "location": null,
           "name": name,
-          "opening_time": null,
           "password": password,
-          "restaurant_image": null,
-          "restaurant_type": null,
+          "role": "user",
+        });
+      } else if (who == "restaurant") {
+        await _db.collection("Restaurants").doc(uid).set({
+          "email": email.trim(),
+          "name": name,
+          "password": password,
+          "role": "restaurant",
         });
       } else {
         throw Exception("Invalid user type");
@@ -61,15 +41,49 @@ class AuthRepository {
     }
   }
 
-  // Login
-  Future<void> login({
-    required String email,
-    required String password,
-  }) async {
-    await _auth.signInWithEmailAndPassword(email: email, password: password);
+  // Obtener el rol según UID
+  Future<String?> getUserRole(String uid) async {
+    try {
+      final userDoc = await _db.collection("Users").doc(uid).get();
+      if (userDoc.exists) return userDoc.data()?["role"];
+
+      final restaurantDoc = await _db.collection("Restaurants").doc(uid).get();
+      if (restaurantDoc.exists) return restaurantDoc.data()?["role"];
+
+      return null;
+    } catch (e) {
+      throw Exception("Error al obtener rol: $e");
+    }
   }
 
-  // Logout
+  // Login con verificación de rol
+  Future<String?> login({
+    required String email,
+    required String password,
+    required String expectedRole, // "user" o "restaurant"
+  }) async {
+    final cred = await _auth.signInWithEmailAndPassword(
+      email: email.trim(),
+      password: password,
+    );
+
+    final uid = cred.user!.uid;
+    final role = await getUserRole(uid);
+
+    // Debugging prints para confirmar qué está llegando
+    print("🔥 Rol Firestore: '$role'");
+    print("🎯 Rol esperado: '$expectedRole'");
+
+    // Validación segura (quita espacios y convierte a minúsculas)
+    if (role?.trim().toLowerCase() == expectedRole.toLowerCase()) {
+      return role; // ✅ autorizado
+    } else {
+      // ❌ rol incorrecto → logout inmediato
+      await _auth.signOut();
+      throw Exception("Acceso denegado: rol inválido");
+    }
+  }
+
   Future<void> logout() async {
     await _auth.signOut();
   }
