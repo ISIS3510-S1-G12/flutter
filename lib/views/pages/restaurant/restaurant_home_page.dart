@@ -7,6 +7,7 @@ import 'restaurant_upload_menu_page.dart'; // 👈 importa tu nueva página
 
 final List<Restaurant> restaurants = [
   Restaurant(
+    id: "1",
     name: "Bacon Sandwich",
     typeOfFood: "ANVORGUESA CON BACON",
     rating: 4.5,
@@ -14,6 +15,7 @@ final List<Restaurant> restaurants = [
     imageUrl: "images/bacon.png",
   ),
   Restaurant(
+    id: "2",
     name: "bbq Sandwich",
     typeOfFood: "ANVORGUESA CON BBQ",
     rating: 4.0,
@@ -21,6 +23,7 @@ final List<Restaurant> restaurants = [
     imageUrl: "images/bbq.png",
   ),
   Restaurant(
+    id: "3",
     name: "Chicken Sandwich",
     typeOfFood: "ANVORGUESA CON POLLO",
     rating: 3.5,
