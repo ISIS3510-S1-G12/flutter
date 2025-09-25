@@ -61,27 +61,49 @@ class RestaurantHomePage extends StatelessWidget {
               ),
             ],
           ),
-          bottom: TabBar(
-            onTap: (index) {
-              if (index == 1) {
-                Future.delayed(Duration.zero, () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const RestaurantOfertasPage()),
-                  );
-                });
-              }
-            },
-            tabAlignment: TabAlignment.fill,
-            isScrollable: false,
-            labelColor: Colors.black,
-            indicatorColor: Color.fromARGB(255, 214, 145, 104),
-            labelPadding: const EdgeInsets.symmetric(horizontal: 3.0),
-            tabs: const [
-              Tab(text: "Menu"),
-              Tab(text: "Offers"),
-              Tab(text: "Reviews"),
-            ],
+          bottom: PreferredSize(
+            preferredSize: const Size.fromHeight(70),
+            child: Column(
+              children: [
+                // 🔹 Línea debajo del header (logo + avatar)
+                Divider(
+                  thickness: 1,
+                  color: Colors.black,
+                  height: 1,
+                ),
+                // 🔹 Tabs
+                TabBar(
+                  onTap: (index) {
+                    if (index == 1) {
+                      Future.delayed(Duration.zero, () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const RestaurantOfertasPage(),
+                          ),
+                        );
+                      });
+                    }
+                  },
+                  tabAlignment: TabAlignment.fill,
+                  isScrollable: false,
+                  labelColor: Colors.black,
+                  indicatorColor: const Color.fromARGB(255, 214, 145, 104),
+                  labelPadding: const EdgeInsets.symmetric(horizontal: 3.0),
+                  tabs: const [
+                    Tab(text: "Menu"),
+                    Tab(text: "Offers"),
+                    Tab(text: "Reviews"),
+                  ],
+                ),
+                // 🔹 Línea debajo de los Tabs
+                Divider(
+                  thickness: 1,
+                  color: Colors.black,
+                  height: 1,
+                ),
+              ],
+            ),
           ),
         ),
         body: Column(
@@ -105,7 +127,8 @@ class RestaurantHomePage extends StatelessWidget {
                   ),
                   children: [
                     TileLayer(
-                      urlTemplate: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+                      urlTemplate:
+                          "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
                       userAgentPackageName: 'com.example.moviles',
                     ),
                   ],
@@ -124,7 +147,8 @@ class RestaurantHomePage extends StatelessWidget {
                 child: TextButton.icon(
                   style: TextButton.styleFrom(
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+                    padding: const EdgeInsets.symmetric(
+                        vertical: 10, horizontal: 16),
                   ),
                   onPressed: () {
                     print("Busiest Hours pressed");
@@ -132,7 +156,8 @@ class RestaurantHomePage extends StatelessWidget {
                   icon: const Icon(Icons.bar_chart),
                   label: const Text(
                     "Busiest Hours",
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                        fontSize: 14, fontWeight: FontWeight.bold),
                   ),
                 ),
               ),
@@ -142,7 +167,8 @@ class RestaurantHomePage extends StatelessWidget {
 
             // 🔹 Barra de búsqueda + filtro
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Row(
                 children: [
                   Expanded(
@@ -150,7 +176,8 @@ class RestaurantHomePage extends StatelessWidget {
                       decoration: InputDecoration(
                         hintText: "Search here...",
                         hintStyle: const TextStyle(color: Colors.white),
-                        prefixIcon: const Icon(Icons.search, color: Colors.white),
+                        prefixIcon:
+                            const Icon(Icons.search, color: Colors.white),
                         filled: true,
                         fillColor: const Color.fromARGB(255, 214, 145, 104),
                         border: OutlineInputBorder(
@@ -172,7 +199,8 @@ class RestaurantHomePage extends StatelessWidget {
                         showModalBottomSheet(
                           context: context,
                           shape: const RoundedRectangleBorder(
-                            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                            borderRadius: BorderRadius.vertical(
+                                top: Radius.circular(20)),
                           ),
                           builder: (BuildContext context) {
                             bool filter1 = false;
@@ -251,6 +279,8 @@ class RestaurantHomePage extends StatelessWidget {
                 ],
               ),
             ),
+
+            // 🔹 Lista de restaurantes
             Expanded(
               child: ListView.builder(
                 padding: const EdgeInsets.all(16),
@@ -300,14 +330,16 @@ class RestaurantHomePage extends StatelessWidget {
                                 ),
                                 const SizedBox(height: 4),
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 4),
                                   decoration: BoxDecoration(
                                     color: const Color.fromARGB(255, 39, 111, 121),
                                     borderRadius: BorderRadius.circular(12),
                                   ),
                                   child: const Text(
                                     "Edit",
-                                    style: TextStyle(fontSize: 12, color: Colors.white),
+                                    style: TextStyle(
+                                        fontSize: 12, color: Colors.white),
                                   ),
                                 ),
                               ],
@@ -330,8 +362,10 @@ class RestaurantHomePage extends StatelessWidget {
               ),
             ),
 
+            // 🔹 Botones inferiores
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -343,18 +377,21 @@ class RestaurantHomePage extends StatelessWidget {
                     child: TextButton.icon(
                       style: TextButton.styleFrom(
                         foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+                        padding: const EdgeInsets.symmetric(
+                            vertical: 10, horizontal: 16),
                       ),
                       onPressed: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (_) => const RestaurantUploadMenuPage()),
+                          MaterialPageRoute(
+                              builder: (_) => const RestaurantUploadMenuPage()),
                         );
                       },
                       icon: const Icon(Icons.restaurant_menu),
                       label: const Text(
                         "New Dish",
-                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                            fontSize: 14, fontWeight: FontWeight.bold),
                       ),
                     ),
                   ),
@@ -366,7 +403,8 @@ class RestaurantHomePage extends StatelessWidget {
                     child: TextButton.icon(
                       style: TextButton.styleFrom(
                         foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+                        padding: const EdgeInsets.symmetric(
+                            vertical: 10, horizontal: 16),
                       ),
                       onPressed: () {
                         print("Edit Menu pressed");
@@ -374,7 +412,8 @@ class RestaurantHomePage extends StatelessWidget {
                       icon: const Icon(Icons.restaurant_outlined),
                       label: const Text(
                         "Edit Menu",
-                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                            fontSize: 14, fontWeight: FontWeight.bold),
                       ),
                     ),
                   ),

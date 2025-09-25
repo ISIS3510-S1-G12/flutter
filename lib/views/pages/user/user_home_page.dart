@@ -64,25 +64,39 @@ class UserHomePage extends StatelessWidget {
               ),
             ],
           ),
-          bottom: const TabBar(
-            tabAlignment: TabAlignment.fill,
-            isScrollable: false,
-            labelColor: Colors.black,
-            indicatorColor: Color.fromARGB(255, 214, 145, 104),
-            labelPadding: EdgeInsets.symmetric(horizontal: 3.0),
-            tabs: [
-              Tab(text: "Home"),
-              Tab(text: "Favorites"),
-              Tab(text: "Offers"),
-              Tab(text: "History review"),
-            ],
+          bottom: PreferredSize(
+            preferredSize: const Size.fromHeight(70),
+            child: Column(
+              children: [
+                // 👉 Línea debajo del logo/avatar
+                const Divider(color: Colors.black, thickness: 1),
+
+                // 👉 TabBar
+                const TabBar(
+                  tabAlignment: TabAlignment.fill,
+                  isScrollable: false,
+                  labelColor: Colors.black,
+                  indicatorColor: Color.fromARGB(255, 214, 145, 104),
+                  labelPadding: EdgeInsets.symmetric(horizontal: 3.0),
+                  tabs: [
+                    Tab(text: "Home"),
+                    Tab(text: "Favorites"),
+                    Tab(text: "Offers"),
+                    Tab(text: "History review"),
+                  ],
+                ),
+
+                // 👉 Línea debajo de la TabBar
+                const Divider(color: Colors.black, thickness: 1),
+              ],
+            ),
           ),
         ),
 
         // 🔹 TabBarView: aquí se renderizan las páginas según el tab seleccionado
         body: TabBarView(
           children: [
-            // 👇 Página Home (la tuya con lista de restaurantes)
+            // Página Home (la tuya con lista de restaurantes)
             Column(
               children: [
                 // Barra de búsqueda + filtro + chat
@@ -95,11 +109,11 @@ class UserHomePage extends StatelessWidget {
                         child: TextField(
                           decoration: InputDecoration(
                             hintText: "Search here...",
-                            hintStyle: TextStyle(color: Colors.white),
+                            hintStyle: const TextStyle(color: Colors.white),
                             prefixIcon:
                                 const Icon(Icons.search, color: Colors.white),
                             filled: true,
-                            fillColor: Color.fromARGB(255, 214, 145, 104),
+                            fillColor: const Color.fromARGB(255, 214, 145, 104),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(30),
                               borderSide: BorderSide.none,
@@ -111,7 +125,7 @@ class UserHomePage extends StatelessWidget {
                       // Botón de filtro
                       Container(
                         decoration: BoxDecoration(
-                          color: Color.fromARGB(255, 214, 145, 104),
+                          color: const Color.fromARGB(255, 214, 145, 104),
                           borderRadius: BorderRadius.circular(30),
                         ),
                         child: IconButton(
@@ -261,7 +275,7 @@ class UserHomePage extends StatelessWidget {
                           );
                         },
                         child: Card(
-                          color: Color.fromARGB(255, 170, 98, 153),
+                          color: const Color.fromARGB(255, 170, 98, 153),
                           margin: const EdgeInsets.only(bottom: 16),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),

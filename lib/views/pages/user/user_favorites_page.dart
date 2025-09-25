@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '/views/widget/restaurant_card.dart';
 import '/views/pages/user/user_restaurant_detail_page.dart';
 
+
 final List<Restaurant> restaurants = [
   Restaurant(
     id: "1",
