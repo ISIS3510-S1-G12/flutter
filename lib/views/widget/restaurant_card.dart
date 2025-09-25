@@ -1,4 +1,5 @@
 class Restaurant {
+  final String id;
   final String name;
   final String typeOfFood;
   final double rating; // Ej: 4.5
@@ -6,6 +7,7 @@ class Restaurant {
   final String imageUrl;
 
   Restaurant({
+    required this.id,
     required this.name,
     required this.typeOfFood,
     required this.rating,

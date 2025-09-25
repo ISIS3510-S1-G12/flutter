@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import '/views/widget/restaurant_card.dart';
 import '/views/pages/user/user_restaurant_detail_page.dart';
 
+
 final List<Restaurant> restaurants = [
   Restaurant(
+    id: "1",
     name: "La Bella Italia",
     typeOfFood: "Italiana",
     rating: 4.5,
@@ -11,6 +13,7 @@ final List<Restaurant> restaurants = [
     imageUrl: "images/laPuerta.png",
   ),
   Restaurant(
+    id: "2",
     name: "Chicken Lovers",
     typeOfFood: "Pollo",
     rating: 4.0,
@@ -18,6 +21,7 @@ final List<Restaurant> restaurants = [
     imageUrl: "images/chickenLovers.png",
   ),
   Restaurant(
+    id: "3",
     name: "Andres carne de res",
     typeOfFood: "Carne",
     rating: 3.5,
@@ -25,6 +29,7 @@ final List<Restaurant> restaurants = [
     imageUrl: "images/andres.png",
   ),
   Restaurant(
+    id: "4",
     name: "Chick & chips",
     typeOfFood: "Pollo",
     rating: 4,
@@ -33,6 +38,8 @@ final List<Restaurant> restaurants = [
   ),
 ];
 class UserFavoritesPage extends StatelessWidget {
+  
+
   const UserFavoritesPage({super.key});
 
   @override
@@ -176,7 +183,7 @@ class UserFavoritesPage extends StatelessWidget {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => const UserRestaurantDetailPage(),
+                      builder: (context) => UserRestaurantDetailPage(restaurant: restaurant),
                     ),
                   );
                 },
