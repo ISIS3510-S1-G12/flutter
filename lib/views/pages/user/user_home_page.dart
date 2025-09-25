@@ -9,6 +9,7 @@ import '/views/pages/user/user_review_history.dart';
 
 final List<Restaurant> restaurants = [
   Restaurant(
+    id: "1",
     name: "La Bella Italia",
     typeOfFood: "Italiana",
     rating: 4.5,
@@ -16,6 +17,7 @@ final List<Restaurant> restaurants = [
     imageUrl: "images/laPuerta.png",
   ),
   Restaurant(
+    id: "2",
     name: "Chicken Lovers",
     typeOfFood: "Pollo",
     rating: 4.0,
@@ -23,6 +25,7 @@ final List<Restaurant> restaurants = [
     imageUrl: "images/chickenLovers.png",
   ),
   Restaurant(
+    id: "3",
     name: "Andres carne de res",
     typeOfFood: "Carne",
     rating: 3.5,
@@ -32,6 +35,7 @@ final List<Restaurant> restaurants = [
 ];
 
 class UserHomePage extends StatelessWidget {
+
   const UserHomePage({super.key});
 
   @override
@@ -266,8 +270,7 @@ class UserHomePage extends StatelessWidget {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) =>
-                                  const UserRestaurantDetailPage(),
+                              builder: (context) => UserRestaurantDetailPage(restaurant: restaurant),
                             ),
                           );
                         },

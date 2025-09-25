@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:moviles/views/pages/user/write_review_page.dart';
 import '/views/widget/restaurant_card.dart';
 
 final List<Restaurant> restaurants = [
   Restaurant(
+    id: "1",
     name: "Bacon Sandwich",
     typeOfFood: "ANVORGUESA CON BACON",
     rating: 4.5,
@@ -11,6 +13,7 @@ final List<Restaurant> restaurants = [
     imageUrl: "images/bacon.png",
   ),
   Restaurant(
+    id: "2",
     name: "bbq Sandwich",
     typeOfFood: "ANVORGUESA CON BBQ",
     rating: 4.0,
@@ -18,6 +21,7 @@ final List<Restaurant> restaurants = [
     imageUrl: "images/bbq.png",
   ),
   Restaurant(
+    id: "3",
     name: "Chicken Sandwich",
     typeOfFood: "ANVORGUESA CON POLLO",
     rating: 3.5,
@@ -27,7 +31,8 @@ final List<Restaurant> restaurants = [
 ];
 
 class UserRestaurantDetailPage extends StatelessWidget {
-  const UserRestaurantDetailPage({super.key});
+  final Restaurant restaurant;
+  const UserRestaurantDetailPage({super.key, required this.restaurant});
 
   @override
   Widget build(BuildContext context) {
@@ -351,30 +356,39 @@ class UserRestaurantDetailPage extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Container(
-                    decoration: BoxDecoration(
-                      color: const Color.fromARGB(255, 121, 39, 101),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: TextButton.icon(
-                      style: TextButton.styleFrom(
-                        foregroundColor: Colors.white,
-                      ),
-                      onPressed: () {
-                        print("Create New Dish");
-                      },
-                      icon: const Icon(Icons.edit),
-                      label: const Text(
-                        "Write a Review",
-                        style: TextStyle(
-                            fontSize: 14, fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+
+    children: [  
+   Container(
+    decoration: BoxDecoration(
+      color: Color.fromARGB(255, 121, 39, 101), // verde-azulado como la imagen
+      borderRadius: BorderRadius.circular(8),
+    ),
+    child: TextButton.icon(
+  style: TextButton.styleFrom(
+    foregroundColor: Colors.white,
+  ),
+  onPressed: () {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => WriteReviewPage(
+          restaurantId: restaurant.id, // 👈 aquí pasas el id del restaurante
+        ),
+      ),
+    );
+  },
+  icon: const Icon(Icons.edit),
+  label: const Text(
+    "Write a Review",
+    style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+  ),
+),
+
+  ),
+  
+  ],
+  ),),
+
           ],
         ),
       ),
