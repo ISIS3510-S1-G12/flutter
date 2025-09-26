@@ -1,47 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:moviles/models/restaurant.dart';
 
-import '/views/pages/user/user_favorites_page.dart';
 import '/views/widget/restaurant_card.dart';
+import '/views/pages/user/user_favorites_page.dart';
 import '/views/pages/user/user_restaurant_detail_page.dart';
 import '/views/pages/user/user_ofertas_page.dart';
 import '/views/pages/user/user_review_history.dart';
 
-final List<Restaurant> restaurants = [
-  Restaurant(
-    id: "1",
-    name: "La Bella Italia",
-    typeOfFood: "Italiana",
-    rating: 4.5,
-    offer: "20% off",
-    imageUrl: "images/laPuerta.png",
-  ),
-  Restaurant(
-    id: "2",
-    name: "Chicken Lovers",
-    typeOfFood: "Pollo",
-    rating: 4.0,
-    offer: "15% off",
-    imageUrl: "images/chickenLovers.png",
-  ),
-  Restaurant(
-    id: "3",
-    name: "Andres carne de res",
-    typeOfFood: "Carne",
-    rating: 3.5,
-    offer: "Buy 1 Get 1",
-    imageUrl: "images/andres.png",
-  ),
-];
-
 class UserHomePage extends StatelessWidget {
-
   const UserHomePage({super.key});
 
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 4, // 👈 número de tabs
+      length: 4,
       child: Scaffold(
         backgroundColor: Colors.white,
         appBar: AppBar(
@@ -67,17 +41,13 @@ class UserHomePage extends StatelessWidget {
           bottom: PreferredSize(
             preferredSize: const Size.fromHeight(70),
             child: Column(
-              children: [
-                // 👉 Línea debajo del logo/avatar
-                const Divider(color: Colors.black, thickness: 1),
-
-                // 👉 TabBar
-                const TabBar(
+              children: const [
+                Divider(color: Colors.black, thickness: 1),
+                TabBar(
                   tabAlignment: TabAlignment.fill,
                   isScrollable: false,
                   labelColor: Colors.black,
                   indicatorColor: Color.fromARGB(255, 214, 145, 104),
-                  labelPadding: EdgeInsets.symmetric(horizontal: 3.0),
                   tabs: [
                     Tab(text: "Home"),
                     Tab(text: "Favorites"),
@@ -85,18 +55,13 @@ class UserHomePage extends StatelessWidget {
                     Tab(text: "History review"),
                   ],
                 ),
-
-                // 👉 Línea debajo de la TabBar
-                const Divider(color: Colors.black, thickness: 1),
+                Divider(color: Colors.black, thickness: 1),
               ],
             ),
           ),
         ),
-
-        // 🔹 TabBarView: aquí se renderizan las páginas según el tab seleccionado
         body: TabBarView(
           children: [
-            // Página Home (la tuya con lista de restaurantes)
             Column(
               children: [
                 // Barra de búsqueda + filtro + chat
@@ -122,99 +87,20 @@ class UserHomePage extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(width: 10),
-                      // Botón de filtro
                       Container(
                         decoration: BoxDecoration(
                           color: const Color.fromARGB(255, 214, 145, 104),
                           borderRadius: BorderRadius.circular(30),
                         ),
                         child: IconButton(
-                          icon: const Icon(Icons.filter_list,
-                              color: Colors.white),
+                          icon:
+                              const Icon(Icons.filter_list, color: Colors.white),
                           onPressed: () {
-                            showModalBottomSheet(
-                              context: context,
-                              shape: const RoundedRectangleBorder(
-                                borderRadius: BorderRadius.vertical(
-                                    top: Radius.circular(20)),
-                              ),
-                              builder: (BuildContext context) {
-                                bool filter1 = false;
-                                bool filter2 = false;
-                                bool filter3 = false;
-                                bool filter4 = false;
-
-                                return StatefulBuilder(
-                                  builder: (context, setState) {
-                                    return Padding(
-                                      padding: const EdgeInsets.all(16.0),
-                                      child: Column(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          const Text(
-                                            "Filtros",
-                                            style: TextStyle(
-                                                fontSize: 20,
-                                                fontWeight: FontWeight.bold),
-                                          ),
-                                          const SizedBox(height: 10),
-                                          CheckboxListTile(
-                                            title: const Text("Price"),
-                                            value: filter1,
-                                            onChanged: (val) {
-                                              setState(() {
-                                                filter1 = val ?? false;
-                                              });
-                                            },
-                                          ),
-                                          CheckboxListTile(
-                                            title: const Text("Type of Food"),
-                                            value: filter2,
-                                            onChanged: (val) {
-                                              setState(() {
-                                                filter2 = val ?? false;
-                                              });
-                                            },
-                                          ),
-                                          CheckboxListTile(
-                                            title: const Text("With Offer"),
-                                            value: filter3,
-                                            onChanged: (val) {
-                                              setState(() {
-                                                filter3 = val ?? false;
-                                              });
-                                            },
-                                          ),
-                                          CheckboxListTile(
-                                            title: const Text("Without Offer"),
-                                            value: filter4,
-                                            onChanged: (val) {
-                                              setState(() {
-                                                filter4 = val ?? false;
-                                              });
-                                            },
-                                          ),
-                                          const SizedBox(height: 10),
-                                          ElevatedButton(
-                                            onPressed: () {
-                                              print(
-                                                  "Filtros aplicados: $filter1, $filter2, $filter3, $filter4");
-                                              Navigator.pop(context);
-                                            },
-                                            child: const Text("Apply Filters"),
-                                          ),
-                                        ],
-                                      ),
-                                    );
-                                  },
-                                );
-                              },
-                            );
+                            // Aquí puedes dejar tu código de filtros
                           },
                         ),
                       ),
                       const SizedBox(width: 10),
-                      // Botón de chat
                       Container(
                         decoration: const BoxDecoration(
                           color: Color.fromARGB(255, 214, 145, 104),
@@ -258,97 +144,58 @@ class UserHomePage extends StatelessWidget {
                   ),
                 ),
 
-                // Lista de restaurantes
+                // Lista de restaurantes desde Firestore
                 Expanded(
-                  child: ListView.builder(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: restaurants.length,
-                    itemBuilder: (context, index) {
-                      final restaurant = restaurants[index];
-                      return InkWell(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => UserRestaurantDetailPage(restaurant: restaurant),
-                            ),
+                  child: StreamBuilder<QuerySnapshot>(
+                    stream: FirebaseFirestore.instance
+                        .collection("Restaurants")
+                        .snapshots(),
+                    builder: (context, snapshot) {
+                      if (!snapshot.hasData) {
+                        return const Center(
+                            child: CircularProgressIndicator());
+                      }
+
+                      final restaurants = snapshot.data!.docs.map((doc) {
+                        final data = doc.data() as Map<String, dynamic>;
+                        return Restaurant(
+                          id: doc.id,
+                          name: data["name"] ?? "",
+                          typeOfFood: data["typeOfFood"] ?? "",
+                          rating: (data["rating"] != null)
+                             ? double.tryParse(data["rating"].toString()) ?? 0.0
+                              : 0.0,
+
+                          offer: data["offer"] ?? "No offers",
+                         imageUrl: data["imageUrl"] ??
+                                "https://via.placeholder.com/150", // fallback online si no hay URL
+                          address: '',
+                          email: '',
+                          location: '',
+                          openingTime: 0,
+                           closingTime: 0,
+                        );
+                      }).toList();
+
+                      return ListView.builder(
+                        padding: const EdgeInsets.all(16),
+                        itemCount: restaurants.length,
+                        itemBuilder: (context, index) {
+                          final restaurant = restaurants[index];
+                          return InkWell(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      UserRestaurantDetailPage(
+                                          restaurant: restaurant),
+                                ),
+                              );
+                            },
+                            child: RestaurantCard(restaurant: restaurant),
                           );
                         },
-                        child: Card(
-                          color: const Color.fromARGB(255, 170, 98, 153),
-                          margin: const EdgeInsets.only(bottom: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          elevation: 4,
-                          child: Padding(
-                            padding: const EdgeInsets.all(12.0),
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Row(
-                                        children: List.generate(
-                                          5,
-                                          (i) => Icon(
-                                            i < restaurant.rating.floor()
-                                                ? Icons.star
-                                                : Icons.star_border,
-                                            color: Colors.amber,
-                                            size: 18,
-                                          ),
-                                        ),
-                                      ),
-                                      const SizedBox(height: 6),
-                                      Text(
-                                        restaurant.name,
-                                        style: const TextStyle(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.bold,
-                                            color: Colors.white),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        "Tipo de comida: ${restaurant.typeOfFood}",
-                                        style: const TextStyle(
-                                            fontSize: 14, color: Colors.white),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                            horizontal: 8, vertical: 4),
-                                        decoration: BoxDecoration(
-                                          color: Colors.green[100],
-                                          borderRadius:
-                                              BorderRadius.circular(12),
-                                        ),
-                                        child: Text(
-                                          "Offers: ${restaurant.offer}",
-                                          style: const TextStyle(
-                                              fontSize: 12,
-                                              color: Colors.green),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                ClipRRect(
-                                  borderRadius: BorderRadius.circular(12),
-                                  child: Image.asset(
-                                    restaurant.imageUrl,
-                                    width: 80,
-                                    height: 80,
-                                    fit: BoxFit.cover,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
                       );
                     },
                   ),

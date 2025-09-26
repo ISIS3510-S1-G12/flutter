@@ -20,6 +20,17 @@ class ReviewViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> loadReviewsByUser(String userId) async {
+  isLoading = true;
+  notifyListeners();
+
+  reviews = await _repository.getReviewsByUser(userId);
+
+  isLoading = false;
+  notifyListeners();
+}
+
+
   /// Tomar foto y subir a Storage
   Future<void> pickImage(String reviewId) async {
     isLoading = true;

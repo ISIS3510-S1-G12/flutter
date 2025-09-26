@@ -56,4 +56,20 @@ class ReviewRepository {
         .map((doc) => Review.fromFirestore(doc.id, doc.data()))
         .toList();
   }
+
+  /// Obtener todas las reviews hechas por un usuario
+Future<List<Review>> getReviewsByUser(String userId) async {
+  final snapshot = await _db
+      .collection("Reviews")
+      .where(
+        "user_id",
+        isEqualTo: _db.collection("Users").doc(userId),
+      )
+      .get();
+
+  return snapshot.docs
+      .map((doc) => Review.fromFirestore(doc.id, doc.data()))
+      .toList();
+}
+
 }
