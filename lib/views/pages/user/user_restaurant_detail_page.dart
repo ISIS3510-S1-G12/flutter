@@ -1,308 +1,342 @@
+import 'dart:convert';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
-import 'package:moviles/views/pages/user/write_review_page.dart';
-import '/views/widget/restaurant_card.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import '/models/restaurant.dart';
+import '/models/review.dart';
+import '/models/dish.dart';
+import '/repositories/review_repository.dart';
+import '/repositories/dish_repository.dart';
+import '/views/widget/restaurant_detail_card.dart';
+import '/views/pages/user/write_review_page.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
-final List<Restaurant> restaurants = [
-  Restaurant(
-    id: "1",
-    name: "Bacon Sandwich",
-    typeOfFood: "ANVORGUESA CON BACON",
-    rating: 4.5,
-    offer: "20% off",
-    imageUrl: "images/bacon.png",
-  ),
-  Restaurant(
-    id: "2",
-    name: "bbq Sandwich",
-    typeOfFood: "ANVORGUESA CON BBQ",
-    rating: 4.0,
-    offer: "15% off",
-    imageUrl: "images/bbq.png",
-  ),
-  Restaurant(
-    id: "3",
-    name: "Chicken Sandwich",
-    typeOfFood: "ANVORGUESA CON POLLO",
-    rating: 3.5,
-    offer: "Buy 1 Get 1",
-    imageUrl: "images/pollo.png",
-  ),
-];
-
-class UserRestaurantDetailPage extends StatelessWidget {
+class UserRestaurantDetailPage extends StatefulWidget {
   final Restaurant restaurant;
   const UserRestaurantDetailPage({super.key, required this.restaurant});
 
   @override
-  Widget build(BuildContext context) {
-    return DefaultTabController(
-      length: 3,
-      child: Scaffold(
-        backgroundColor: Colors.white,
-        appBar: AppBar(
-          backgroundColor: Colors.white,
-          elevation: 0,
-          title: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Image.asset(
-                "images/483891256-e6bd4888-8904-4028-911f-dff62cc98965.png",
-                height: MediaQuery.of(context).size.height * 0.08,
-              ),
-              InkWell(
-                onTap: () {},
-                child: const CircleAvatar(
-                  radius: 28,
-                  backgroundColor: Color.fromARGB(255, 214, 145, 104),
-                  child: Icon(Icons.person, color: Colors.white),
-                ),
-              ),
-            ],
-          ),
-          bottom: PreferredSize(
-            preferredSize: const Size.fromHeight(70),
-            child: Column(
-              children: const [
-                Divider(
-                  color: Colors.grey,
-                  thickness: 1,
-                  height: 1,
-                ),
-                TabBar(
-                  isScrollable: false,
-                  labelColor: Colors.black,
-                  indicatorColor: Color.fromARGB(255, 214, 145, 104),
-                  labelPadding: EdgeInsets.symmetric(horizontal: 3.0),
-                  tabs: [
-                    Tab(text: "Menu"),
-                    Tab(text: "Offers"),
-                    Tab(text: "Reviews"),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
-        body: Column(
-          children: [
-            const SizedBox(height: 8),
-            // 🔹 Barra de búsqueda + filtro
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      decoration: InputDecoration(
-                        hintText: "Search here...",
-                        hintStyle: const TextStyle(color: Colors.white),
-                        prefixIcon:
-                            const Icon(Icons.search, color: Colors.white),
-                        filled: true,
-                        fillColor: const Color.fromARGB(255, 214, 145, 104),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(30),
-                          borderSide: BorderSide.none,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  // Botón de filtro
-                  Container(
-                    decoration: BoxDecoration(
-                      color: const Color.fromARGB(255, 214, 145, 104),
-                      borderRadius: BorderRadius.circular(30),
-                    ),
-                    child: IconButton(
-                      icon: const Icon(Icons.filter_list, color: Colors.white),
-                      onPressed: () {
-                        showModalBottomSheet(
-                          context: context,
-                          shape: const RoundedRectangleBorder(
-                            borderRadius: BorderRadius.vertical(
-                                top: Radius.circular(20)),
-                          ),
-                          builder: (BuildContext context) {
-                            bool filter1 = false;
-                            bool filter2 = false;
-                            bool filter3 = false;
-                            bool filter4 = false;
+  State<UserRestaurantDetailPage> createState() =>
+      _UserRestaurantDetailPageState();
+}
 
-                            return StatefulBuilder(
-                              builder: (context, setState) {
-                                return Padding(
-                                  padding: const EdgeInsets.all(16.0),
-                                  child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      const Text(
-                                        "Filtros",
-                                        style: TextStyle(
-                                            fontSize: 20,
-                                            fontWeight: FontWeight.bold),
-                                      ),
-                                      const SizedBox(height: 10),
-                                      CheckboxListTile(
-                                        title: const Text("Cheapest"),
-                                        value: filter1,
-                                        onChanged: (val) {
-                                          setState(() {
-                                            filter1 = val ?? false;
-                                          });
-                                        },
-                                      ),
-                                      CheckboxListTile(
-                                        title: const Text("Most Ordered"),
-                                        value: filter2,
-                                        onChanged: (val) {
-                                          setState(() {
-                                            filter2 = val ?? false;
-                                          });
-                                        },
-                                      ),
-                                      CheckboxListTile(
-                                        title: const Text("Restaurant Favorites"),
-                                        value: filter3,
-                                        onChanged: (val) {
-                                          setState(() {
-                                            filter3 = val ?? false;
-                                          });
-                                        },
-                                      ),
-                                      CheckboxListTile(
-                                        title: const Text("Highest Discount"),
-                                        value: filter4,
-                                        onChanged: (val) {
-                                          setState(() {
-                                            filter4 = val ?? false;
-                                          });
-                                        },
-                                      ),
-                                      const SizedBox(height: 10),
-                                      ElevatedButton(
-                                        onPressed: () {
-                                          print(
-                                              "Filtros aplicados: $filter1, $filter2, $filter3, $filter4");
-                                          Navigator.pop(context);
-                                        },
-                                        child: const Text("Apply Filters"),
-                                      ),
-                                    ],
-                                  ),
-                                );
-                              },
-                            );
-                          },
-                        );
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                ],
-              ),
-            ),
-            // 🔹 FlutterMap
-            Container(
-              height: 200,
-              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.grey.shade300),
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: FlutterMap(
-                  options: MapOptions(
-                    onTap: (tapPosition, latLng) {
-                      print("Tapped at: $latLng");
-                    },
-                    maxZoom: 12.0,
-                  ),
-                  children: [
-                    TileLayer(
-                      urlTemplate:
-                          "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-                      userAgentPackageName: 'com.example.moviles',
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            // 🔹 Botones adicionales
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Row(
+class _UserRestaurantDetailPageState extends State<UserRestaurantDetailPage> {
+  bool isFavorite = false;
+
+  // Función para decodificar Base64
+  Uint8List decodeBase64Image(String base64String) {
+    final base64Data = base64String.split(',').last;
+    return base64Decode(base64Data);
+  }
+
+  String formatTime(int time) {
+    if (time < 0 || time > 2359) return "--:--";
+    final hour = (time ~/ 100).toString().padLeft(2, '0');
+    final minute = (time % 100).toString().padLeft(2, '0');
+    return "$hour:$minute";
+  }
+
+  Future<void> toggleFavorite(Restaurant restaurant) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final favRef = FirebaseFirestore.instance
+        .collection('Favorites')
+        .doc(user.uid)
+        .collection('Restaurants')
+        .doc(restaurant.id);
+
+    final snapshot = await favRef.get();
+
+    if (snapshot.exists) {
+      await favRef.delete();
+      setState(() => isFavorite = false);
+    } else {
+      await favRef.set({
+        'restaurant_id': FirebaseFirestore.instance
+            .collection('Restaurants')
+            .doc(restaurant.id),
+        'name': restaurant.name,
+        'imageUrl': restaurant.imageUrl,
+        'offer': restaurant.offer,
+        'typeOfFood': restaurant.typeOfFood,
+        'addedAt': FieldValue.serverTimestamp(),
+      });
+      setState(() => isFavorite = true);
+    }
+  }
+
+  Future<void> checkIfFavorite(Restaurant restaurant) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final favRef = FirebaseFirestore.instance
+        .collection('Favorites')
+        .doc(user.uid)
+        .collection('Restaurants')
+        .doc(restaurant.id);
+
+    final snapshot = await favRef.get();
+    setState(() => isFavorite = snapshot.exists);
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    checkIfFavorite(widget.restaurant);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<DocumentSnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection("Restaurants")
+          .doc(widget.restaurant.id)
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        final data = snapshot.data!.data() as Map<String, dynamic>;
+
+        final fullRestaurant = Restaurant(
+          id: widget.restaurant.id,
+          name: data['name'] ?? '',
+          typeOfFood: data['typeOfFood'] ?? '',
+          rating: (data['rating'] != null)
+              ? double.tryParse(data['rating'].toString()) ?? 0.0
+              : 0.0,
+          offer: data['offer'] ?? '',
+          imageUrl: data['imageUrl'] ?? '',
+          address: data['address'] ?? '',
+          location: data['location'] ?? '',
+          openingTime: data['openingTime'] ?? 0,
+          closingTime: data['closingTime'] ?? 0,
+          email: data['email'] ?? '',
+        );
+
+        return DefaultTabController(
+          length: 3,
+          child: Scaffold(
+            backgroundColor: Colors.white,
+            appBar: AppBar(
+              backgroundColor: Colors.white,
+              elevation: 0,
+              title: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Container(
-                    decoration: BoxDecoration(
-                      color: const Color.fromARGB(255, 121, 39, 101),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: TextButton.icon(
-                      style: TextButton.styleFrom(
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(
-                            vertical: 10, horizontal: 16),
-                      ),
-                      onPressed: () {
-                        print("Busiest Hours pressed");
-                      },
-                      icon: const Icon(Icons.bar_chart),
-                      label: const Text(
-                        "Busiest Hours",
-                        style: TextStyle(
-                            fontSize: 14, fontWeight: FontWeight.bold),
-                      ),
-                    ),
+                  Image.asset(
+                    "images/483891256-e6bd4888-8904-4028-911f-dff62cc98965.png",
+                    height: MediaQuery.of(context).size.height * 0.08,
                   ),
-                  Container(
-                    decoration: BoxDecoration(
-                      color: const Color.fromARGB(255, 121, 39, 101),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: TextButton.icon(
-                      style: TextButton.styleFrom(
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(
-                            vertical: 10, horizontal: 16),
-                      ),
-                      onPressed: () {
-                        print("Marked as Favorite");
-                      },
-                      icon: const Icon(Icons.star),
-                      label: const Text(
-                        "Mark as Favorite",
-                        style: TextStyle(
-                            fontSize: 14, fontWeight: FontWeight.bold),
-                      ),
-                    ),
+                  const CircleAvatar(
+                    radius: 28,
+                    backgroundColor: Color.fromARGB(255, 214, 145, 104),
+                    child: Icon(Icons.person, color: Colors.white),
                   ),
                 ],
               ),
+              bottom: TabBar(
+                labelColor: Colors.black,
+                indicatorColor: const Color.fromARGB(255, 214, 145, 104),
+                tabs: const [
+                  Tab(text: "Menu"),
+                  Tab(text: "Offers"),
+                  Tab(text: "Reviews"),
+                ],
+              ),
             ),
-            const SizedBox(height: 8),
-            // 🔹 Lista de restaurantes
-            Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.all(16),
-                itemCount: restaurants.length,
-                itemBuilder: (context, index) {
-                  final restaurant = restaurants[index];
-                  return Card(
-                    color: const Color.fromARGB(255, 170, 98, 153),
-                    margin: const EdgeInsets.only(bottom: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    elevation: 4,
-                    child: Padding(
-                      padding: const EdgeInsets.all(12.0),
-                      child: Row(
-                        children: [
-                          Expanded(
+            body: TabBarView(
+              children: [
+                // 🔹 Menu Tab
+                SingleChildScrollView(
+                  child: Column(
+                    children: [
+                      RestaurantDetailCard(restaurant: fullRestaurant),
+
+                      // Botón favorito
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 8),
+                        child: ElevatedButton.icon(
+                          onPressed: () => toggleFavorite(fullRestaurant),
+                          icon: Icon(isFavorite
+                              ? Icons.favorite
+                              : Icons.favorite_border),
+                          label: Text(isFavorite
+                              ? "Marked as Favorite"
+                              : "Mark as Favorite"),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor:
+                                const Color.fromARGB(255, 121, 39, 101),
+                            foregroundColor: Colors.white,
+                          ),
+                        ),
+                      ),
+
+                      // Mapa
+                      Container(
+                        height: 200,
+                        margin: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 8),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.grey.shade300),
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: FlutterMap(
+                            options: MapOptions(maxZoom: 13.0),
+                            children: [
+                              TileLayer(
+                                urlTemplate:
+                                    "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+                                userAgentPackageName: 'com.example.moviles',
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+
+                      // 🔹 Dishes del restaurante
+                      StreamBuilder<List<Dish>>(
+                        stream: DishRepository()
+                            .getDishesByRestaurant(fullRestaurant.id),
+                        builder: (context, snapshot) {
+                          if (!snapshot.hasData) {
+                            return const Padding(
+                              padding: EdgeInsets.all(16),
+                              child: Center(child: CircularProgressIndicator()),
+                            );
+                          }
+
+                          final dishes = snapshot.data!;
+                          if (dishes.isEmpty) {
+                            return const Padding(
+                              padding: EdgeInsets.all(16),
+                              child: Text("No dishes yet."),
+                            );
+                          }
+
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 8),
+                            child: Column(
+                              children: dishes.map((dish) {
+                                return Card(
+                                  margin: const EdgeInsets.only(bottom: 12),
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(8.0),
+                                    child: Row(
+                                      children: [
+                                        dish.imageUrl.isNotEmpty
+                                            ? Image.memory(
+                                                decodeBase64Image(dish.imageUrl),
+                                                width: 60,
+                                                height: 60,
+                                                fit: BoxFit.cover,
+                                                cacheWidth: 60,
+                                                cacheHeight: 60,
+                                              )
+                                            : const Icon(Icons.image_not_supported,
+                                                size: 60),
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                dish.name,
+                                                style: const TextStyle(
+                                                    fontSize: 16,
+                                                    fontWeight: FontWeight.bold),
+                                              ),
+                                              const SizedBox(height: 4),
+                                              Text(
+                                                  "\$${dish.price.toStringAsFixed(2)}"),
+                                              const SizedBox(height: 2),
+                                              Row(
+                                                children: List.generate(
+                                                  5,
+                                                  (i) => Icon(
+                                                    i < dish.rating
+                                                        ? Icons.star
+                                                        : Icons.star_border,
+                                                    color: Colors.amber,
+                                                    size: 16,
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              }).toList(),
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+
+                // 🔹 Offers Tab
+                SingleChildScrollView(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: (fullRestaurant.offer ?? '').isNotEmpty
+                        ? Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.green[100],
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              fullRestaurant.offer ?? '',
+                              style: const TextStyle(
+                                fontSize: 16,
+                                color: Colors.green,
+                              ),
+                            ),
+                          )
+                        : const Center(child: Text("No offers available.")),
+                  ),
+                ),
+
+                // 🔹 Reviews Tab
+                FutureBuilder<List<Review>>(
+                  future: ReviewRepository()
+                      .getReviewsByRestaurant(fullRestaurant.id),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+                    if (snapshot.hasError) {
+                      return Center(child: Text('Error: ${snapshot.error}'));
+                    }
+
+                    final reviews = snapshot.data ?? [];
+                    if (reviews.isEmpty) {
+                      return const Center(child: Text("No reviews yet."));
+                    }
+
+                    return ListView.builder(
+                      padding: const EdgeInsets.all(16),
+                      itemCount: reviews.length,
+                      itemBuilder: (context, index) {
+                        final review = reviews[index];
+                        return Card(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          child: Padding(
+                            padding: const EdgeInsets.all(12.0),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
@@ -310,7 +344,7 @@ class UserRestaurantDetailPage extends StatelessWidget {
                                   children: List.generate(
                                     5,
                                     (i) => Icon(
-                                      i < restaurant.rating.floor()
+                                      i < review.stars
                                           ? Icons.star
                                           : Icons.star_border,
                                       color: Colors.amber,
@@ -319,79 +353,55 @@ class UserRestaurantDetailPage extends StatelessWidget {
                                   ),
                                 ),
                                 const SizedBox(height: 6),
-                                Text(
-                                  restaurant.name,
-                                  style: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.white),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  "Description: ${restaurant.typeOfFood}",
-                                  style: const TextStyle(
-                                      fontSize: 14, color: Colors.white),
-                                ),
+                                Text(review.comment),
+                                if (review.photoUrl != null)
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 8.0),
+                                    child: Image.network(
+                                      review.photoUrl!,
+                                      height: 120,
+                                      width: double.infinity,
+                                      fit: BoxFit.cover,
+                                    ),
+                                  ),
                               ],
                             ),
                           ),
-                          const SizedBox(width: 12),
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(12),
-                            child: Image.asset(
-                              restaurant.imageUrl,
-                              width: 80,
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                        ],
+                        );
+                      },
+                    );
+                  },
+                ),
+              ],
+            ),
+
+            // 🔹 Botón review
+            bottomNavigationBar: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: const Color.fromARGB(255, 121, 39, 101),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: TextButton.icon(
+                  style: TextButton.styleFrom(foregroundColor: Colors.white),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) =>
+                            WriteReviewPage(restaurantId: fullRestaurant.id),
                       ),
-                    ),
-                  );
-                },
+                    );
+                  },
+                  icon: const Icon(Icons.edit),
+                  label: const Text("Write a Review"),
+                ),
               ),
             ),
-            // 🔹 Botón Write Review
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-
-    children: [  
-   Container(
-    decoration: BoxDecoration(
-      color: Color.fromARGB(255, 121, 39, 101), // verde-azulado como la imagen
-      borderRadius: BorderRadius.circular(8),
-    ),
-    child: TextButton.icon(
-  style: TextButton.styleFrom(
-    foregroundColor: Colors.white,
-  ),
-  onPressed: () {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => WriteReviewPage(
-          restaurantId: restaurant.id, // 👈 aquí pasas el id del restaurante
-        ),
-      ),
-    );
-  },
-  icon: const Icon(Icons.edit),
-  label: const Text(
-    "Write a Review",
-    style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-  ),
-),
-
-  ),
-  
-  ],
-  ),),
-
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 }

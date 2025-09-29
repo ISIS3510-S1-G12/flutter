@@ -1,34 +1,55 @@
 import 'package:flutter/material.dart';
 import 'package:moviles/views/widget/register_widget.dart';
+import 'package:moviles/views/pages/restaurant/restaurant_form_page.dart';
 
 class RestaurantRegister extends StatelessWidget {
   const RestaurantRegister({super.key});
 
-    @override
-Widget build(BuildContext context) {
-  return Scaffold(
-    appBar: AppBar(
-      backgroundColor: Colors.white,
-      title: Text(""),
-      surfaceTintColor: Colors.white,
-    ),
-    backgroundColor: Colors.white,
-    body: SingleChildScrollView(
-      child: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Image(image: AssetImage("images/483891256-e6bd4888-8904-4028-911f-dff62cc98965.png"), height: MediaQuery.of(context).size.height * 0.25),
-            Text("WELCOME!", style: TextStyle(color: Color.fromARGB(255,39, 111, 121), fontSize:40, fontWeight: FontWeight.bold)),
-          Padding(padding: EdgeInsets.symmetric(vertical: 16.0)),
-          const RegisterWidget(
-              who: "restaurant",
-              accentColor: Color.fromARGB(255,39, 111, 121),
-          ),
-        ],
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        title: const Text(""),
+        surfaceTintColor: Colors.white,
       ),
-    ),
-  ),
-);
+      backgroundColor: Colors.white,
+      body: SingleChildScrollView(
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Image(
+                image: const AssetImage(
+                    "images/483891256-e6bd4888-8904-4028-911f-dff62cc98965.png"),
+                height: MediaQuery.of(context).size.height * 0.25,
+              ),
+              const Text(
+                "WELCOME!",
+                style: TextStyle(
+                  color: Color.fromARGB(255, 39, 111, 121),
+                  fontSize: 40,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const Padding(padding: EdgeInsets.symmetric(vertical: 16.0)),
+              
+              RegisterWidget(
+                who: "restaurant",
+                accentColor: const Color.fromARGB(255, 39, 111, 121),
+                onRegisterSuccess: (restaurantId) {
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => RestaurantFormPage(restaurantId: restaurantId),
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }

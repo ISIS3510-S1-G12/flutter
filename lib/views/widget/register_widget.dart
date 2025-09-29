@@ -6,10 +6,12 @@ import '../../viewmodels/auth_viewmodel.dart';
 class RegisterWidget extends StatefulWidget {
   final Color accentColor;
   final String who;
+  final void Function(String userId)? onRegisterSuccess; // ← agrega est
   
   const RegisterWidget({super.key,
     required this.accentColor,
     required this.who,
+    this.onRegisterSuccess,
   });
 
   @override

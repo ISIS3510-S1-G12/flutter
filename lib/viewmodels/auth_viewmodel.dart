@@ -12,8 +12,8 @@ class AuthViewModel extends ChangeNotifier {
   bool get loading => _loading;
   String? get error => _error;
 
-  // Registrar usuario
-  Future<void> register(String who,String name, String email, String password) async {
+  // Registrar usuario (manteniendo tu versión original)
+  Future<void> register(String who, String name, String email, String password) async {
     _loading = true;
     notifyListeners();
     try {
@@ -26,23 +26,45 @@ class AuthViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Login
-Future<void> login(String who, String email, String password) async {
-  _loading = true;
-  notifyListeners();
-  try {
-    await _repo.login(
-      email: email,
-      password: password,
-      expectedRole: who, // 👈 aquí va el rol correcto
-    );
-    _error = null;
-  } catch (e) {
-    _error = e.toString();
+  // Registrar usuario y retornar UID (para restaurantes)
+  Future<String> registerAndGetUid(String who, String name, String email, String password) async {
+    _loading = true;
+    notifyListeners();
+    try {
+      final uid = await _repo.register(
+        who: who,
+        name: name,
+        email: email,
+        password: password,
+      );
+      _error = null;
+      return uid; // 🔹 Retornamos el UID
+    } catch (e) {
+      _error = e.toString();
+      rethrow; // 🔹 Lanzamos la excepción para manejarla en UI
+    } finally {
+      _loading = false;
+      notifyListeners();
+    }
   }
-  _loading = false;
-  notifyListeners();
-}
+
+  // Login
+  Future<void> login(String who, String email, String password) async {
+    _loading = true;
+    notifyListeners();
+    try {
+      await _repo.login(
+        email: email,
+        password: password,
+        expectedRole: who,
+      );
+      _error = null;
+    } catch (e) {
+      _error = e.toString();
+    }
+    _loading = false;
+    notifyListeners();
+  }
 
   // Logout
   Future<void> logout() async {
