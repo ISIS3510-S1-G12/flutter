@@ -49,11 +49,10 @@ class RestaurantHomePage extends StatelessWidget {
           rating: (data['rating'] is num)
               ? (data['rating'] as num).toDouble()
               : 0.0,
-          offer: data['offer'] ?? '',
+          offer: data['offer'] ?? false,
           imageUrl: data['imageUrl'] ?? '',
           address: data['address'] ?? '',
           email: data['email'] ?? '',
-          location: data['location'] ?? '',
           openingTime:
               int.tryParse(data['opening_time']?.toString() ?? '0') ?? 0,
           closingTime:
@@ -285,7 +284,7 @@ class RestaurantHomePage extends StatelessWidget {
                               Text("Type: ${restaurant.typeOfFood}",
                                   style: const TextStyle(color: Colors.white)),
                               const SizedBox(height: 4),
-                              if (restaurant.offer!.isNotEmpty)
+                              if (restaurant.offer) // ✅ ahora bool
                                 Container(
                                   padding: const EdgeInsets.symmetric(
                                       horizontal: 8, vertical: 4),
@@ -293,9 +292,9 @@ class RestaurantHomePage extends StatelessWidget {
                                     color: Colors.green[100],
                                     borderRadius: BorderRadius.circular(12),
                                   ),
-                                  child: Text(
-                                    "Offer: ${restaurant.offer}",
-                                    style: const TextStyle(
+                                  child: const Text(
+                                    "Offer Available 🎉",
+                                    style: TextStyle(
                                         fontSize: 12, color: Colors.green),
                                   ),
                                 ),
@@ -339,23 +338,18 @@ class RestaurantHomePage extends StatelessWidget {
                                     padding: const EdgeInsets.all(8.0),
                                     child: Row(
                                       children: [
-                                        // Imagen al lado izquierdo
-                                       dish.imageUrl.isNotEmpty
-                                      ? Image.memory(
-                                         decodeBase64Image(dish.imageUrl),
-                                          width: 60,
-                                          height: 60,
-                                          fit: BoxFit.cover,
-                                          filterQuality: FilterQuality.low,
-                                          cacheWidth: 60,
-                                          cacheHeight: 60,
-                                        )
-                                      : const Icon(Icons.image_not_supported, size: 60),
-
-
+                                        dish.imageUrl.isNotEmpty
+                                            ? Image.memory(
+                                                decodeBase64Image(dish.imageUrl),
+                                                width: 60,
+                                                height: 60,
+                                                fit: BoxFit.cover,
+                                                filterQuality: FilterQuality.low,
+                                                cacheWidth: 60,
+                                                cacheHeight: 60,
+                                              )
+                                            : const Icon(Icons.image_not_supported, size: 60),
                                         const SizedBox(width: 12),
-
-                                        // Información del dish
                                         Expanded(
                                           child: Column(
                                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -466,8 +460,8 @@ class RestaurantHomePage extends StatelessWidget {
                 SingleChildScrollView(
                   child: Padding(
                     padding: const EdgeInsets.all(16),
-                    child: restaurant.offer!.isNotEmpty
-                        ? Text(restaurant.offer!)
+                    child: restaurant.offer
+                        ? const Text("Offer Available 🎉")
                         : const Text("No offers available"),
                   ),
                 ),

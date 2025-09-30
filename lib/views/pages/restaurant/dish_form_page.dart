@@ -18,6 +18,9 @@ class _DishFormPageState extends State<DishFormPage> {
   double _price = 0.0;
   int _rating = 0;
   String _imageUrl = '';
+  String _description = '';
+  String _dishType = 'main'; // valor default
+  List<String> _dishesTags = [];
 
   final DishRepository repository = DishRepository();
 
@@ -28,7 +31,10 @@ class _DishFormPageState extends State<DishFormPage> {
       _name = widget.dish!.name;
       _price = widget.dish!.price;
       _rating = widget.dish!.rating;
-      _imageUrl = widget.dish!.imageUrl ?? '';
+      _imageUrl = widget.dish!.imageUrl;
+      _description = widget.dish!.description;
+      _dishType = widget.dish!.dishType;
+      _dishesTags = widget.dish!.dishesTags;
     }
   }
 
@@ -42,12 +48,15 @@ class _DishFormPageState extends State<DishFormPage> {
           key: _formKey,
           child: ListView(
             children: [
+              // Nombre
               TextFormField(
                 initialValue: _name,
                 decoration: const InputDecoration(labelText: "Dish Name"),
                 validator: (value) => value == null || value.isEmpty ? "Enter a name" : null,
                 onSaved: (value) => _name = value!,
               ),
+
+              // Precio
               TextFormField(
                 initialValue: _price != 0.0 ? _price.toString() : '',
                 decoration: const InputDecoration(labelText: "Price"),
@@ -55,6 +64,8 @@ class _DishFormPageState extends State<DishFormPage> {
                 validator: (value) => value == null || double.tryParse(value) == null ? "Enter a valid price" : null,
                 onSaved: (value) => _price = double.parse(value!),
               ),
+
+              // Rating
               TextFormField(
                 initialValue: _rating != 0 ? _rating.toString() : '',
                 decoration: const InputDecoration(labelText: "Rating (1-5)"),
@@ -66,9 +77,40 @@ class _DishFormPageState extends State<DishFormPage> {
                 },
                 onSaved: (value) => _rating = int.parse(value!),
               ),
+
+              // Descripción
+              TextFormField(
+                initialValue: _description,
+                decoration: const InputDecoration(labelText: "Description"),
+                onSaved: (value) => _description = value ?? '',
+              ),
+
+              // Dish Type
+              DropdownButtonFormField<String>(
+                value: _dishType,
+                decoration: const InputDecoration(labelText: "Dish Type"),
+                items: const [
+                  DropdownMenuItem(value: "main", child: Text("Main")),
+                  DropdownMenuItem(value: "drink", child: Text("Drink")),
+                  DropdownMenuItem(value: "dessert", child: Text("Dessert")),
+                ],
+                onChanged: (value) => setState(() => _dishType = value ?? 'main'),
+              ),
+
+              // Tags (separados por coma)
+              TextFormField(
+                initialValue: _dishesTags.join(", "),
+                decoration: const InputDecoration(labelText: "Tags (comma separated)"),
+                onSaved: (value) => _dishesTags = value!
+                    .split(',')
+                    .map((tag) => tag.trim())
+                    .where((tag) => tag.isNotEmpty)
+                    .toList(),
+              ),
+
               const SizedBox(height: 16),
 
-              // Campo de URL de imagen
+              // Imagen
               TextFormField(
                 initialValue: _imageUrl,
                 decoration: const InputDecoration(
@@ -96,6 +138,7 @@ class _DishFormPageState extends State<DishFormPage> {
 
               const SizedBox(height: 16),
 
+              // Botón Guardar
               ElevatedButton(
                 child: const Text("Save"),
                 onPressed: () async {
@@ -108,7 +151,10 @@ class _DishFormPageState extends State<DishFormPage> {
                     name: _name,
                     price: _price,
                     rating: _rating,
-                    imageUrl: _imageUrl, // Guardamos la URL directamente
+                    imageUrl: _imageUrl,
+                    description: _description,
+                    dishType: _dishType,
+                    dishesTags: _dishesTags,
                   );
 
                   if (widget.dish != null) {

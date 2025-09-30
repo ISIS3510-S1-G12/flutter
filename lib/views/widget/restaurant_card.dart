@@ -8,7 +8,6 @@ class RestaurantCard extends StatelessWidget {
 
   const RestaurantCard({super.key, required this.restaurant});
   
-
   // Función para decodificar Base64
   Uint8List decodeBase64Image(String base64String) {
     final base64Data = base64String.split(',').last; // Quita prefijo data:image
@@ -17,13 +16,12 @@ class RestaurantCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-     // Verifica el valor de typeOfFood
-  print('Restaurant: ${restaurant.name}, typeOfFood: ${restaurant.typeOfFood}');
-  print('Restaurant: ${restaurant.name}, rating: ${restaurant.rating}');
-  print('Restaurant: ${restaurant.name}, imageUrl: ${restaurant.imageUrl}');
-  print('Restaurant: ${restaurant.name}, offer: ${restaurant.offer}');
-  print('Restaurant: ${restaurant.name}, location: ${restaurant.location}');
-  print('Restaurant: ${restaurant.name}, address: ${restaurant.address}');
+    // Debug prints (ajustados sin location)
+    print('Restaurant: ${restaurant.name}, typeOfFood: ${restaurant.typeOfFood}');
+    print('Restaurant: ${restaurant.name}, rating: ${restaurant.rating}');
+    print('Restaurant: ${restaurant.name}, imageUrl: ${restaurant.imageUrl}');
+    print('Restaurant: ${restaurant.name}, offer: ${restaurant.offer}');
+    print('Restaurant: ${restaurant.name}, address: ${restaurant.address}');
   
     return Card(
       color: const Color.fromARGB(255, 170, 98, 153),
@@ -76,23 +74,30 @@ class RestaurantCard extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 4),
-                  // Oferta (si existe)
-                  if (restaurant.offer != null && restaurant.offer!.isNotEmpty)
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.green[100],
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        "Offers: ${restaurant.offer}",
-                        style: const TextStyle(
-                            fontSize: 12, color: Colors.green),
-                        softWrap: true,
-                        overflow: TextOverflow.ellipsis,
-                      ),
+                  // Oferta (bool → mensaje)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: restaurant.offer
+                          ? Colors.green[100]
+                          : Colors.red[100],
+                      borderRadius: BorderRadius.circular(12),
                     ),
+                    child: Text(
+                      restaurant.offer
+                          ? "Offer available 🎉"
+                          : "No offers",
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: restaurant.offer
+                            ? Colors.green
+                            : Colors.red,
+                      ),
+                      softWrap: true,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
                 ],
               ),
             ),

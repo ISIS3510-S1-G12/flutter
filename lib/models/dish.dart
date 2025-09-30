@@ -6,7 +6,10 @@ class Dish {
   final String name;
   final double price;
   final int rating;
-  final String imageUrl; // <-- Cambiado de imageBase64 a imageUrl
+  final String imageUrl; 
+  final String description;     // Nuevo
+  final String dishType;        // Nuevo
+  final List<String> dishesTags; // Nuevo
 
   Dish({
     required this.id,
@@ -15,6 +18,9 @@ class Dish {
     required this.price,
     required this.rating,
     required this.imageUrl,
+    required this.description,
+    required this.dishType,
+    required this.dishesTags,
   });
 
   Map<String, dynamic> toMap() {
@@ -23,7 +29,10 @@ class Dish {
       'name': name,
       'price': price,
       'rating': rating,
-      'imageUrl': imageUrl, // <-- Guardar URL
+      'imageUrl': imageUrl,
+      'description': description,
+      'dishType': dishType,
+      'dishesTags': dishesTags,
     };
   }
 
@@ -35,7 +44,12 @@ class Dish {
       name: data['name'] ?? '',
       price: (data['price'] as num).toDouble(),
       rating: (data['rating'] as num).toInt(),
-      imageUrl: data['imageUrl'] ?? '', // <-- Leer URL
+      imageUrl: data['imageUrl'] ?? '',
+      description: data['description'] ?? '',
+      dishType: data['dishType'] ?? '',
+      dishesTags: data['dishesTags'] != null
+          ? List<String>.from(data['dishesTags'])
+          : [],
     );
   }
 }

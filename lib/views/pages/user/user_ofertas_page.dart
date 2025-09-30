@@ -24,8 +24,7 @@ class UserOfertasPage extends StatelessWidget {
         email: data['email'] ?? '',
         openingTime: data['openingTime'] ?? 0,
         closingTime: data['closingTime'] ?? 0,
-        location: data['location'] ?? '',
-        offer: data['offer'] ?? 'No offers',
+        offer: data['offer'] == true, 
       );
     }).toList();
   }
@@ -112,21 +111,38 @@ class UserOfertasPage extends StatelessWidget {
                                 ),
                                 const SizedBox(height: 4),
                                 // Oferta
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 8, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: Colors.green[100],
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Text(
-                                    "Offer: ${restaurant.offer}",
-                                    style: const TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.green,
+                                if (restaurant.offer) // ✅ solo si es true
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: Colors.green[100],
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: const Text(
+                                      "Offer available 🎉",
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.green,
+                                      ),
+                                    ),
+                                  )
+                                else
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: Colors.red[100],
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: const Text(
+                                      "No offers",
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.red,
+                                      ),
                                     ),
                                   ),
-                                ),
                               ],
                             ),
                           ),

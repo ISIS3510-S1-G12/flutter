@@ -163,17 +163,17 @@ class UserHomePage extends StatelessWidget {
                           name: data["name"] ?? "",
                           typeOfFood: data["typeOfFood"] ?? "",
                           rating: (data["rating"] != null)
-                             ? double.tryParse(data["rating"].toString()) ?? 0.0
+                              ? double.tryParse(data["rating"].toString()) ?? 0.0
                               : 0.0,
-
-                          offer: data["offer"] ?? "No offers",
-                         imageUrl: data["imageUrl"] ??
-                                "https://via.placeholder.com/150", // fallback online si no hay URL
-                          address: '',
-                          email: '',
-                          location: '',
-                          openingTime: 0,
-                           closingTime: 0,
+                          offer: data["offer"] ?? false,
+                          imageUrl: data["imageUrl"] ??
+                              "https://via.placeholder.com/150",
+                          address: data["address"] ?? "",
+                          email: data["email"] ?? "",
+                          openingTime:
+                              int.tryParse(data["openingTime"]?.toString() ?? '0') ?? 0,
+                          closingTime:
+                              int.tryParse(data["closingTime"]?.toString() ?? '0') ?? 0,
                         );
                       }).toList();
 

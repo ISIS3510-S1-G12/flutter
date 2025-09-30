@@ -102,32 +102,32 @@ class RestaurantDetailCard extends StatelessWidget {
                     style: const TextStyle(fontSize: 14),
                   ),
                   const SizedBox(height: 4),
-                  // Ubicación
-                  Text(
-                    "Location: ${restaurant.location}",
-                    style: const TextStyle(fontSize: 14),
-                  ),
-                  const SizedBox(height: 4),
                   // Horarios
                   Text(
                     "Opens: ${formatTime(restaurant.openingTime)} - Closes: ${formatTime(restaurant.closingTime)}",
                     style: const TextStyle(fontSize: 14),
                   ),
                   const SizedBox(height: 6),
-                  // Oferta (si existe)
-                  if ((restaurant.offer ?? '').isNotEmpty)
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.green[100],
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        "Offer: ${restaurant.offer}",
-                        style: const TextStyle(fontSize: 12, color: Colors.green),
+                  // Oferta (bool → mensaje)
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: restaurant.offer
+                          ? Colors.green[100]
+                          : Colors.red[100],
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      restaurant.offer
+                          ? "Offer available"
+                          : "No offers",
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: restaurant.offer ? Colors.green : Colors.red,
                       ),
                     ),
+                  ),
                 ],
               ),
             ),

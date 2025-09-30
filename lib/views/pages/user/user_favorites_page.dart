@@ -41,13 +41,14 @@ class UserFavoritesPage extends StatelessWidget {
             rating: (data['rating'] != null)
                 ? double.tryParse(data['rating'].toString()) ?? 0.0
                 : 0.0,
-            offer: data['offer'] ?? '',
+            offer: data['offer'] ?? false, // ✅ bool seguro
             imageUrl: data['imageUrl'] ?? '',
             address: data['address'] ?? '',
             email: data['email'] ?? '',
-            location: data['location'] ?? '',
-            openingTime: data['openingTime'] ?? 0,
-            closingTime: data['closingTime'] ?? 0,
+            openingTime:
+                int.tryParse(data['openingTime']?.toString() ?? '0') ?? 0,
+            closingTime:
+                int.tryParse(data['closingTime']?.toString() ?? '0') ?? 0,
           );
         }).toList();
 
@@ -89,7 +90,7 @@ class UserFavoritesPage extends StatelessWidget {
                               children: List.generate(
                                 5,
                                 (i) => Icon(
-                                  i < restaurant.rating!.floor()
+                                  i < restaurant.rating.floor()
                                       ? Icons.star
                                       : Icons.star_border,
                                   color: Colors.amber,
@@ -115,7 +116,7 @@ class UserFavoritesPage extends StatelessWidget {
                               ),
                             ),
                             const SizedBox(height: 4),
-                            if ((restaurant.offer ?? '').isNotEmpty)
+                            if (restaurant.offer) // ✅ bool
                               Container(
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 8, vertical: 4),
@@ -123,9 +124,9 @@ class UserFavoritesPage extends StatelessWidget {
                                   color: Colors.green[100],
                                   borderRadius: BorderRadius.circular(12),
                                 ),
-                                child: Text(
-                                  "Offers: ${restaurant.offer}",
-                                  style: const TextStyle(
+                                child: const Text(
+                                  "Offers available!",
+                                  style: TextStyle(
                                     fontSize: 12,
                                     color: Colors.green,
                                   ),

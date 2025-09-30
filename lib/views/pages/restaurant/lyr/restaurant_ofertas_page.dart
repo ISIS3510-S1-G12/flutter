@@ -16,7 +16,7 @@ class RestaurantOfertasPage extends StatelessWidget {
         typeOfFood: data['typeOfFood'] ?? '',
         rating: (data['rating'] ?? 0).toDouble(),
         offer: data['offer'] ?? '',
-        imageUrl: data['imageUrl'] ?? 'images/default.png', address: '', email: '', location: '', openingTime: 0, closingTime: 0,
+        imageUrl: data['imageUrl'] ?? 'images/default.png', address: '', email: '', openingTime: 0, closingTime: 0,
       );
     }).toList();
   }

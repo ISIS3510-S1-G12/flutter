@@ -14,20 +14,20 @@ class _RestaurantFormPageState extends State<RestaurantFormPage> {
   final _formKey = GlobalKey<FormState>();
   bool _loading = true;
 
+  /// Campos iniciales
   final Map<String, dynamic> restaurantFields = {
     "name": "",
     "typeOfFood": "",
     "address": "",
     "email": "",
     "rating": 0.0,
-    "offer": "",
     "imageUrl": "",
-    "location": "",
     "opening_time": "",
     "closing_time": "",
   };
 
   final Map<String, TextEditingController> controllers = {};
+  bool hasOffer = false; // 🔹 nuevo estado para el switch
 
   @override
   void initState() {
@@ -54,10 +54,14 @@ class _RestaurantFormPageState extends State<RestaurantFormPage> {
       if (doc.exists) {
         final data = doc.data()!;
         data.forEach((key, value) {
-          if (!controllers.containsKey(key)) {
-            controllers[key] = TextEditingController();
+          if (key == "offer") {
+            hasOffer = value == true; // 🔹 leer como bool
+          } else {
+            if (!controllers.containsKey(key)) {
+              controllers[key] = TextEditingController();
+            }
+            controllers[key]!.text = value.toString();
           }
-          controllers[key]!.text = value.toString();
         });
       }
     } catch (e) {
@@ -90,10 +94,14 @@ class _RestaurantFormPageState extends State<RestaurantFormPage> {
   Future<void> _saveRestaurantInfo() async {
     try {
       final dataToSave = <String, dynamic>{};
+
       controllers.forEach((key, controller) {
         dataToSave[key] =
             key.contains("time") ? int.tryParse(controller.text) ?? 0 : controller.text;
       });
+
+      // 🔹 añadimos el booleano de oferta
+      dataToSave["offer"] = hasOffer;
 
       await FirebaseFirestore.instance
           .collection("Restaurants")
@@ -136,7 +144,20 @@ class _RestaurantFormPageState extends State<RestaurantFormPage> {
           child: ListView(
             children: [
               ...generateFormFields(),
+
+              const SizedBox(height: 16),
+
+              // 🔹 Switch para oferta
+              SwitchListTile(
+                title: const Text("Has Offer?"),
+                value: hasOffer,
+                onChanged: (val) {
+                  setState(() => hasOffer = val);
+                },
+              ),
+
               const SizedBox(height: 20),
+
               ElevatedButton(
                 onPressed: () {
                   if (_formKey.currentState!.validate()) {

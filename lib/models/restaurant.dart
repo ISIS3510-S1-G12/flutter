@@ -1,4 +1,3 @@
-// models/restaurant.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class Restaurant {
@@ -8,8 +7,7 @@ class Restaurant {
   final String address;
   final String email;
   final String imageUrl;
-  final String location;
-  final String? offer;
+  final bool offer; // 🔹 ahora es boolean
   final int openingTime;
   final int closingTime;
   final Map<String, dynamic>? busiestHours;
@@ -22,37 +20,31 @@ class Restaurant {
     required this.address,
     required this.email,
     required this.imageUrl,
-    required this.location,
-    this.offer,
+    required this.offer, // 🔹 requerido y boolean
     required this.openingTime,
     required this.closingTime,
     this.busiestHours,
     required this.rating,
   });
 
- factory Restaurant.fromFirestore(DocumentSnapshot<Map<String, dynamic>> doc) {
-  final data = doc.data();
-  print("Documento Firestore [${doc.id}]: $data"); // Debug para ver todo
+  factory Restaurant.fromFirestore(DocumentSnapshot<Map<String, dynamic>> doc) {
+    final data = doc.data();
+    print("Documento Firestore [${doc.id}]: $data"); // Debug
 
-  return Restaurant(
-    id: doc.id,
-    name: data?['name'] ?? '',
-    typeOfFood: data?['typeOfFood']?.toString() ?? '',
-    address: data?['address']?.toString() ?? '',   // <- AHORA SÍ debería salir
-    email: data?['email']?.toString() ?? '',
-    imageUrl: data?['imageUrl'] ?? '',
-    openingTime: int.tryParse(data?['opening_time']?.toString() ?? '0') ?? 0,
-    closingTime: int.tryParse(data?['closing_time']?.toString() ?? '0') ?? 0,
-    busiestHours: data?['busiest_hours'],
-    // rating puede venir como String o como num:
-    rating: double.tryParse(data?['rating']?.toString() ?? '0') ?? 0.0,
-    location: data?['location']?.toString() ?? '',
-    offer: data?['offer']?.toString() ?? '',
-  );
-}
-
-
-
+    return Restaurant(
+      id: doc.id,
+      name: data?['name'] ?? '',
+      typeOfFood: data?['typeOfFood']?.toString() ?? '',
+      address: data?['address']?.toString() ?? '',
+      email: data?['email']?.toString() ?? '',
+      imageUrl: data?['imageUrl'] ?? '',
+      openingTime: int.tryParse(data?['opening_time']?.toString() ?? '0') ?? 0,
+      closingTime: int.tryParse(data?['closing_time']?.toString() ?? '0') ?? 0,
+      busiestHours: data?['busiest_hours'],
+      rating: double.tryParse(data?['rating']?.toString() ?? '0') ?? 0.0,
+      offer: data?['offer'] == true, // 🔹 siempre bool
+    );
+  }
 
   Map<String, dynamic> toMap() {
     return {
@@ -61,8 +53,7 @@ class Restaurant {
       'address': address,
       'email': email,
       'imageUrl': imageUrl,
-      'location': location,
-      'offer': offer,
+      'offer': offer, // 🔹 bool
       'opening_time': openingTime,
       'closing_time': closingTime,
       'busiest_hours': busiestHours,

@@ -59,7 +59,7 @@ class _UserRestaurantDetailPageState extends State<UserRestaurantDetailPage> {
             .doc(restaurant.id),
         'name': restaurant.name,
         'imageUrl': restaurant.imageUrl,
-        'offer': restaurant.offer,
+        'offer': restaurant.offer, 
         'typeOfFood': restaurant.typeOfFood,
         'addedAt': FieldValue.serverTimestamp(),
       });
@@ -110,10 +110,9 @@ class _UserRestaurantDetailPageState extends State<UserRestaurantDetailPage> {
           rating: (data['rating'] != null)
               ? double.tryParse(data['rating'].toString()) ?? 0.0
               : 0.0,
-          offer: data['offer'] ?? '',
+          offer: data['offer'] == true, // ✅ bool
           imageUrl: data['imageUrl'] ?? '',
           address: data['address'] ?? '',
-          location: data['location'] ?? '',
           openingTime: data['openingTime'] ?? 0,
           closingTime: data['closingTime'] ?? 0,
           email: data['email'] ?? '',
@@ -292,16 +291,16 @@ class _UserRestaurantDetailPageState extends State<UserRestaurantDetailPage> {
                 SingleChildScrollView(
                   child: Padding(
                     padding: const EdgeInsets.all(16),
-                    child: (fullRestaurant.offer ?? '').isNotEmpty
+                    child: fullRestaurant.offer
                         ? Container(
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
                               color: Colors.green[100],
                               borderRadius: BorderRadius.circular(12),
                             ),
-                            child: Text(
-                              fullRestaurant.offer ?? '',
-                              style: const TextStyle(
+                            child: const Text(
+                              "Offer available 🎉",
+                              style: TextStyle(
                                 fontSize: 16,
                                 color: Colors.green,
                               ),
