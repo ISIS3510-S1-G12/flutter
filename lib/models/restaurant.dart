@@ -7,7 +7,7 @@ class Restaurant {
   final String address;
   final String email;
   final String imageUrl;
-  final bool offer; // 🔹 ahora es boolean
+  final bool offer;
   final int openingTime;
   final int closingTime;
   final Map<String, dynamic>? busiestHours;
@@ -20,7 +20,7 @@ class Restaurant {
     required this.address,
     required this.email,
     required this.imageUrl,
-    required this.offer, // 🔹 requerido y boolean
+    required this.offer,
     required this.openingTime,
     required this.closingTime,
     this.busiestHours,
@@ -38,11 +38,13 @@ class Restaurant {
       address: data?['address']?.toString() ?? '',
       email: data?['email']?.toString() ?? '',
       imageUrl: data?['imageUrl'] ?? '',
+      offer: data?['offer'] == true, // siempre bool
       openingTime: int.tryParse(data?['opening_time']?.toString() ?? '0') ?? 0,
       closingTime: int.tryParse(data?['closing_time']?.toString() ?? '0') ?? 0,
-      busiestHours: data?['busiest_hours'],
+      busiestHours: data?['busiest_hours'] is Map<String, dynamic>
+          ? Map<String, dynamic>.from(data?['busiest_hours'])
+          : null,
       rating: double.tryParse(data?['rating']?.toString() ?? '0') ?? 0.0,
-      offer: data?['offer'] == true, // 🔹 siempre bool
     );
   }
 
@@ -53,7 +55,7 @@ class Restaurant {
       'address': address,
       'email': email,
       'imageUrl': imageUrl,
-      'offer': offer, // 🔹 bool
+      'offer': offer,
       'opening_time': openingTime,
       'closing_time': closingTime,
       'busiest_hours': busiestHours,

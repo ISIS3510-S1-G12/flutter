@@ -169,7 +169,7 @@ class RestaurantOfertasPage extends StatelessWidget {
                                     children: List.generate(
                                       5,
                                       (i) => Icon(
-                                        i < restaurant.rating!.floor()
+                                        i < restaurant.rating.floor()
                                             ? Icons.star
                                             : Icons.star_border,
                                         color: Colors.amber,

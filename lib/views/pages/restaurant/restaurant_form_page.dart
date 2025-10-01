@@ -1,181 +1,67 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:moviles/views/pages/restaurant/restaurant_home_page.dart';
+import 'package:provider/provider.dart';
+import 'package:moviles/viewmodels/restaurant_form_viewmodel.dart';
 
-class RestaurantFormPage extends StatefulWidget {
+class RestaurantFormPage extends StatelessWidget {
   final String restaurantId;
   const RestaurantFormPage({super.key, required this.restaurantId});
 
   @override
-  State<RestaurantFormPage> createState() => _RestaurantFormPageState();
-}
-
-class _RestaurantFormPageState extends State<RestaurantFormPage> {
-  final _formKey = GlobalKey<FormState>();
-  bool _loading = true;
-
-  /// Campos iniciales
-  final Map<String, dynamic> restaurantFields = {
-    "name": "",
-    "typeOfFood": "",
-    "address": "",
-    "email": "",
-    "rating": 0.0,
-    "imageUrl": "",
-    "opening_time": "",
-    "closing_time": "",
-  };
-
-  final Map<String, TextEditingController> controllers = {};
-  bool hasOffer = false; // 🔹 nuevo estado para el switch
-
-  @override
-  void initState() {
-    super.initState();
-    restaurantFields.forEach((key, value) {
-      controllers[key] = TextEditingController();
-    });
-    _loadExistingData();
-  }
-
-  @override
-  void dispose() {
-    controllers.forEach((_, c) => c.dispose());
-    super.dispose();
-  }
-
-  Future<void> _loadExistingData() async {
-    try {
-      final doc = await FirebaseFirestore.instance
-          .collection("Restaurants")
-          .doc(widget.restaurantId)
-          .get();
-
-      if (doc.exists) {
-        final data = doc.data()!;
-        data.forEach((key, value) {
-          if (key == "offer") {
-            hasOffer = value == true; // 🔹 leer como bool
-          } else {
-            if (!controllers.containsKey(key)) {
-              controllers[key] = TextEditingController();
-            }
-            controllers[key]!.text = value.toString();
-          }
-        });
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text("Error al cargar datos: $e")));
-    } finally {
-      setState(() => _loading = false);
-    }
-  }
-
-  List<Widget> generateFormFields() {
-    return restaurantFields.keys.map((key) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8.0),
-        child: TextFormField(
-          controller: controllers[key],
-          decoration: InputDecoration(
-            labelText: key.replaceAll("_", " ").toUpperCase(),
-          ),
-          keyboardType: key.contains("time")
-              ? TextInputType.number
-              : TextInputType.text,
-          validator: (value) =>
-              (value == null || value.isEmpty) ? "Required" : null,
-        ),
-      );
-    }).toList();
-  }
-
-  Future<void> _saveRestaurantInfo() async {
-    try {
-      final dataToSave = <String, dynamic>{};
-
-      controllers.forEach((key, controller) {
-        dataToSave[key] =
-            key.contains("time") ? int.tryParse(controller.text) ?? 0 : controller.text;
-      });
-
-      // 🔹 añadimos el booleano de oferta
-      dataToSave["offer"] = hasOffer;
-
-      await FirebaseFirestore.instance
-          .collection("Restaurants")
-          .doc(widget.restaurantId)
-          .set({
-        ...dataToSave,
-        "role": "restaurant",
-        "updated_at": FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
-
-      if (mounted) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => RestaurantHomePage(restaurantId: widget.restaurantId)),
-        );
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text("Error al guardar: $e")));
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
-    if (_loading) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
-    }
+    return ChangeNotifierProvider(
+      create: (_) => RestaurantFormViewModel(restaurantId)..loadData(),
+      child: Consumer<RestaurantFormViewModel>(
+        builder: (context, vm, _) {
+          if (vm.isLoading) {
+            return const Scaffold(
+              body: Center(child: CircularProgressIndicator()),
+            );
+          }
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text("Restaurant Info"),
-        backgroundColor: const Color.fromARGB(255, 39, 111, 121),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
-          child: ListView(
-            children: [
-              ...generateFormFields(),
+          return Scaffold(
+            appBar: AppBar(
+              title: const Text("Restaurant Info"),
+              backgroundColor: const Color.fromARGB(255, 39, 111, 121),
+            ),
+            body: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Form(
+                key: vm.formKey,
+                child: ListView(
+                  children: [
+                    ...vm.generateFormFields(),
 
-              const SizedBox(height: 16),
+                    const SizedBox(height: 16),
 
-              // 🔹 Switch para oferta
-              SwitchListTile(
-                title: const Text("Has Offer?"),
-                value: hasOffer,
-                onChanged: (val) {
-                  setState(() => hasOffer = val);
-                },
-              ),
+                    SwitchListTile(
+                      title: const Text("Has Offer?"),
+                      value: vm.hasOffer,
+                      onChanged: vm.toggleOffer,
+                    ),
 
-              const SizedBox(height: 20),
+                    const SizedBox(height: 20),
 
-              ElevatedButton(
-                onPressed: () {
-                  if (_formKey.currentState!.validate()) {
-                    _saveRestaurantInfo();
-                  }
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color.fromARGB(255, 39, 111, 121),
-                  minimumSize: const Size(double.infinity, 50),
+                    ElevatedButton(
+                      onPressed: () {
+                        if (vm.formKey.currentState!.validate()) {
+                          vm.saveRestaurantInfo(context);
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color.fromARGB(255, 39, 111, 121),
+                        minimumSize: const Size(double.infinity, 50),
+                      ),
+                      child: const Text(
+                        "Save and Continue",
+                        style: TextStyle(color: Colors.white, fontSize: 18),
+                      ),
+                    ),
+                  ],
                 ),
-                child: const Text(
-                  "Save and Continue",
-                  style: TextStyle(color: Colors.white, fontSize: 18),
-                ),
               ),
-            ],
-          ),
-        ),
+            ),
+          );
+        },
       ),
     );
   }
