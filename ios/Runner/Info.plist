@@ -7,6 +7,19 @@
 
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Necesitamos acceder a la galería para tus fotos de reseñas.</string>
+
+	<!-- 🔹 Bluetooth -->
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>La aplicación necesita usar Bluetooth para contar las personas cercanas.</string>
+	<key>NSBluetoothPeripheralUsageDescription</key>
+	<string>La aplicación necesita acceso a Bluetooth para comunicarse con dispositivos.</string>
+
+	<!-- 🔹 Ubicación (necesario para escaneo BLE en iOS) -->
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>La aplicación necesita acceso a tu ubicación para detectar dispositivos Bluetooth cercanos.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>La aplicación requiere acceso a tu ubicación en segundo plano para contar personas cercanas.</string>
+
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>

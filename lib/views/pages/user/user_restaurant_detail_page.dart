@@ -11,6 +11,7 @@ import '/repositories/dish_repository.dart';
 import '/views/widget/restaurant_detail_card.dart';
 import '/views/pages/user/write_review_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 
 class UserRestaurantDetailPage extends StatefulWidget {
   final Restaurant restaurant;
@@ -24,7 +25,6 @@ class UserRestaurantDetailPage extends StatefulWidget {
 class _UserRestaurantDetailPageState extends State<UserRestaurantDetailPage> {
   bool isFavorite = false;
 
-  // Función para decodificar Base64
   Uint8List decodeBase64Image(String base64String) {
     final base64Data = base64String.split(',').last;
     return base64Decode(base64Data);
@@ -59,7 +59,7 @@ class _UserRestaurantDetailPageState extends State<UserRestaurantDetailPage> {
             .doc(restaurant.id),
         'name': restaurant.name,
         'imageUrl': restaurant.imageUrl,
-        'offer': restaurant.offer, 
+        'offer': restaurant.offer,
         'typeOfFood': restaurant.typeOfFood,
         'addedAt': FieldValue.serverTimestamp(),
       });
@@ -79,6 +79,26 @@ class _UserRestaurantDetailPageState extends State<UserRestaurantDetailPage> {
 
     final snapshot = await favRef.get();
     setState(() => isFavorite = snapshot.exists);
+  }
+
+  /// 🔹 Escaneo Bluetooth
+  Future<int> scanNearbyDevices() async {
+    List<String> detectedDevices = [];
+
+    await FlutterBluePlus.startScan(timeout: const Duration(seconds: 5));
+
+    FlutterBluePlus.scanResults.listen((results) {
+      for (var r in results) {
+        if (!detectedDevices.contains(r.device.id.id)) {
+          detectedDevices.add(r.device.id.id);
+        }
+      }
+    });
+
+    await Future.delayed(const Duration(seconds: 6));
+    await FlutterBluePlus.stopScan();
+
+    return detectedDevices.length;
   }
 
   @override
@@ -110,7 +130,7 @@ class _UserRestaurantDetailPageState extends State<UserRestaurantDetailPage> {
           rating: (data['rating'] != null)
               ? double.tryParse(data['rating'].toString()) ?? 0.0
               : 0.0,
-          offer: data['offer'] == true, // ✅ bool
+          offer: data['offer'] == true,
           imageUrl: data['imageUrl'] ?? '',
           address: data['address'] ?? '',
           openingTime: data['openingTime'] ?? 0,
@@ -157,27 +177,77 @@ class _UserRestaurantDetailPageState extends State<UserRestaurantDetailPage> {
                     children: [
                       RestaurantDetailCard(restaurant: fullRestaurant),
 
-                      // Botón favorito
+                      // Botones Favorito + Bluetooth
                       Padding(
                         padding: const EdgeInsets.symmetric(
                             horizontal: 16, vertical: 8),
-                        child: ElevatedButton.icon(
-                          onPressed: () => toggleFavorite(fullRestaurant),
-                          icon: Icon(isFavorite
-                              ? Icons.favorite
-                              : Icons.favorite_border),
-                          label: Text(isFavorite
-                              ? "Marked as Favorite"
-                              : "Mark as Favorite"),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor:
-                                const Color.fromARGB(255, 121, 39, 101),
-                            foregroundColor: Colors.white,
-                          ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            SizedBox(
+                              width: 150,
+                              child: ElevatedButton.icon(
+                                onPressed: () => toggleFavorite(fullRestaurant),
+                                icon: Icon(isFavorite
+                                    ? Icons.favorite
+                                    : Icons.favorite_border),
+                                label: Text(isFavorite
+                                    ? "Favorite"
+                                    : "Fav"),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor:
+                                      const Color.fromARGB(255, 121, 39, 101),
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 10),
+                                  textStyle: const TextStyle(fontSize: 14),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+
+                            // 📡 Botón Bluetooth
+                            SizedBox(
+                              width: 150,
+                              child: ElevatedButton.icon(
+                                onPressed: () async {
+                                  int peopleCount =
+                                      await scanNearbyDevices();
+                                  if (context.mounted) {
+                                    showDialog(
+                                      context: context,
+                                      builder: (context) => AlertDialog(
+                                        title:
+                                            const Text("Personas detectadas"),
+                                        content: Text(
+                                            "Se detectaron $peopleCount dispositivos cercanos."),
+                                        actions: [
+                                          TextButton(
+                                            onPressed: () =>
+                                                Navigator.pop(context),
+                                            child: const Text("OK"),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  }
+                                },
+                                icon: const Icon(Icons.bluetooth_searching),
+                                label: const Text("Personas"),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.teal,
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 10),
+                                  textStyle: const TextStyle(fontSize: 14),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
 
-                      // Mapa
+                      // 🌍 Mapa
                       Container(
                         height: 200,
                         margin: const EdgeInsets.symmetric(
@@ -201,7 +271,7 @@ class _UserRestaurantDetailPageState extends State<UserRestaurantDetailPage> {
                         ),
                       ),
 
-                      // 🔹 Dishes del restaurante
+                      // 🔹 Dishes
                       StreamBuilder<List<Dish>>(
                         stream: DishRepository()
                             .getDishesByRestaurant(fullRestaurant.id),
@@ -209,7 +279,8 @@ class _UserRestaurantDetailPageState extends State<UserRestaurantDetailPage> {
                           if (!snapshot.hasData) {
                             return const Padding(
                               padding: EdgeInsets.all(16),
-                              child: Center(child: CircularProgressIndicator()),
+                              child:
+                                  Center(child: CircularProgressIndicator()),
                             );
                           }
 
@@ -234,14 +305,16 @@ class _UserRestaurantDetailPageState extends State<UserRestaurantDetailPage> {
                                       children: [
                                         dish.imageUrl.isNotEmpty
                                             ? Image.memory(
-                                                decodeBase64Image(dish.imageUrl),
+                                                decodeBase64Image(
+                                                    dish.imageUrl),
                                                 width: 60,
                                                 height: 60,
                                                 fit: BoxFit.cover,
                                                 cacheWidth: 60,
                                                 cacheHeight: 60,
                                               )
-                                            : const Icon(Icons.image_not_supported,
+                                            : const Icon(
+                                                Icons.image_not_supported,
                                                 size: 60),
                                         const SizedBox(width: 12),
                                         Expanded(
@@ -253,7 +326,8 @@ class _UserRestaurantDetailPageState extends State<UserRestaurantDetailPage> {
                                                 dish.name,
                                                 style: const TextStyle(
                                                     fontSize: 16,
-                                                    fontWeight: FontWeight.bold),
+                                                    fontWeight:
+                                                        FontWeight.bold),
                                               ),
                                               const SizedBox(height: 4),
                                               Text(
@@ -315,11 +389,14 @@ class _UserRestaurantDetailPageState extends State<UserRestaurantDetailPage> {
                   future: ReviewRepository()
                       .getReviewsByRestaurant(fullRestaurant.id),
                   builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const Center(child: CircularProgressIndicator());
+                    if (snapshot.connectionState ==
+                        ConnectionState.waiting) {
+                      return const Center(
+                          child: CircularProgressIndicator());
                     }
                     if (snapshot.hasError) {
-                      return Center(child: Text('Error: ${snapshot.error}'));
+                      return Center(
+                          child: Text('Error: ${snapshot.error}'));
                     }
 
                     final reviews = snapshot.data ?? [];
@@ -337,7 +414,8 @@ class _UserRestaurantDetailPageState extends State<UserRestaurantDetailPage> {
                           child: Padding(
                             padding: const EdgeInsets.all(12.0),
                             child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                              crossAxisAlignment:
+                                  CrossAxisAlignment.start,
                               children: [
                                 Row(
                                   children: List.generate(
@@ -355,7 +433,8 @@ class _UserRestaurantDetailPageState extends State<UserRestaurantDetailPage> {
                                 Text(review.comment),
                                 if (review.photoUrl != null)
                                   Padding(
-                                    padding: const EdgeInsets.only(top: 8.0),
+                                    padding:
+                                        const EdgeInsets.only(top: 8.0),
                                     child: Image.network(
                                       review.photoUrl!,
                                       height: 120,
@@ -383,13 +462,14 @@ class _UserRestaurantDetailPageState extends State<UserRestaurantDetailPage> {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: TextButton.icon(
-                  style: TextButton.styleFrom(foregroundColor: Colors.white),
+                  style:
+                      TextButton.styleFrom(foregroundColor: Colors.white),
                   onPressed: () {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) =>
-                            WriteReviewPage(restaurantId: fullRestaurant.id),
+                        builder: (_) => WriteReviewPage(
+                            restaurantId: fullRestaurant.id),
                       ),
                     );
                   },

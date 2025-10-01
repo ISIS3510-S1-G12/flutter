@@ -10,6 +10,7 @@ import 'restaurant_upload_menu_page.dart';
 import 'edit_menu_page.dart';
 import 'package:moviles/models/dish.dart';
 import 'package:moviles/repositories/dish_repository.dart';
+import 'restaurantOffersPage.dart';
 
 class RestaurantHomePage extends StatelessWidget {
   final String restaurantId;
@@ -457,14 +458,7 @@ class RestaurantHomePage extends StatelessWidget {
                 ),
 
                 // 🔹 Offers Tab
-                SingleChildScrollView(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: restaurant.offer
-                        ? const Text("Offer Available 🎉")
-                        : const Text("No offers available"),
-                  ),
-                ),
+              RestaurantOffersPage(restaurantId: restaurant.id),
 
                 // 🔹 Reviews Tab
                 FutureBuilder<List<Review>>(
