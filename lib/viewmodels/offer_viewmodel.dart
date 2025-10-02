@@ -7,30 +7,29 @@ class OfferViewModel extends ChangeNotifier {
 
   OfferViewModel(this._offerRepo);
 
-  String _selectedFilter = "All"; // "All" | "Today"
-  String get selectedFilter => _selectedFilter;
-
-  void changeFilter(String filter) {
-    _selectedFilter = filter;
-    notifyListeners();
-  }
-
+  /// 🔹 Ofertas por restaurante
   Stream<List<Offer>> getOffers(String restaurantId) {
-    final baseStream = _offerRepo.getOffersByRestaurant(restaurantId);
-
-    return baseStream.map((offers) {
-      if (_selectedFilter == "All") return offers;
-
-      final now = DateTime.now();
-      return offers.where((offer) {
-        if (offer.validFrom == null || offer.validTo == null) return false;
-        return now.isAfter(offer.validFrom!) && now.isBefore(offer.validTo!);
-      }).toList();
-    });
+    return _offerRepo.getOffersByRestaurant(restaurantId);
   }
 
+  /// 🔹 Todas las ofertas (para usuarios)
+  Stream<List<Offer>> getAllOffers() {
+    return _offerRepo.getAllOffers();
+  }
+
+  /// 🔹 Crear una oferta
   Future<void> addOffer(Offer offer) async {
     await _offerRepo.createOffer(offer);
     notifyListeners();
   }
+
+  /// 🔹 Actualizar una oferta
+  Future<void> updateOffer(Offer offer) async {
+    await _offerRepo.updateOffer(offer);
+    notifyListeners();
+  }
+
+  Stream<List<Offer>> getOffersByRestaurant(String restaurantId) {
+  return _offerRepo.getOffersByRestaurant(restaurantId);
+}
 }

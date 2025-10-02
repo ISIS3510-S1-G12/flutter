@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import '../../models/restaurant.dart';
 import '../../repositories/restaurant_repository.dart';
@@ -38,7 +39,8 @@ class FilterWithoutOffer implements RestaurantFilter {
 
 /// 🔹 ViewModel principal
 class RestaurantViewModel extends ChangeNotifier {
-  final RestaurantRepository _repo = RestaurantRepository();
+  final RestaurantRepository _repo;
+  RestaurantViewModel(this._repo);
 
   List<Restaurant> restaurants = []; // todos
   List<Restaurant> filteredRestaurants = []; // filtrados
@@ -47,13 +49,14 @@ class RestaurantViewModel extends ChangeNotifier {
 
   RestaurantFilter? _activeFilter;
 
+  /// Cargar todos los restaurantes
   Future<void> fetchRestaurants() async {
     try {
       isLoading = true;
       notifyListeners();
 
       restaurants = await _repo.getRestaurants();
-      filteredRestaurants = restaurants; // por defecto sin filtro
+      filteredRestaurants = restaurants;
 
       isLoading = false;
       notifyListeners();
@@ -64,28 +67,62 @@ class RestaurantViewModel extends ChangeNotifier {
     }
   }
 
-  /// 🔹 Aplica un filtro
+  /// Guardar un restaurante con imagen opcional
+  Future<void> saveRestaurantOwner({
+    required String id,
+    required String name,
+    required String email,
+    required String address,
+    required String typeOfFood,
+    required bool offer,
+    File? imageFile,
+  }) async {
+    try {
+      isLoading = true;
+      notifyListeners();
+
+      String imageUrl = "";
+      if (imageFile != null) {
+        imageUrl = await _repo.uploadImage(id, imageFile);
+      }
+
+      final restaurant = Restaurant(
+        id: id,
+        name: name,
+        email: email,
+        address: address,
+        typeOfFood: typeOfFood,
+        offer: offer,
+        imageUrl: imageUrl,
+        openingTime: 9,
+        closingTime: 22,
+        busiestHours: {},
+        rating: 0.0,
+      );
+
+      await _repo.saveRestaurantWithId(id, restaurant);
+      await fetchRestaurants(); // refresca lista
+
+      isLoading = false;
+      notifyListeners();
+    } catch (e) {
+      isLoading = false;
+      errorMessage = e.toString();
+      notifyListeners();
+    }
+  }
+
+  /// Aplica un filtro
   void applyFilter(RestaurantFilter filter) {
     _activeFilter = filter;
     filteredRestaurants = filter.apply(restaurants);
     notifyListeners();
   }
 
-  /// 🔹 Limpia el filtro
+  /// Limpia el filtro
   void clearFilter() {
     _activeFilter = null;
     filteredRestaurants = restaurants;
     notifyListeners();
-  }
-
-  /// 🔹 Agregar restaurante y refrescar lista
-  Future<void> addRestaurant(Restaurant restaurant) async {
-    try {
-      await _repo.addRestaurant(restaurant);
-      await fetchRestaurants();
-    } catch (e) {
-      errorMessage = e.toString();
-      notifyListeners();
-    }
   }
 }

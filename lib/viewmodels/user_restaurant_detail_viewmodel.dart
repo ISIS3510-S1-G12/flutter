@@ -1,6 +1,4 @@
 // viewmodels/user_restaurant_detail_view_model.dart
-import 'dart:typed_data';
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -9,11 +7,6 @@ import '/models/restaurant.dart';
 
 class UserRestaurantDetailViewModel extends ChangeNotifier {
   bool isFavorite = false;
-
-  Uint8List decodeBase64Image(String base64String) {
-    final base64Data = base64String.split(',').last;
-    return base64Decode(base64Data);
-  }
 
   String formatTime(int time) {
     if (time < 0 || time > 2359) return "--:--";
@@ -39,11 +32,9 @@ class UserRestaurantDetailViewModel extends ChangeNotifier {
       isFavorite = false;
     } else {
       await favRef.set({
-        'restaurant_id': FirebaseFirestore.instance
-            .collection('Restaurants')
-            .doc(restaurant.id),
+        'restaurant_id': restaurant.id,
         'name': restaurant.name,
-        'imageUrl': restaurant.imageUrl,
+        'imageUrl': restaurant.imageUrl, // ✅ ahora siempre es Storage URL
         'offer': restaurant.offer,
         'typeOfFood': restaurant.typeOfFood,
         'addedAt': FieldValue.serverTimestamp(),

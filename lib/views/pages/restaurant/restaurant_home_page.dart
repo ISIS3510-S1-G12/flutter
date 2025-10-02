@@ -1,5 +1,3 @@
-import 'dart:convert';
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -16,12 +14,6 @@ class RestaurantHomePage extends StatelessWidget {
   final String restaurantId;
 
   const RestaurantHomePage({super.key, required this.restaurantId});
-
-  // Función para decodificar Base64
-  Uint8List decodeBase64Image(String base64String) {
-    final base64Data = base64String.split(',').last; // Quita prefijo data:image
-    return base64Decode(base64Data);
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -124,14 +116,12 @@ class RestaurantHomePage extends StatelessWidget {
                                 ClipRRect(
                                   borderRadius: BorderRadius.circular(12),
                                   child: restaurant.imageUrl.isNotEmpty
-                                      ? Image.memory(
-                                          decodeBase64Image(
-                                              restaurant.imageUrl),
+                                      ? Image.network(
+                                          restaurant.imageUrl,
                                           width: 64,
                                           height: 64,
                                           fit: BoxFit.cover,
-                                          errorBuilder: (context, error,
-                                              stackTrace) {
+                                          errorBuilder: (context, error, stackTrace) {
                                             return const Icon(
                                               Icons.image_not_supported,
                                               size: 64,
@@ -161,30 +151,6 @@ class RestaurantHomePage extends StatelessWidget {
                         ),
                       ),
 
-                      // Mapa
-                      Container(
-                        height: 200,
-                        margin: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 8),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.grey.shade300),
-                        ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(12),
-                          child: FlutterMap(
-                            options: MapOptions(maxZoom: 12.0),
-                            children: [
-                              TileLayer(
-                                urlTemplate:
-                                    "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-                                userAgentPackageName: 'com.example.moviles',
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-
                       // Botón Business Hours
                       Padding(
                         padding: const EdgeInsets.symmetric(
@@ -196,8 +162,7 @@ class RestaurantHomePage extends StatelessWidget {
                               showDialog(
                                   context: context,
                                   builder: (_) => AlertDialog(
-                                        title:
-                                            const Text("Business Hours"),
+                                        title: const Text("Business Hours"),
                                         content: Text(
                                             "Opening: ${restaurant.openingTime}:00\nClosing: ${restaurant.closingTime}:00"),
                                         actions: [
@@ -285,7 +250,7 @@ class RestaurantHomePage extends StatelessWidget {
                               Text("Type: ${restaurant.typeOfFood}",
                                   style: const TextStyle(color: Colors.white)),
                               const SizedBox(height: 4),
-                              if (restaurant.offer) // ✅ ahora bool
+                              if (restaurant.offer)
                                 Container(
                                   padding: const EdgeInsets.symmetric(
                                       horizontal: 8, vertical: 4),
@@ -312,7 +277,8 @@ class RestaurantHomePage extends StatelessWidget {
 
                       // 🔹 Dishes del restaurante
                       StreamBuilder<List<Dish>>(
-                        stream: DishRepository().getDishesByRestaurant(restaurant.id),
+                        stream: DishRepository()
+                            .getDishesByRestaurant(restaurant.id),
                         builder: (context, snapshot) {
                           if (!snapshot.hasData) {
                             return const Padding(
@@ -330,7 +296,8 @@ class RestaurantHomePage extends StatelessWidget {
                           }
 
                           return Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 8),
                             child: Column(
                               children: dishes.map((dish) {
                                 return Card(
@@ -340,25 +307,34 @@ class RestaurantHomePage extends StatelessWidget {
                                     child: Row(
                                       children: [
                                         dish.imageUrl.isNotEmpty
-                                            ? Image.memory(
-                                                decodeBase64Image(dish.imageUrl),
+                                            ? Image.network(
+                                                dish.imageUrl,
                                                 width: 60,
                                                 height: 60,
                                                 fit: BoxFit.cover,
-                                                filterQuality: FilterQuality.low,
-                                                cacheWidth: 60,
-                                                cacheHeight: 60,
+                                                errorBuilder: (context, error,
+                                                    stackTrace) {
+                                                  return const Icon(
+                                                    Icons.image_not_supported,
+                                                    size: 60,
+                                                  );
+                                                },
                                               )
-                                            : const Icon(Icons.image_not_supported, size: 60),
+                                            : const Icon(
+                                                Icons.image_not_supported,
+                                                size: 60),
                                         const SizedBox(width: 12),
                                         Expanded(
                                           child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
                                             children: [
                                               Text(
                                                 dish.name,
                                                 style: const TextStyle(
-                                                    fontSize: 16, fontWeight: FontWeight.bold),
+                                                    fontSize: 16,
+                                                    fontWeight:
+                                                        FontWeight.bold),
                                               ),
                                               const SizedBox(height: 4),
                                               Text("\$${dish.price.toStringAsFixed(2)}"),
@@ -367,7 +343,9 @@ class RestaurantHomePage extends StatelessWidget {
                                                 children: List.generate(
                                                   5,
                                                   (i) => Icon(
-                                                    i < dish.rating ? Icons.star : Icons.star_border,
+                                                    i < dish.rating
+                                                        ? Icons.star
+                                                        : Icons.star_border,
                                                     color: Colors.amber,
                                                     size: 16,
                                                   ),
@@ -388,82 +366,51 @@ class RestaurantHomePage extends StatelessWidget {
 
                       // Botones inferiores
                       Padding(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 8),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Container(
-                              decoration: BoxDecoration(
-                                color: const Color.fromARGB(255, 39, 111, 121),
-                                borderRadius: BorderRadius.circular(8),
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        child: Center(
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: const Color.fromARGB(255, 214, 145, 104),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: TextButton.icon(
+                              style: TextButton.styleFrom(
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(
+                                    vertical: 12, horizontal: 24),
                               ),
-                              child: TextButton.icon(
-                                style: TextButton.styleFrom(
-                                  foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(
-                                      vertical: 10, horizontal: 16),
-                                ),
-                                onPressed: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                        builder: (_) =>
-                                            const RestaurantUploadMenuPage()),
-                                  );
-                                },
-                                icon: const Icon(Icons.restaurant_menu),
-                                label: const Text(
-                                  "New Dish",
-                                  style: TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.bold),
-                                ),
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => EditMenuPage(
+                                      restaurantId: restaurant.id,
+                                    ),
+                                  ),
+                                );
+                              },
+                              icon: const Icon(Icons.restaurant_outlined),
+                              label: const Text(
+                                "New Dish",
+                                style: TextStyle(
+                                    fontSize: 16, fontWeight: FontWeight.bold),
                               ),
                             ),
-                            Container(
-                              decoration: BoxDecoration(
-                                color:
-                                    const Color.fromARGB(255, 214, 145, 104),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: TextButton.icon(
-                                style: TextButton.styleFrom(
-                                  foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(
-                                      vertical: 10, horizontal: 16),
-                                ),
-                                onPressed: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                        builder: (_) => EditMenuPage(
-                                            restaurantId: restaurant.id)),
-                                  );
-                                },
-                                icon: const Icon(Icons.restaurant_outlined),
-                                label: const Text(
-                                  "Edit Menu",
-                                  style: TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.bold),
-                                ),
-                              ),
-                            ),
-                          ],
+                          ),
                         ),
                       ),
+
                     ],
                   ),
                 ),
 
                 // 🔹 Offers Tab
-              RestaurantOffersPage(restaurantId: restaurant.id),
+                RestaurantOffersPage(restaurantId: restaurant.id),
 
                 // 🔹 Reviews Tab
                 FutureBuilder<List<Review>>(
-                  future:
-                      ReviewRepository().getReviewsByRestaurant(restaurant.id),
+                  future: ReviewRepository()
+                      .getReviewsByRestaurant(restaurant.id),
                   builder: (context, snapshot) {
                     if (!snapshot.hasData) {
                       return const Center(

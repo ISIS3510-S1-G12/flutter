@@ -9,9 +9,12 @@ import 'package:moviles/views/pages/users_page.dart';
 import 'package:moviles/repositories/auth_repository.dart';
 import 'package:moviles/repositories/user_repository.dart';
 import 'package:moviles/repositories/offer_repository.dart';
+import 'package:moviles/repositories/restaurant_repository.dart';
+
 import 'package:moviles/viewmodels/auth_viewmodel.dart';
 import 'package:moviles/viewmodels/user_viewmodel.dart';
 import 'package:moviles/viewmodels/offer_viewmodel.dart';
+import 'package:moviles/viewmodels/restaurant_viewmodel.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -19,7 +22,7 @@ Future<void> main() async {
   final app = await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-  print('✅ Firebase initialized: ${app.name}');
+  print('Firebase initialized: ${app.name}');
 
   runApp(const Sumaq());
 }
@@ -39,7 +42,10 @@ class Sumaq extends StatelessWidget {
           create: (_) => UserViewModel(UserRepository()),
         ),
         ChangeNotifierProvider(
-          create: (_) => OfferViewModel(OfferRepository()), // 👈 ya está aquí
+          create: (_) => OfferViewModel(OfferRepository()),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => RestaurantViewModel(RestaurantRepository()), // 👈 añadido
         ),
       ],
       child: MaterialApp(

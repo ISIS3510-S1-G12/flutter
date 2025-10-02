@@ -29,22 +29,18 @@ class Restaurant {
 
   factory Restaurant.fromFirestore(DocumentSnapshot<Map<String, dynamic>> doc) {
     final data = doc.data();
-    print("Documento Firestore [${doc.id}]: $data"); // Debug
-
     return Restaurant(
       id: doc.id,
       name: data?['name'] ?? '',
-      typeOfFood: data?['typeOfFood']?.toString() ?? '',
-      address: data?['address']?.toString() ?? '',
-      email: data?['email']?.toString() ?? '',
+      typeOfFood: data?['typeOfFood'] ?? '',
+      address: data?['address'] ?? '',
+      email: data?['email'] ?? '',
       imageUrl: data?['imageUrl'] ?? '',
-      offer: data?['offer'] == true, // siempre bool
-      openingTime: int.tryParse(data?['opening_time']?.toString() ?? '0') ?? 0,
-      closingTime: int.tryParse(data?['closing_time']?.toString() ?? '0') ?? 0,
-      busiestHours: data?['busiest_hours'] is Map<String, dynamic>
-          ? Map<String, dynamic>.from(data?['busiest_hours'])
-          : null,
-      rating: double.tryParse(data?['rating']?.toString() ?? '0') ?? 0.0,
+      offer: data?['offer'] == true,
+      openingTime: data?['opening_time'] ?? 9,
+      closingTime: data?['closing_time'] ?? 22,
+      busiestHours: data?['busiest_hours'],
+      rating: (data?['rating'] ?? 0).toDouble(),
     );
   }
 

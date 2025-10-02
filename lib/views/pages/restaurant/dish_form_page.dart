@@ -72,7 +72,7 @@ class DishFormPage extends StatelessWidget {
 
                     // Dish Type
                     DropdownButtonFormField<String>(
-                      initialValue: vm.dishType,
+                      value: vm.dishType,
                       decoration: const InputDecoration(labelText: "Dish Type"),
                       items: const [
                         DropdownMenuItem(value: "main", child: Text("Main")),
@@ -97,37 +97,39 @@ class DishFormPage extends StatelessWidget {
 
                     const SizedBox(height: 16),
 
-                    // Imagen
-                    TextFormField(
-                      initialValue: vm.imageUrl,
-                      decoration: const InputDecoration(
-                        labelText: "Image URL",
-                        hintText: "Enter full image URL",
-                      ),
-                      validator: (value) => value == null || value.isEmpty
-                          ? "Enter an image URL"
-                          : null,
-                      onSaved: (value) => vm.imageUrl = value!,
-                      onChanged: vm.updateImageUrl,
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    vm.imageUrl.isNotEmpty
-                        ? Image.network(
-                            vm.imageUrl,
-                            height: 150,
-                            errorBuilder: (context, error, stackTrace) =>
-                                const Center(
-                              child: Icon(Icons.image_not_supported, size: 64),
+                    // Imagen desde galería o URL
+                    Row(
+                      children: [
+                        ElevatedButton.icon(
+                          onPressed: () => vm.pickImage(),
+                          icon: const Icon(Icons.image),
+                          label: const Text("Pick Image"),
+                        ),
+                        const SizedBox(width: 10),
+                        if (vm.imageFile != null)
+                          Expanded(
+                            child: Image.file(
+                              vm.imageFile!,
+                              height: 120,
+                              fit: BoxFit.cover,
                             ),
                           )
-                        : const SizedBox(
-                            height: 150,
-                            child: Center(child: Text("No image URL provided")),
-                          ),
+                        else if (vm.imageUrl.isNotEmpty)
+                          Expanded(
+                            child: Image.network(
+                              vm.imageUrl,
+                              height: 120,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) =>
+                                  const Icon(Icons.image_not_supported, size: 64),
+                            ),
+                          )
+                        else
+                          const Text("No image selected"),
+                      ],
+                    ),
 
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 20),
 
                     ElevatedButton(
                       child: const Text("Save"),

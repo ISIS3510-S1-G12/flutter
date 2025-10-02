@@ -1,14 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-// Or, if using a relative path:
+import 'package:firebase_auth/firebase_auth.dart';
+
 import '../../viewmodels/auth_viewmodel.dart';
+import '../pages/user/lyr/user_login.dart';
+import '../pages/restaurant/restaurant_form_page.dart';
 
 class RegisterWidget extends StatefulWidget {
   final Color accentColor;
   final String who;
-  final void Function(String userId)? onRegisterSuccess; // ← agrega est
-  
-  const RegisterWidget({super.key,
+  final void Function(String userId)? onRegisterSuccess;
+
+  const RegisterWidget({
+    super.key,
     required this.accentColor,
     required this.who,
     this.onRegisterSuccess,
@@ -42,28 +46,23 @@ class _RegisterWidgetState extends State<RegisterWidget> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: <Widget>[
+          // Name
           SizedBox(
-            height: 70, 
+            height: 70,
             width: 200,
             child: TextFormField(
               controller: _nameController,
-              style: TextStyle(fontSize: 15),
+              style: const TextStyle(fontSize: 15),
               textAlign: TextAlign.center,
               decoration: InputDecoration(
                 hintText: 'Name',
-                border: OutlineInputBorder(
+                border: const OutlineInputBorder(
                   borderRadius: BorderRadius.all(Radius.circular(18.0)),
-                  borderSide: BorderSide(color: Colors.grey),
                 ),
                 focusedBorder: OutlineInputBorder(
-                  borderSide: BorderSide(
-                      color: widget.accentColor, width: 2.0),
-                  borderRadius: BorderRadius.all(Radius.circular(18.0)),
+                  borderSide: BorderSide(color: widget.accentColor, width: 2.0),
+                  borderRadius: const BorderRadius.all(Radius.circular(18.0)),
                 ),
-                errorStyle: TextStyle(
-                  fontSize: 12, 
-                  height: 0.8,  
-                          ),
               ),
               validator: (String? value) {
                 if (value == null || value.isEmpty) {
@@ -73,29 +72,25 @@ class _RegisterWidgetState extends State<RegisterWidget> {
               },
             ),
           ),
-          const Padding(padding: EdgeInsets.symmetric(vertical: 10.0)),
+          const SizedBox(height: 10),
+
+          // Email
           SizedBox(
-            height: 70, 
+            height: 70,
             width: 200,
             child: TextFormField(
               controller: _emailController,
-              style:  TextStyle(fontSize: 15),
+              style: const TextStyle(fontSize: 15),
               textAlign: TextAlign.center,
-              decoration:  InputDecoration(
+              decoration: InputDecoration(
                 hintText: 'Email',
-                border: OutlineInputBorder(
+                border: const OutlineInputBorder(
                   borderRadius: BorderRadius.all(Radius.circular(18.0)),
-                  borderSide: BorderSide(color: Colors.grey),
                 ),
                 focusedBorder: OutlineInputBorder(
-                  borderSide: BorderSide(
-                      color: widget.accentColor, width: 2.0),
-                  borderRadius: BorderRadius.all(Radius.circular(18.0)),
+                  borderSide: BorderSide(color: widget.accentColor, width: 2.0),
+                  borderRadius: const BorderRadius.all(Radius.circular(18.0)),
                 ),
-                errorStyle: TextStyle(
-                  fontSize: 12, 
-                  height: 0.8,  
-                          ),
               ),
               validator: (String? value) {
                 if (value == null || value.isEmpty) {
@@ -105,62 +100,54 @@ class _RegisterWidgetState extends State<RegisterWidget> {
               },
             ),
           ),
-          const Padding(padding: EdgeInsets.symmetric(vertical: 10.0)),
+          const SizedBox(height: 10),
+
+          // Password
           SizedBox(
             height: 70,
             width: 200,
             child: TextFormField(
               controller: _passwordController,
-              style:  TextStyle(fontSize: 15),
+              style: const TextStyle(fontSize: 15),
               textAlign: TextAlign.center,
               obscureText: true,
-              decoration:  InputDecoration(
+              decoration: InputDecoration(
                 hintText: 'Password',
-                border: OutlineInputBorder(
+                border: const OutlineInputBorder(
                   borderRadius: BorderRadius.all(Radius.circular(18.0)),
-                  borderSide: BorderSide(color: Colors.grey),
                 ),
                 focusedBorder: OutlineInputBorder(
-                  borderSide: BorderSide(
-                      color: widget.accentColor, width: 2.0),
-                  borderRadius: BorderRadius.all(Radius.circular(18.0)),
-                ),
-                errorStyle: TextStyle(
-                  fontSize: 12,
-                  height: 0.8,
+                  borderSide: BorderSide(color: widget.accentColor, width: 2.0),
+                  borderRadius: const BorderRadius.all(Radius.circular(18.0)),
                 ),
               ),
               validator: (String? value) {
                 if (value == null || value.isEmpty) {
-                  return 'Enter your password';
+                  return 'Enter your Password';
                 }
                 return null;
               },
             ),
           ),
-          const Padding(padding: EdgeInsets.symmetric(vertical: 10.0)),
+          const SizedBox(height: 10),
+
+          // Confirm Password
           SizedBox(
-            height: 70, 
+            height: 70,
             width: 200,
             child: TextFormField(
               controller: _confirmPasswordController,
-              style:  TextStyle(fontSize: 15),
+              style: const TextStyle(fontSize: 15),
               textAlign: TextAlign.center,
               obscureText: true,
-              decoration:  InputDecoration(
+              decoration: InputDecoration(
                 hintText: 'Confirm Password',
-                border: OutlineInputBorder(
+                border: const OutlineInputBorder(
                   borderRadius: BorderRadius.all(Radius.circular(18.0)),
-                  borderSide: BorderSide(color: Colors.grey),
                 ),
                 focusedBorder: OutlineInputBorder(
-                  borderSide: BorderSide(
-                      color: widget.accentColor, width: 2.0),
-                  borderRadius: BorderRadius.all(Radius.circular(18.0)),
-                ),
-                errorStyle: TextStyle(
-                  fontSize: 12,
-                  height: 0.8,
+                  borderSide: BorderSide(color: widget.accentColor, width: 2.0),
+                  borderRadius: const BorderRadius.all(Radius.circular(18.0)),
                 ),
               ),
               validator: (String? value) {
@@ -174,40 +161,74 @@ class _RegisterWidgetState extends State<RegisterWidget> {
               },
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 16.0),
-            child: ElevatedButton(
-              onPressed: () async {
-                if (_formKey.currentState!.validate()) {
-                  if (_passwordController.text != _confirmPasswordController.text) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("Passwords do not match")),
-                    );
-                    return;
-                  }
+          const SizedBox(height: 20),
 
-                  try {
-                    final authVM = Provider.of<AuthViewModel>(context, listen: false);
-                    await authVM.register(
-                      widget.who,
-                      _nameController.text.trim(),
-                      _emailController.text.trim(),
-                      _passwordController.text.trim(),
-                    );
-
-                  } catch (e) {
-                    // Handle registration error
-                  }
+          // Register button
+          ElevatedButton(
+            onPressed: () async {
+              if (_formKey.currentState!.validate()) {
+                if (_passwordController.text != _confirmPasswordController.text) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("Passwords do not match")),
+                  );
+                  return;
                 }
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: widget.accentColor,
-                minimumSize: const Size(200, 50),
-              ),
-              child: const Text(
-                "Register",
-                style: TextStyle(color: Colors.white, fontSize: 20),
-              ),
+
+                try {
+                  final authVM = Provider.of<AuthViewModel>(context, listen: false);
+
+                  await authVM.register(
+                    widget.who,
+                    _nameController.text.trim(),
+                    _emailController.text.trim(),
+                    _passwordController.text.trim(),
+                  );
+
+                  if (authVM.error == null) {
+                    final uid = FirebaseAuth.instance.currentUser?.uid;
+
+                    if (uid != null) {
+                      if (widget.who == "restaurant") {
+                        // Si es restaurante → form
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => RestaurantFormPage(
+                              restaurantId: uid,
+                              initialName: _nameController.text.trim(),
+                              initialEmail: _emailController.text.trim(),
+                            ),
+                          ),
+                        );
+                      } else if (widget.who == "user") {
+                        // Si es usuario → login
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const UserLogin(),
+                          ),
+                        );
+                      }
+                    }
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text("Register failed: ${authVM.error}")),
+                    );
+                  }
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text("Error: $e")),
+                  );
+                }
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: widget.accentColor,
+              minimumSize: const Size(200, 50),
+            ),
+            child: const Text(
+              "Register",
+              style: TextStyle(color: Colors.white, fontSize: 20),
             ),
           ),
         ],

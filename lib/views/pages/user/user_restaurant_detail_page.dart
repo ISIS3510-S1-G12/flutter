@@ -10,6 +10,7 @@ import '/views/widget/restaurant_detail_card.dart';
 import '/views/pages/user/write_review_page.dart';
 import '/viewmodels/user_restaurant_detail_viewmodel.dart';
 import 'package:flutter_map/flutter_map.dart';
+import '/views/pages/user/user_ofertas_page.dart';
 
 class UserRestaurantDetailPage extends StatelessWidget {
   final Restaurant restaurant;
@@ -18,7 +19,8 @@ class UserRestaurantDetailPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
-      create: (_) => UserRestaurantDetailViewModel()..checkIfFavorite(restaurant),
+      create: (_) =>
+          UserRestaurantDetailViewModel()..checkIfFavorite(restaurant),
       child: Consumer<UserRestaurantDetailViewModel>(
         builder: (context, vm, _) {
           return StreamBuilder<DocumentSnapshot>(
@@ -125,9 +127,10 @@ class UserRestaurantDetailPage extends StatelessWidget {
                                           showDialog(
                                             context: context,
                                             builder: (context) => AlertDialog(
-                                              title: const Text("Personas detectadas"),
+                                              title: const Text(
+                                                  "People detected"),
                                               content: Text(
-                                                  "Se detectaron $peopleCount dispositivos cercanos."),
+                                                  "We detected $peopleCount nearby devices in this restaurant."),
                                               actions: [
                                                 TextButton(
                                                   onPressed: () =>
@@ -139,8 +142,9 @@ class UserRestaurantDetailPage extends StatelessWidget {
                                           );
                                         }
                                       },
-                                      icon: const Icon(Icons.bluetooth_searching),
-                                      label: const Text("Personas"),
+                                      icon: const Icon(
+                                          Icons.bluetooth_searching),
+                                      label: const Text("# People"),
                                       style: ElevatedButton.styleFrom(
                                         backgroundColor: Colors.teal,
                                         foregroundColor: Colors.white,
@@ -167,7 +171,8 @@ class UserRestaurantDetailPage extends StatelessWidget {
                                     TileLayer(
                                       urlTemplate:
                                           "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-                                      userAgentPackageName: 'com.example.moviles',
+                                      userAgentPackageName:
+                                          'com.example.moviles',
                                     ),
                                   ],
                                 ),
@@ -201,20 +206,21 @@ class UserRestaurantDetailPage extends StatelessWidget {
                                       margin: const EdgeInsets.only(bottom: 12),
                                       child: ListTile(
                                         leading: dish.imageUrl.isNotEmpty
-                                            ? Image.memory(
-                                                vm.decodeBase64Image(
-                                                    dish.imageUrl),
+                                            ? Image.network(
+                                                dish.imageUrl,
                                                 width: 60,
                                                 height: 60,
                                                 fit: BoxFit.cover,
                                               )
-                                            : const Icon(Icons.image_not_supported),
+                                            : const Icon(
+                                                Icons.image_not_supported),
                                         title: Text(dish.name),
                                         subtitle: Column(
                                           crossAxisAlignment:
                                               CrossAxisAlignment.start,
                                           children: [
-                                            Text("\$${dish.price.toStringAsFixed(2)}"),
+                                            Text(
+                                                "\$${dish.price.toStringAsFixed(2)}"),
                                             Row(
                                               children: List.generate(
                                                 5,
@@ -238,15 +244,7 @@ class UserRestaurantDetailPage extends StatelessWidget {
                           ],
                         ),
                       ),
-
-                      // OFFERS TAB
-                      Center(
-                        child: fullRestaurant.offer
-                            ? const Text("Offer available 🎉",
-                                style: TextStyle(color: Colors.green))
-                            : const Text("No offers available."),
-                      ),
-
+                      UserOfertasPage(restaurantId: fullRestaurant.id),
                       // REVIEWS TAB
                       FutureBuilder<List<Review>>(
                         future: ReviewRepository()
@@ -277,7 +275,8 @@ class UserRestaurantDetailPage extends StatelessWidget {
                                 child: Padding(
                                   padding: const EdgeInsets.all(12),
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Row(
                                         children: List.generate(
@@ -293,9 +292,11 @@ class UserRestaurantDetailPage extends StatelessWidget {
                                       ),
                                       const SizedBox(height: 6),
                                       Text(review.comment),
-                                      if (review.photoUrl != null)
+                                      if (review.photoUrl != null &&
+                                          review.photoUrl!.isNotEmpty)
                                         Padding(
-                                          padding: const EdgeInsets.only(top: 8.0),
+                                          padding:
+                                              const EdgeInsets.only(top: 8.0),
                                           child: Image.network(
                                             review.photoUrl!,
                                             height: 120,
@@ -329,8 +330,8 @@ class UserRestaurantDetailPage extends StatelessWidget {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) =>
-                                  WriteReviewPage(restaurantId: fullRestaurant.id),
+                              builder: (_) => WriteReviewPage(
+                                  restaurantId: fullRestaurant.id),
                             ),
                           );
                         },

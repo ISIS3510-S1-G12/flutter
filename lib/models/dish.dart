@@ -1,55 +1,79 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-
 class Dish {
   final String id;
-  final String restaurantId;
   final String name;
   final double price;
   final int rating;
-  final String imageUrl; 
-  final String description;     // Nuevo
-  final String dishType;        // Nuevo
-  final List<String> dishesTags; // Nuevo
+  final String description;
+  final String imageUrl;
+  final String restaurantId;
+  final List<String> dishesTags;
+  final String dishType;
 
   Dish({
     required this.id,
-    required this.restaurantId,
     required this.name,
     required this.price,
     required this.rating,
-    required this.imageUrl,
     required this.description,
-    required this.dishType,
+    required this.imageUrl,
+    required this.restaurantId,
     required this.dishesTags,
+    required this.dishType,
   });
 
-  Map<String, dynamic> toMap() {
-    return {
-      'restaurantId': restaurantId,
-      'name': name,
-      'price': price,
-      'rating': rating,
-      'imageUrl': imageUrl,
-      'description': description,
-      'dishType': dishType,
-      'dishesTags': dishesTags,
-    };
-  }
-
+  /// Crear Dish desde un documento de Firestore
   factory Dish.fromDocument(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
     return Dish(
       id: doc.id,
-      restaurantId: data['restaurantId'] ?? '',
       name: data['name'] ?? '',
-      price: (data['price'] as num).toDouble(),
-      rating: (data['rating'] as num).toInt(),
-      imageUrl: data['imageUrl'] ?? '',
+      price: (data['price'] ?? 0).toDouble(),
+      rating: (data['rating'] ?? 0).toInt(),
       description: data['description'] ?? '',
+      imageUrl: data['imageUrl'] ?? '',
+      restaurantId: data['restaurantId'] ?? '',
+      dishesTags: List<String>.from(data['dishesTags'] ?? []),
       dishType: data['dishType'] ?? '',
-      dishesTags: data['dishesTags'] != null
-          ? List<String>.from(data['dishesTags'])
-          : [],
+    );
+  }
+
+  /// Convertir Dish a un Map (para guardar en Firestore)
+  Map<String, dynamic> toMap() {
+    return {
+      'name': name,
+      'price': price,
+      'rating': rating,
+      'description': description,
+      'imageUrl': imageUrl,
+      'restaurantId': restaurantId,
+      'dishesTags': dishesTags,
+      'dishType': dishType,
+    };
+  }
+
+  /// Copiar Dish modificando solo lo necesario
+  Dish copyWith({
+    String? id,
+    String? name,
+    double? price,
+    int? rating,
+    String? description,
+    String? imageUrl,
+    String? restaurantId,
+    List<String>? dishesTags,
+    String? dishType,
+  }) {
+    return Dish(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      price: price ?? this.price,
+      rating: rating ?? this.rating,
+      description: description ?? this.description,
+      imageUrl: imageUrl ?? this.imageUrl,
+      restaurantId: restaurantId ?? this.restaurantId,
+      dishesTags: dishesTags ?? this.dishesTags,
+      dishType: dishType ?? this.dishType,
     );
   }
 }

@@ -1,23 +1,50 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:moviles/models/offer.dart';
-import 'package:moviles/viewmodels/offer_viewmodel.dart';
-import 'package:provider/provider.dart';
+import 'package:moviles/repositories/offer_repository.dart';
 
 class OfferFormViewModel extends ChangeNotifier {
   final String restaurantId;
   final formKey = GlobalKey<FormState>();
+  final OfferRepository _repository = OfferRepository();
 
+  // Controllers
   final titleController = TextEditingController();
   final descriptionController = TextEditingController();
   final discountController = TextEditingController();
-  final imageController = TextEditingController();
   final tagsController = TextEditingController();
 
+  // Imagen
+  File? imageFile;
+  String? imageUrl;
+
+  // Fechas
   DateTime? validFrom;
   DateTime? validTo;
+
   bool isSubmitting = false;
 
-  OfferFormViewModel(this.restaurantId);
+  OfferFormViewModel(this.restaurantId, {Offer? offer}) {
+    if (offer != null) {
+      titleController.text = offer.title;
+      descriptionController.text = offer.description;
+      discountController.text = offer.discountPercentage.toString();
+      tagsController.text = offer.tags?.join(", ") ?? ""; // ✅ null-safe
+      imageUrl = offer.image;
+      validFrom = offer.validFrom;
+      validTo = offer.validTo;
+    }
+  }
+
+  Future<void> pickImage() async {
+    final picker = ImagePicker();
+    final picked = await picker.pickImage(source: ImageSource.gallery);
+    if (picked != null) {
+      imageFile = File(picked.path);
+      notifyListeners();
+    }
+  }
 
   Future<void> pickDate(BuildContext context, {required bool isFrom}) async {
     final picked = await showDatePicker(
@@ -37,7 +64,7 @@ class OfferFormViewModel extends ChangeNotifier {
     }
   }
 
-  Future<void> saveOffer(BuildContext context) async {
+  Future<void> saveOffer(BuildContext context, {Offer? editingOffer}) async {
     if (!formKey.currentState!.validate()) return;
 
     isSubmitting = true;
@@ -45,7 +72,6 @@ class OfferFormViewModel extends ChangeNotifier {
 
     try {
       final discount = double.tryParse(discountController.text.trim()) ?? 0.0;
-
       final tags = tagsController.text
           .split(',')
           .map((e) => e.trim())
@@ -53,22 +79,23 @@ class OfferFormViewModel extends ChangeNotifier {
           .toList();
 
       final offer = Offer(
-        id: '',
+        id: editingOffer?.id ?? '',
         restaurantId: restaurantId,
         title: titleController.text.trim(),
         description: descriptionController.text.trim(),
         discountPercentage: discount,
-        image: imageController.text.trim().isEmpty
-            ? null
-            : imageController.text.trim(),
-        tags: tags.isEmpty ? null : tags,
+        image: imageUrl,
+        tags: tags.isEmpty ? null : tags, // ✅ null si no hay
         validFrom: validFrom,
         validTo: validTo,
-        createdAt: null,
+        createdAt: editingOffer?.createdAt ?? DateTime.now(), // ✅ nunca null
       );
 
-      final vm = Provider.of<OfferViewModel>(context, listen: false);
-      await vm.addOffer(offer);
+      if (editingOffer == null) {
+        await _repository.createOffer(offer, image: imageFile);
+      } else {
+        await _repository.updateOffer(offer, image: imageFile);
+      }
 
       Navigator.pop(context, true);
     } catch (e) {
@@ -86,7 +113,6 @@ class OfferFormViewModel extends ChangeNotifier {
     titleController.dispose();
     descriptionController.dispose();
     discountController.dispose();
-    imageController.dispose();
     tagsController.dispose();
     super.dispose();
   }
