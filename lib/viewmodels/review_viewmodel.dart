@@ -6,7 +6,7 @@ class ReviewViewModel extends ChangeNotifier {
   final ReviewRepository _repository;
   List<Review> reviews = [];
   bool isLoading = false;
-  String? photoUrl; // 👈 para guardar temporalmente la foto
+  String? photoUrl; 
 
   ReviewViewModel(this._repository);
 
@@ -63,7 +63,7 @@ class ReviewViewModel extends ChangeNotifier {
     // limpiamos foto temporal
     photoUrl = null;
 
-    // 🔄 refrescamos lista después de agregar
+
     await loadReviews(restaurantId);
 
     isLoading = false;

@@ -26,7 +26,7 @@ class ReviewRepository {
     required int stars,
     required String userId,
     required String restaurantId,
-    String? dishId,   // 🔹 nuevo parámetro opcional
+    String? dishId,   
     String? photoUrl,
   }) async {
     await _db.collection("Reviews").add({
@@ -34,7 +34,7 @@ class ReviewRepository {
       "stars": stars,
       "dish_id": dishId != null
           ? _db.collection("Dishes").doc(dishId)
-          : null, // 🔹 guarda referencia si existe
+          : null, 
       "photoUrl": photoUrl,
       "restaurant_id": _db.collection("Restaurants").doc(restaurantId),
       "user_id": _db.collection("Users").doc(userId),

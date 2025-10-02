@@ -34,7 +34,6 @@ class RestaurantRegister extends StatelessWidget {
               ),
               const Padding(padding: EdgeInsets.symmetric(vertical: 16.0)),
 
-              /// 👇 Ya no necesitas `onRegisterSuccess`
               const RegisterWidget(
                 who: "restaurant",
                 accentColor: Color.fromARGB(255, 39, 111, 121),

@@ -72,7 +72,7 @@ class RestaurantOfertasPage extends StatelessWidget {
 
           return Column(
             children: [
-              // 🔹 FlutterMap
+             
               Container(
                 height: 200,
                 margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -102,7 +102,7 @@ class RestaurantOfertasPage extends StatelessWidget {
 
               const SizedBox(height: 8),
 
-              // 🔹 Barra de búsqueda
+              
               Padding(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -143,7 +143,7 @@ class RestaurantOfertasPage extends StatelessWidget {
 
               const SizedBox(height: 8),
 
-              // 🔹 Lista de restaurantes
+              
               Expanded(
                 child: ListView.builder(
                   padding: const EdgeInsets.all(16),
@@ -260,7 +260,6 @@ class RestaurantOfertasPage extends StatelessWidget {
         backgroundColor: const Color.fromARGB(255, 214, 145, 104),
         child: const Icon(Icons.add, color: Colors.white),
         onPressed: () {
-          // 👇 Si quieres, aquí podrías abrir un formulario global sin restaurante específico
           Navigator.push(
             context,
             MaterialPageRoute(

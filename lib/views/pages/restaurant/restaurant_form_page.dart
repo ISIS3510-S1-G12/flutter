@@ -105,13 +105,13 @@ class _RestaurantFormPageState extends State<RestaurantFormPage> {
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("✅ Restaurant saved successfully!")),
+        const SnackBar(content: Text(" Restaurant saved successfully!")),
       );
 
       Navigator.pop(context);
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("❌ Error saving restaurant: $e")),
+        SnackBar(content: Text(" Error saving restaurant: $e")),
       );
     }
   }

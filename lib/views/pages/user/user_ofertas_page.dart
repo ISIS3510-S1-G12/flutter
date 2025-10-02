@@ -5,7 +5,7 @@ import '../../../repositories/offer_repository.dart';
 import '../../../viewmodels/offer_viewmodel.dart';
 
 class UserOfertasPage extends StatefulWidget {
-  final String? restaurantId; // 🔹 opcional
+  final String? restaurantId; // opcional
 
   const UserOfertasPage({super.key, this.restaurantId});
 
@@ -15,6 +15,7 @@ class UserOfertasPage extends StatefulWidget {
 
 class _UserOfertasPageState extends State<UserOfertasPage> {
   String _filter = "All"; // All | Today
+  String _searchQuery = "";
 
   @override
   Widget build(BuildContext context) {
@@ -30,24 +31,49 @@ class _UserOfertasPageState extends State<UserOfertasPage> {
             backgroundColor: Colors.white,
             body: Column(
               children: [
-                // 🔹 Dropdown filtro
+                // 🔹 SearchBar + Botón de filtro
                 Padding(
                   padding: const EdgeInsets.all(12.0),
                   child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text("Ofertas",
-                          style: TextStyle(
-                              fontSize: 18, fontWeight: FontWeight.bold)),
-                      DropdownButton<String>(
-                        value: _filter,
-                        items: const [
-                          DropdownMenuItem(value: "All", child: Text("Todas")),
-                          DropdownMenuItem(value: "Today", child: Text("Hoy")),
-                        ],
-                        onChanged: (value) {
-                          setState(() => _filter = value ?? "All");
-                        },
+                      // Barra de búsqueda
+                      Expanded(
+                        child: TextField(
+                          decoration: InputDecoration(
+                            hintText: "Buscar ofertas...",
+                            hintStyle: const TextStyle(color: Colors.white),
+                            prefixIcon:
+                                const Icon(Icons.search, color: Colors.white),
+                            filled: true,
+                            fillColor:
+                                const Color.fromARGB(255, 214, 145, 104),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(30),
+                              borderSide: BorderSide.none,
+                            ),
+                          ),
+                          onChanged: (query) {
+                            setState(() {
+                              _searchQuery = query.toLowerCase();
+                            });
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+
+                      // Botón de filtro
+                      Container(
+                        decoration: BoxDecoration(
+                          color: const Color.fromARGB(255, 214, 145, 104),
+                          borderRadius: BorderRadius.circular(30),
+                        ),
+                        child: IconButton(
+                          icon: const Icon(Icons.filter_list,
+                              color: Colors.white),
+                          onPressed: () {
+                            _showFilterOptions(context);
+                          },
+                        ),
                       ),
                     ],
                   ),
@@ -70,7 +96,17 @@ class _UserOfertasPageState extends State<UserOfertasPage> {
 
                       var offers = snapshot.data ?? [];
 
-                      // 🔹 Filtro por fecha "Hoy"
+                      // Filtro por búsqueda
+                      if (_searchQuery.isNotEmpty) {
+                        offers = offers.where((o) {
+                          final title = o.title.toLowerCase();
+                          final desc = o.description.toLowerCase();
+                          return title.contains(_searchQuery) ||
+                              desc.contains(_searchQuery);
+                        }).toList();
+                      }
+
+                      // Filtro por fecha "Hoy"
                       if (_filter == "Today") {
                         final today = DateTime.now();
                         offers = offers.where((o) {
@@ -156,6 +192,42 @@ class _UserOfertasPageState extends State<UserOfertasPage> {
           );
         },
       ),
+    );
+  }
+
+  // 🔹 Función para mostrar filtros en un BottomSheet
+  void _showFilterOptions(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.list),
+                title: const Text("Todas las ofertas"),
+                onTap: () {
+                  setState(() => _filter = "All");
+                  Navigator.pop(context);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.today),
+                title: const Text("Solo las de hoy"),
+                onTap: () {
+                  setState(() => _filter = "Today");
+                  Navigator.pop(context);
+                },
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

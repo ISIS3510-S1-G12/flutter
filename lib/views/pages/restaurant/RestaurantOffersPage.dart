@@ -11,7 +11,7 @@ class RestaurantOffersPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 🔹 Escucha cambios en OfferViewModel
+    //  Escucha cambios en OfferViewModel
     final offerVM = Provider.of<OfferViewModel>(context);
 
     return Scaffold(

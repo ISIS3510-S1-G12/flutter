@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_map/flutter_map.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:moviles/models/restaurant.dart';
 import 'package:moviles/models/review.dart';
 import '/repositories/review_repository.dart';
-import 'restaurant_upload_menu_page.dart';
 import 'edit_menu_page.dart';
 import 'package:moviles/models/dish.dart';
 import 'package:moviles/repositories/dish_repository.dart';
@@ -96,7 +94,7 @@ class RestaurantHomePage extends StatelessWidget {
             ),
             body: TabBarView(
               children: [
-                // 🔹 Menu Tab
+                
                 SingleChildScrollView(
                   child: Column(
                     children: [
@@ -182,7 +180,7 @@ class RestaurantHomePage extends StatelessWidget {
                         ),
                       ),
 
-                      // 🔹 Search Bar + Filter
+                     
                       Padding(
                         padding: const EdgeInsets.symmetric(
                             horizontal: 16, vertical: 8),
@@ -275,7 +273,7 @@ class RestaurantHomePage extends StatelessWidget {
                         ),
                       ),
 
-                      // 🔹 Dishes del restaurante
+                     
                       StreamBuilder<List<Dish>>(
                         stream: DishRepository()
                             .getDishesByRestaurant(restaurant.id),
@@ -404,10 +402,10 @@ class RestaurantHomePage extends StatelessWidget {
                   ),
                 ),
 
-                // 🔹 Offers Tab
+               
                 RestaurantOffersPage(restaurantId: restaurant.id),
 
-                // 🔹 Reviews Tab
+                
                 FutureBuilder<List<Review>>(
                   future: ReviewRepository()
                       .getReviewsByRestaurant(restaurant.id),

@@ -3,12 +3,10 @@ import 'package:flutter/foundation.dart';
 import '../../models/restaurant.dart';
 import '../../repositories/restaurant_repository.dart';
 
-/// 🔹 Interfaz para filtros
 abstract class RestaurantFilter {
   List<Restaurant> apply(List<Restaurant> restaurants);
 }
 
-/// 🔹 Filtro por tipo de comida
 class FilterByType implements RestaurantFilter {
   final String query;
   FilterByType(this.query);
@@ -21,7 +19,6 @@ class FilterByType implements RestaurantFilter {
   }
 }
 
-/// 🔹 Filtro: solo restaurantes con oferta
 class FilterWithOffer implements RestaurantFilter {
   @override
   List<Restaurant> apply(List<Restaurant> restaurants) {
@@ -29,7 +26,6 @@ class FilterWithOffer implements RestaurantFilter {
   }
 }
 
-/// 🔹 Filtro: solo restaurantes sin oferta
 class FilterWithoutOffer implements RestaurantFilter {
   @override
   List<Restaurant> apply(List<Restaurant> restaurants) {
@@ -37,7 +33,6 @@ class FilterWithoutOffer implements RestaurantFilter {
   }
 }
 
-/// 🔹 ViewModel principal
 class RestaurantViewModel extends ChangeNotifier {
   final RestaurantRepository _repo;
   RestaurantViewModel(this._repo);

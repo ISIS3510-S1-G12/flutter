@@ -72,7 +72,7 @@ class DishFormPage extends StatelessWidget {
 
                     // Dish Type
                     DropdownButtonFormField<String>(
-                      value: vm.dishType,
+                      initialValue: vm.dishType,
                       decoration: const InputDecoration(labelText: "Dish Type"),
                       items: const [
                         DropdownMenuItem(value: "main", child: Text("Main")),

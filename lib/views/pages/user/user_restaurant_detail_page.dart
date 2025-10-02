@@ -108,7 +108,7 @@ class UserRestaurantDetailPage extends StatelessWidget {
                                           : Icons.favorite_border),
                                       label: Text(vm.isFavorite
                                           ? "Favorite"
-                                          : "Fav"),
+                                          : "Favorite"),
                                       style: ElevatedButton.styleFrom(
                                         backgroundColor: const Color.fromARGB(
                                             255, 121, 39, 101),

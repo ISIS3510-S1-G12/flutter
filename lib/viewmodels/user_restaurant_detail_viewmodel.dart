@@ -34,7 +34,7 @@ class UserRestaurantDetailViewModel extends ChangeNotifier {
       await favRef.set({
         'restaurant_id': restaurant.id,
         'name': restaurant.name,
-        'imageUrl': restaurant.imageUrl, // ✅ ahora siempre es Storage URL
+        'imageUrl': restaurant.imageUrl, 
         'offer': restaurant.offer,
         'typeOfFood': restaurant.typeOfFood,
         'addedAt': FieldValue.serverTimestamp(),

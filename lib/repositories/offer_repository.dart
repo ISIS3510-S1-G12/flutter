@@ -6,14 +6,12 @@ import '../models/offer.dart';
 class OfferRepository {
   final _firestore = FirebaseFirestore.instance;
 
-  /// 🔹 Subida de imagen
   Future<String> _uploadImage(File image, String offerId) async {
     final ref = FirebaseStorage.instance.ref().child("offers/$offerId.jpg");
     await ref.putFile(image);
     return await ref.getDownloadURL();
   }
 
-  /// 🔹 Crear una nueva oferta
   Future<void> createOffer(Offer offer, {File? image}) async {
     final docRef = _firestore.collection("Offers").doc();
 
@@ -38,7 +36,6 @@ class OfferRepository {
     await docRef.set(newOffer.toMap());
   }
 
-  /// 🔹 Actualizar una oferta existente
   Future<void> updateOffer(Offer offer, {File? image}) async {
     final docRef = _firestore.collection("Offers").doc(offer.id);
 
@@ -52,12 +49,10 @@ class OfferRepository {
     await docRef.update(updatedOffer.toMap());
   }
 
-  /// 🔹 Ofertas por restaurante
   Stream<List<Offer>> getOffersByRestaurant(String restaurantId) {
     return _firestore
         .collection("Offers")
         .where("restaurantId", isEqualTo: restaurantId)
-        .orderBy("createdAt", descending: true)
         .snapshots()
         .map((snapshot) {
           return snapshot.docs
@@ -66,11 +61,9 @@ class OfferRepository {
         });
   }
 
-  /// 🔹 Obtener todas las ofertas
   Stream<List<Offer>> getAllOffers() {
     return _firestore
         .collection("Offers")
-        .orderBy("createdAt", descending: true)
         .snapshots()
         .map((snapshot) =>
             snapshot.docs.map((doc) => Offer.fromMap(doc.data(), doc.id)).toList());

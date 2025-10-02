@@ -85,10 +85,10 @@ class OfferFormViewModel extends ChangeNotifier {
         description: descriptionController.text.trim(),
         discountPercentage: discount,
         image: imageUrl,
-        tags: tags.isEmpty ? null : tags, // ✅ null si no hay
+        tags: tags.isEmpty ? null : tags, 
         validFrom: validFrom,
         validTo: validTo,
-        createdAt: editingOffer?.createdAt ?? DateTime.now(), // ✅ nunca null
+        createdAt: editingOffer?.createdAt ?? DateTime.now(), 
       );
 
       if (editingOffer == null) {

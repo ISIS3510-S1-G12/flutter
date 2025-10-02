@@ -1,6 +1,6 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
-
+import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -15,6 +15,7 @@ import 'package:moviles/viewmodels/auth_viewmodel.dart';
 import 'package:moviles/viewmodels/user_viewmodel.dart';
 import 'package:moviles/viewmodels/offer_viewmodel.dart';
 import 'package:moviles/viewmodels/restaurant_viewmodel.dart';
+import 'services/analytics_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -23,6 +24,8 @@ Future<void> main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
   print('Firebase initialized: ${app.name}');
+  final analyticsService = AnalyticsService();
+  analyticsService.init();
 
   runApp(const Sumaq());
 }
@@ -34,7 +37,6 @@ class Sumaq extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        // ViewModels inyectados
         ChangeNotifierProvider(
           create: (_) => AuthViewModel(AuthRepository()),
         ),
@@ -45,7 +47,7 @@ class Sumaq extends StatelessWidget {
           create: (_) => OfferViewModel(OfferRepository()),
         ),
         ChangeNotifierProvider(
-          create: (_) => RestaurantViewModel(RestaurantRepository()), // 👈 añadido
+          create: (_) => RestaurantViewModel(RestaurantRepository()),
         ),
       ],
       child: MaterialApp(
@@ -55,10 +57,8 @@ class Sumaq extends StatelessWidget {
           primarySwatch: Colors.teal,
           useMaterial3: true,
         ),
-        // Rutas registradas
         routes: {
           '/pages/users.dart': (context) => const UsersPage(),
-          // 👉 cuando tengas más páginas, añádelas aquí
         },
         initialRoute: '/pages/users.dart',
       ),

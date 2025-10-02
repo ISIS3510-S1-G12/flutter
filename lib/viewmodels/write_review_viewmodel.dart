@@ -46,12 +46,12 @@ class WriteReviewViewModel extends ChangeNotifier {
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("✅ Reseña enviada")),
+        const SnackBar(content: Text("Reseña enviada")),
       );
       Navigator.pop(context);
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("❌ Error al enviar reseña: $e")),
+        SnackBar(content: Text("Error al enviar reseña: $e")),
       );
     }
 

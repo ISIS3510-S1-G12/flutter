@@ -25,7 +25,6 @@ class Offer {
     required this.createdAt,
   });
 
-  /// 🔹 Crear Offer desde Firestore
   factory Offer.fromMap(Map<String, dynamic> map, String id) {
     return Offer(
       id: id,
@@ -47,7 +46,6 @@ class Offer {
     );
   }
 
-  /// 🔹 Convertir Offer a Map para Firestore
   Map<String, dynamic> toMap() {
     return {
       "id": id,
@@ -63,7 +61,6 @@ class Offer {
     };
   }
 
-  /// 🔹 Copiar y actualizar
   Offer copyWith({
     String? id,
     String? restaurantId,

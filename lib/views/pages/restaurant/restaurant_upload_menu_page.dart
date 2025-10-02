@@ -96,7 +96,7 @@ class RestaurantUploadMenuPage extends StatelessWidget {
               ),
               const SizedBox(height: 30),
 
-              // 🔹 Imagen centrada
+              //  Imagen centrada
               Image.asset(
                 "images/upload.png",
                 height: 280,
@@ -104,7 +104,7 @@ class RestaurantUploadMenuPage extends StatelessWidget {
 
               const SizedBox(height: 40),
 
-              // 🔹 Botón centrado
+              //  Botón centrado
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color.fromARGB(255, 107, 184, 194),
