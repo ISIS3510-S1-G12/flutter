@@ -112,7 +112,7 @@ class UserReviewHistoryPage extends StatelessWidget {
                         ],
                       ),
                       const SizedBox(height: 6),
-                      // 🔹 Comentario
+                      //  Comentario
                       Text(
                         review.comment,
                         style: const TextStyle(

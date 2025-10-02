@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '/models/restaurant.dart';
-
+import 'package:moviles/views/pages/restaurant/offerFormPage.dart'; 
 class RestaurantOfertasPage extends StatelessWidget {
   const RestaurantOfertasPage({super.key});
 
   Future<List<Restaurant>> fetchRestaurants() async {
-    final snapshot = await FirebaseFirestore.instance.collection('restaurants').get();
+    final snapshot = await FirebaseFirestore.instance.collection('Restaurants').get();
     return snapshot.docs.map((doc) {
       final data = doc.data();
       return Restaurant(
@@ -16,7 +16,11 @@ class RestaurantOfertasPage extends StatelessWidget {
         typeOfFood: data['typeOfFood'] ?? '',
         rating: (data['rating'] ?? 0).toDouble(),
         offer: data['offer'] ?? '',
-        imageUrl: data['imageUrl'] ?? 'images/default.png', address: '', email: '', location: '', openingTime: 0, closingTime: 0,
+        imageUrl: data['imageUrl'] ?? 'images/default.png',
+        address: data['address'] ?? '',
+        email: data['email'] ?? '',
+        openingTime: data['opening_time'] ?? 0,
+        closingTime: data['closing_time'] ?? 0,
       );
     }).toList();
   }
@@ -68,7 +72,7 @@ class RestaurantOfertasPage extends StatelessWidget {
 
           return Column(
             children: [
-              // 🔹 FlutterMap
+             
               Container(
                 height: 200,
                 margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -98,7 +102,7 @@ class RestaurantOfertasPage extends StatelessWidget {
 
               const SizedBox(height: 8),
 
-              // 🔹 Barra de búsqueda + filtro (igual que antes)
+              
               Padding(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -139,7 +143,7 @@ class RestaurantOfertasPage extends StatelessWidget {
 
               const SizedBox(height: 8),
 
-              // 🔹 Lista de restaurantes
+              
               Expanded(
                 child: ListView.builder(
                   padding: const EdgeInsets.all(16),
@@ -165,7 +169,7 @@ class RestaurantOfertasPage extends StatelessWidget {
                                     children: List.generate(
                                       5,
                                       (i) => Icon(
-                                        i < restaurant.rating!.floor()
+                                        i < restaurant.rating.floor()
                                             ? Icons.star
                                             : Icons.star_border,
                                         color: Colors.amber,
@@ -187,20 +191,46 @@ class RestaurantOfertasPage extends StatelessWidget {
                                     style: const TextStyle(
                                         fontSize: 14, color: Colors.white),
                                   ),
-                                  const SizedBox(height: 4),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 8, vertical: 4),
-                                    decoration: BoxDecoration(
-                                      color:
-                                          const Color.fromARGB(255, 39, 111, 121),
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: const Text(
-                                      "Edit",
-                                      style: TextStyle(
-                                          fontSize: 12, color: Colors.white),
-                                    ),
+                                  const SizedBox(height: 8),
+                                  Row(
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 8, vertical: 4),
+                                        decoration: BoxDecoration(
+                                          color: const Color.fromARGB(
+                                              255, 39, 111, 121),
+                                          borderRadius:
+                                              BorderRadius.circular(12),
+                                        ),
+                                        child: const Text(
+                                          "Edit",
+                                          style: TextStyle(
+                                              fontSize: 12, color: Colors.white),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 10),
+                                      ElevatedButton.icon(
+                                        onPressed: () {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (_) => OfferFormPage(
+                                                restaurantId: restaurant.id,
+                                              ),
+                                            ),
+                                          );
+                                        },
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor:
+                                              const Color.fromARGB(255, 214, 145, 104),
+                                          foregroundColor: Colors.white,
+                                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                        ),
+                                        icon: const Icon(Icons.add),
+                                        label: const Text("Añadir Oferta"),
+                                      )
+                                    ],
                                   ),
                                 ],
                               ),
@@ -211,6 +241,7 @@ class RestaurantOfertasPage extends StatelessWidget {
                               child: Image.asset(
                                 restaurant.imageUrl,
                                 width: 80,
+                                height: 80,
                                 fit: BoxFit.cover,
                               ),
                             ),
@@ -222,6 +253,20 @@ class RestaurantOfertasPage extends StatelessWidget {
                 ),
               ),
             ],
+          );
+        },
+      ),
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: const Color.fromARGB(255, 214, 145, 104),
+        child: const Icon(Icons.add, color: Colors.white),
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => const OfferFormPage(
+                restaurantId: "global_restaurant", // cambiar según lógica
+              ),
+            ),
           );
         },
       ),

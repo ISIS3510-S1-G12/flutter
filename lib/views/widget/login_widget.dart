@@ -1,12 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-
 import '../../viewmodels/auth_viewmodel.dart';
 import '../pages/user/user_home_page.dart';
 import '../pages/restaurant/restaurant_home_page.dart';
-import '../pages/restaurant/restaurant_form_page.dart';
 
 class LoginWidget extends StatefulWidget {
   final Color accentColor;
@@ -56,8 +53,7 @@ class _LoginWidgetState extends State<LoginWidget> {
                   borderSide: BorderSide(color: Colors.grey),
                 ),
                 focusedBorder: OutlineInputBorder(
-                  borderSide:
-                      BorderSide(color: widget.accentColor, width: 2.0),
+                  borderSide: BorderSide(color: widget.accentColor, width: 2.0),
                   borderRadius: const BorderRadius.all(Radius.circular(18.0)),
                 ),
                 errorStyle: const TextStyle(fontSize: 12, height: 0.8),
@@ -86,8 +82,7 @@ class _LoginWidgetState extends State<LoginWidget> {
                   borderSide: BorderSide(color: Colors.grey),
                 ),
                 focusedBorder: OutlineInputBorder(
-                  borderSide:
-                      BorderSide(color: widget.accentColor, width: 2.0),
+                  borderSide: BorderSide(color: widget.accentColor, width: 2.0),
                   borderRadius: const BorderRadius.all(Radius.circular(18.0)),
                 ),
                 errorStyle: const TextStyle(fontSize: 12, height: 0.8),
@@ -118,47 +113,27 @@ class _LoginWidgetState extends State<LoginWidget> {
                       if (widget.who == "restaurant") {
                         final uid = FirebaseAuth.instance.currentUser?.uid;
                         if (uid != null) {
-                          final doc = await FirebaseFirestore.instance
-                              .collection("restaurants")
-                              .doc(uid)
-                              .get();
-
-                          // Revisar si los campos principales del formulario existen
-                          final hasFormInfo = doc.exists &&
-                              doc.data()!['restaurant_type'] != null &&
-                              doc.data()!['restaurant_type'].toString().isNotEmpty &&
-                              doc.data()!['address'] != null &&
-                              doc.data()!['address'].toString().isNotEmpty;
-
-                          if (!hasFormInfo) {
-                            // No hay info completa → ir al formulario
-                            Navigator.pushReplacement(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (_) => RestaurantFormPage(
-                                      restaurantId: uid)),
-                            );
-                          } else {
-                            // Info completa → home
-                            Navigator.pushReplacement(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (_) =>
-                                      RestaurantHomePage( restaurantId: uid,)),
-                            );
-                          }
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) =>
+                                  RestaurantHomePage(restaurantId: uid),
+                            ),
+                          );
                         }
                       } else if (widget.who == "user") {
                         Navigator.pushReplacement(
                           context,
                           MaterialPageRoute(
-                              builder: (_) => const UserHomePage()),
+                            builder: (_) => const UserHomePage(),
+                          ),
                         );
                       }
                     } else {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                            content: Text("Login failed: ${authVM.error}")),
+                          content: Text("Login failed: ${authVM.error}"),
+                        ),
                       );
                     }
                   } catch (e) {

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:moviles/views/widget/register_widget.dart';
-import 'package:moviles/views/pages/restaurant/restaurant_form_page.dart';
 
 class RestaurantRegister extends StatelessWidget {
   const RestaurantRegister({super.key});
@@ -21,7 +20,8 @@ class RestaurantRegister extends StatelessWidget {
             children: [
               Image(
                 image: const AssetImage(
-                    "images/483891256-e6bd4888-8904-4028-911f-dff62cc98965.png"),
+                  "images/483891256-e6bd4888-8904-4028-911f-dff62cc98965.png",
+                ),
                 height: MediaQuery.of(context).size.height * 0.25,
               ),
               const Text(
@@ -33,18 +33,10 @@ class RestaurantRegister extends StatelessWidget {
                 ),
               ),
               const Padding(padding: EdgeInsets.symmetric(vertical: 16.0)),
-              
-              RegisterWidget(
+
+              const RegisterWidget(
                 who: "restaurant",
-                accentColor: const Color.fromARGB(255, 39, 111, 121),
-                onRegisterSuccess: (restaurantId) {
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => RestaurantFormPage(restaurantId: restaurantId),
-                    ),
-                  );
-                },
+                accentColor: Color.fromARGB(255, 39, 111, 121),
               ),
             ],
           ),

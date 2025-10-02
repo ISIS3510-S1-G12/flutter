@@ -6,6 +6,7 @@ class Review {
   final int stars;
   final String userId;
   final String restaurantId;
+  final String? dishId; // 🔹 Nuevo campo
   final String? photoUrl;
 
   Review({
@@ -14,6 +15,7 @@ class Review {
     required this.stars,
     required this.userId,
     required this.restaurantId,
+    this.dishId, // 🔹 Nuevo
     this.photoUrl,
   });
 
@@ -24,6 +26,9 @@ class Review {
       stars: data["stars"] ?? 0,
       userId: (data["user_id"] as DocumentReference).id,
       restaurantId: (data["restaurant_id"] as DocumentReference).id,
+      dishId: data["dish_id"] != null
+          ? (data["dish_id"] as DocumentReference).id
+          : null, // 🔹 Nuevo
       photoUrl: data["photoUrl"],
     );
   }
@@ -33,7 +38,11 @@ class Review {
       "comment": comment,
       "stars": stars,
       "user_id": FirebaseFirestore.instance.doc("users/$userId"),
-      "restaurant_id": FirebaseFirestore.instance.doc("restaurants/$restaurantId"),
+      "restaurant_id":
+          FirebaseFirestore.instance.doc("restaurants/$restaurantId"),
+      "dish_id": dishId != null
+          ? FirebaseFirestore.instance.doc("dishes/$dishId")
+          : null, // 🔹 Nuevo
       "photoUrl": photoUrl,
     };
   }
