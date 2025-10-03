@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
 import '/models/restaurant.dart';
-import '/models/review.dart';
 import '/models/dish.dart';
 import '/repositories/review_repository.dart';
 import '/repositories/dish_repository.dart';
@@ -261,8 +260,7 @@ class UserRestaurantDetailPage extends StatelessWidget {
                       Consumer<ReviewViewModel>(
                         builder: (context, reviewVM, _) {
                           if (reviewVM.isLoading) {
-                            return const Center(
-                                child: CircularProgressIndicator());
+                            return const Center(child: CircularProgressIndicator());
                           }
 
                           if (reviewVM.reviews.isEmpty) {
@@ -274,51 +272,115 @@ class UserRestaurantDetailPage extends StatelessWidget {
                             itemCount: reviewVM.reviews.length,
                             itemBuilder: (context, index) {
                               final review = reviewVM.reviews[index];
-                              return Card(
-                                margin: const EdgeInsets.only(bottom: 12),
-                                child: Padding(
-                                  padding: const EdgeInsets.all(12),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Row(
-                                        children: List.generate(
-                                          5,
-                                          (i) => Icon(
-                                            i < review.stars
-                                                ? Icons.star
-                                                : Icons.star_border,
-                                            color: Colors.amber,
-                                            size: 18,
+
+                              return FutureBuilder<DocumentSnapshot>(
+                                future: FirebaseFirestore.instance
+                                    .collection("Users")
+                                    .doc(review.userId)
+                                    .get(),
+                                builder: (context, userSnapshot) {
+                                  if (userSnapshot.connectionState == ConnectionState.waiting) {
+                                    return const SizedBox();
+                                  }
+
+                                  final userData =
+                                      userSnapshot.data?.data() as Map<String, dynamic>?;
+
+                                  final userName = userData?['name'] ?? "Unknown User";
+                                  final userPic = userData?['profile_picture'];
+
+                                  return Card(
+                                    margin: const EdgeInsets.only(bottom: 12),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    elevation: 2,
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(12),
+                                      child: Row(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          // 🔹 Avatar del usuario
+                                          CircleAvatar(
+                                            radius: 24,
+                                            backgroundImage:
+                                                userPic != null ? NetworkImage(userPic) : null,
+                                            child: userPic == null
+                                                ? const Icon(Icons.person)
+                                                : null,
                                           ),
-                                        ),
+                                          const SizedBox(width: 12),
+
+                                          // 🔹 Contenido de la review
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                // Nombre del usuario + estrellas
+                                                Row(
+                                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                  children: [
+                                                    Text(
+                                                      userName,
+                                                      style: const TextStyle(
+                                                        fontWeight: FontWeight.bold,
+                                                        fontSize: 15,
+                                                      ),
+                                                    ),
+                                                    Row(
+                                                      children: List.generate(
+                                                        5,
+                                                        (i) => Icon(
+                                                          i < review.stars
+                                                              ? Icons.star
+                                                              : Icons.star_border,
+                                                          color: const Color.fromARGB(
+                                                              255, 170, 98, 153),
+                                                          size: 18,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                                const SizedBox(height: 6),
+
+                                                // Comentario
+                                                Text(
+                                                  review.comment,
+                                                  style: const TextStyle(fontSize: 14),
+                                                ),
+
+                                                // Imagen si existe
+                                                if (review.imageUrl != null &&
+                                                    review.imageUrl!.isNotEmpty)
+                                                  Padding(
+                                                    padding: const EdgeInsets.only(top: 8.0),
+                                                    child: ClipRRect(
+                                                      borderRadius: BorderRadius.circular(8),
+                                                      child: Image.network(
+                                                        review.imageUrl!,
+                                                        height: 140,
+                                                        width: double.infinity,
+                                                        fit: BoxFit.cover,
+                                                      ),
+                                                    ),
+                                                  ),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
                                       ),
-                                      const SizedBox(height: 6),
-                                      Text(review.comment),
-                                      if (review.imageUrl != null &&
-                                          review.imageUrl!.isNotEmpty)
-                                        Padding(
-                                          padding:
-                                              const EdgeInsets.only(top: 8.0),
-                                          child: Image.network(
-                                            review.imageUrl!,
-                                            height: 120,
-                                            width: double.infinity,
-                                            fit: BoxFit.cover,
-                                          ),
-                                        ),
-                                    ],
-                                  ),
-                                ),
+                                    ),
+                                  );
+                                },
                               );
                             },
                           );
                         },
                       ),
+
                     ],
                   ),
-
                   // Botón para escribir review
                   bottomNavigationBar: Padding(
                     padding: const EdgeInsets.all(16.0),
