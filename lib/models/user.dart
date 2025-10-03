@@ -1,42 +1,61 @@
-// models/user.dart
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class User {
-  final String id; // el docId en Firestore
-  final String email;
+  final String id;
   final String name;
-  final String profilePicture;
-  final List<String> favoriteRestaurants;
+  final String email;
+  final String ownerUid;
+  final String role;
   final Map<String, dynamic> preferences;
+  final Map<String, Timestamp> favoriteRestaurants; 
+  final String? profilePicture;
+  final Timestamp? createdAt;
+  final Timestamp? updatedAt;
 
   User({
     required this.id,
-    required this.email,
     required this.name,
-    required this.profilePicture,
-    required this.favoriteRestaurants,
+    required this.email,
+    required this.ownerUid,
+    required this.role,
     required this.preferences,
+    required this.favoriteRestaurants,
+    this.profilePicture,
+    this.createdAt,
+    this.updatedAt,
   });
 
-  // Convertir desde documento Firestore
+  /// fromFirestore
   factory User.fromFirestore(String id, Map<String, dynamic> data) {
     return User(
       id: id,
-      email: data['email'] ?? '',
       name: data['name'] ?? '',
-      profilePicture: data['profile_picture'] ?? '',
-      favoriteRestaurants:
-          List<String>.from(data['favorite_restaurants'] ?? []),
+      email: data['email'] ?? '',
+      ownerUid: data['ownerUid'] ?? '',
+      role: data['role'] ?? 'user',
       preferences: Map<String, dynamic>.from(data['preferences'] ?? {}),
+      favoriteRestaurants: Map<String, Timestamp>.from(
+        data['favorite_restaurants'] ?? {},
+      ),
+      profilePicture: data['profile_picture'],
+      createdAt: data['created_at'],
+      updatedAt: data['updated_at'],
     );
   }
 
-  // Convertir a JSON para guardar en Firestore
+
+  /// toFirestore
   Map<String, dynamic> toFirestore() {
     return {
-      "email": email,
       "name": name,
-      "profile_picture": profilePicture,
-      "favorite_restaurants": favoriteRestaurants,
+      "email": email,
+      "ownerUid": ownerUid,
+      "role": role,
       "preferences": preferences,
+      "favorite_restaurants": favoriteRestaurants,
+      "profile_picture": profilePicture,
+      "created_at": createdAt ?? FieldValue.serverTimestamp(),
+      "updated_at": FieldValue.serverTimestamp(),
     };
   }
 }

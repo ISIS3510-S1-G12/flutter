@@ -1,56 +1,84 @@
-// lib/viewmodels/user_viewmodel.dart
-import 'package:flutter/material.dart';
-import '../repositories/user_repository.dart';
+import 'dart:io';
+import 'package:flutter/foundation.dart';
+import 'package:moviles/models/user.dart';
+import 'package:moviles/repositories/user_repository.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class UserViewModel extends ChangeNotifier {
-  final UserRepository _repo;
-  UserViewModel(this._repo);
+  final UserRepository _repository;
+  User? currentUser;
+  bool isLoading = false;
 
-  Map<String, dynamic>? _userData;
-  bool _loading = false;
-  String? _error;
+  UserViewModel(this._repository);
 
-  Map<String, dynamic>? get userData => _userData;
-  bool get loading => _loading;
-  String? get error => _error;
-
-  // Obtener datos de usuario
-  Future<void> fetchUser(String uid) async {
-    _loading = true;
+  Future<void> loadUser(String userId) async {
+    isLoading = true;
     notifyListeners();
-    try {
-      _userData = await _repo.getUserData(uid);
-      _error = null;
-    } catch (e) {
-      _error = e.toString();
-    }
-    _loading = false;
+
+    currentUser = await _repository.getUser(userId);
+
+    isLoading = false;
     notifyListeners();
   }
 
-  // Actualizar perfil
-  Future<void> updateUser(
-    String uid, {
-    String? name,
-    String? profilePicture,
-    Map<String, dynamic>? preferences,
-    List<String>? favoriteRestaurants,
-  }) async {
-    _loading = true;
+  Future<void> saveUser(User user) async {
+    isLoading = true;
     notifyListeners();
-    try {
-      await _repo.updateUserProfile(
-        uid,
-        name: name,
-        profilePicture: profilePicture,
-        preferences: preferences,
-        favoriteRestaurants: favoriteRestaurants,
+
+    // 🚀 Si hay foto local (path válido), la subimos
+    if (user.profilePicture != null &&
+        user.profilePicture!.isNotEmpty &&
+        File(user.profilePicture!).existsSync()) {
+      final url = await _repository.uploadProfilePicture(user.id, user.profilePicture!);
+      user = User(
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        ownerUid: user.ownerUid,
+        role: user.role,
+        preferences: user.preferences,
+        favoriteRestaurants: user.favoriteRestaurants,
+        profilePicture: url, // URL de Storage
+        createdAt: user.createdAt,
+        updatedAt: Timestamp.now(),
       );
-      await fetchUser(uid); // refrescar datos después de actualizar
-    } catch (e) {
-      _error = e.toString();
     }
-    _loading = false;
+
+    await _repository.saveUser(user);
+    currentUser = user;
+
+    isLoading = false;
+    notifyListeners();
+  }
+
+  /// ✅ Alternar favoritos con Timestamp
+  Future<void> toggleFavoriteRestaurant(String restaurantId) async {
+    if (currentUser == null) return;
+
+    final favorites = Map<String, Timestamp>.from(currentUser!.favoriteRestaurants);
+    final isFavorite = favorites.containsKey(restaurantId);
+
+    if (isFavorite) {
+      favorites.remove(restaurantId);
+    } else {
+      favorites[restaurantId] = Timestamp.now();
+    }
+
+    await _repository.updateFavorites(currentUser!.id, favorites);
+
+    currentUser = User(
+      id: currentUser!.id,
+      name: currentUser!.name,
+      email: currentUser!.email,
+      ownerUid: currentUser!.ownerUid,
+      role: currentUser!.role,
+      preferences: currentUser!.preferences,
+      favoriteRestaurants: favorites,
+      profilePicture: currentUser!.profilePicture,
+      createdAt: currentUser!.createdAt,
+      updatedAt: Timestamp.now(),
+    );
+
     notifyListeners();
   }
 }

@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../../viewmodels/auth_viewmodel.dart';
 import '../pages/user/lyr/user_login.dart';
 import '../pages/restaurant/restaurant_form_page.dart';
+import '../pages/user/user_form_page.dart';
 
 class RegisterWidget extends StatefulWidget {
   final Color accentColor;
@@ -201,11 +202,14 @@ class _RegisterWidgetState extends State<RegisterWidget> {
                           ),
                         );
                       } else if (widget.who == "user") {
-                        // Si es usuario → login
                         Navigator.pushReplacement(
                           context,
                           MaterialPageRoute(
-                            builder: (_) => const UserLogin(),
+                            builder: (_) => UserFormPage(
+                              userId: uid,
+                              initialName: _nameController.text.trim(),
+                              initialEmail: _emailController.text.trim(),
+                            ),
                           ),
                         );
                       }

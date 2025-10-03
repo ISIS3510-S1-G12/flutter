@@ -94,318 +94,13 @@ class RestaurantHomePage extends StatelessWidget {
             ),
             body: TabBarView(
               children: [
-                
-                SingleChildScrollView(
-                  child: Column(
-                    children: [
-                      // Card del restaurante (imagen + nombre arriba)
-                      Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Card(
-                          color: const Color.fromARGB(255, 107, 184, 194),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          elevation: 4,
-                          child: Padding(
-                            padding: const EdgeInsets.all(12),
-                            child: Row(
-                              children: [
-                                ClipRRect(
-                                  borderRadius: BorderRadius.circular(12),
-                                  child: restaurant.imageUrl.isNotEmpty
-                                      ? Image.network(
-                                          restaurant.imageUrl,
-                                          width: 64,
-                                          height: 64,
-                                          fit: BoxFit.cover,
-                                          errorBuilder: (context, error, stackTrace) {
-                                            return const Icon(
-                                              Icons.image_not_supported,
-                                              size: 64,
-                                              color: Colors.white,
-                                            );
-                                          },
-                                        )
-                                      : const Icon(
-                                          Icons.image_not_supported,
-                                          size: 64,
-                                          color: Colors.white,
-                                        ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Text(
-                                    restaurant.name,
-                                    style: const TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.white),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
+                // -------- MENU TAB --------
+                _buildMenuTab(restaurant, context),
 
-                      // Botón Business Hours
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 8),
-                        child: SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton.icon(
-                            onPressed: () {
-                              showDialog(
-                                  context: context,
-                                  builder: (_) => AlertDialog(
-                                        title: const Text("Business Hours"),
-                                        content: Text(
-                                            "Opening: ${restaurant.openingTime}:00\nClosing: ${restaurant.closingTime}:00"),
-                                        actions: [
-                                          TextButton(
-                                              onPressed: () =>
-                                                  Navigator.pop(context),
-                                              child: const Text("Close"))
-                                        ],
-                                      ));
-                            },
-                            icon: const Icon(Icons.access_time),
-                            label: const Text("Business Hours"),
-                            style: ElevatedButton.styleFrom(
-                                backgroundColor:
-                                    const Color.fromARGB(255, 214, 145, 104)),
-                          ),
-                        ),
-                      ),
-
-                     
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 8),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: TextField(
-                                decoration: InputDecoration(
-                                  hintText: "Search dishes...",
-                                  prefixIcon: const Icon(Icons.search),
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    borderSide: BorderSide.none,
-                                  ),
-                                  fillColor: Colors.grey[200],
-                                  filled: true,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Container(
-                              decoration: BoxDecoration(
-                                color: const Color.fromARGB(255, 214, 145, 104),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: IconButton(
-                                icon: const Icon(Icons.filter_list,
-                                    color: Colors.white),
-                                onPressed: () {
-                                  // Lógica de filtro
-                                },
-                              ),
-                            )
-                          ],
-                        ),
-                      ),
-
-                      // Bloque azul con información del restaurante
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 8),
-                        child: Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Color.fromARGB(255, 107, 184, 194),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: List.generate(
-                                  5,
-                                  (i) => Icon(
-                                    i < restaurant.rating.floor()
-                                        ? Icons.star
-                                        : Icons.star_border,
-                                    color: Colors.amber,
-                                    size: 18,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 6),
-                              Text("Type: ${restaurant.typeOfFood}",
-                                  style: const TextStyle(color: Colors.white)),
-                              const SizedBox(height: 4),
-                              if (restaurant.offer)
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 8, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: Colors.green[100],
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: const Text(
-                                    "Offer Available 🎉",
-                                    style: TextStyle(
-                                        fontSize: 12, color: Colors.green),
-                                  ),
-                                ),
-                              const SizedBox(height: 6),
-                              Text("Address: ${restaurant.address}",
-                                  style: const TextStyle(color: Colors.white)),
-                              const SizedBox(height: 4),
-                              Text("Email: ${restaurant.email}",
-                                  style: const TextStyle(color: Colors.white)),
-                            ],
-                          ),
-                        ),
-                      ),
-
-                     
-                      StreamBuilder<List<Dish>>(
-                        stream: DishRepository()
-                            .getDishesByRestaurant(restaurant.id),
-                        builder: (context, snapshot) {
-                          if (!snapshot.hasData) {
-                            return const Padding(
-                              padding: EdgeInsets.all(16),
-                              child: Center(child: CircularProgressIndicator()),
-                            );
-                          }
-
-                          final dishes = snapshot.data!;
-                          if (dishes.isEmpty) {
-                            return const Padding(
-                              padding: EdgeInsets.all(16),
-                              child: Text("No dishes yet."),
-                            );
-                          }
-
-                          return Padding(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 16, vertical: 8),
-                            child: Column(
-                              children: dishes.map((dish) {
-                                return Card(
-                                  margin: const EdgeInsets.only(bottom: 12),
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(8.0),
-                                    child: Row(
-                                      children: [
-                                        dish.imageUrl.isNotEmpty
-                                            ? Image.network(
-                                                dish.imageUrl,
-                                                width: 60,
-                                                height: 60,
-                                                fit: BoxFit.cover,
-                                                errorBuilder: (context, error,
-                                                    stackTrace) {
-                                                  return const Icon(
-                                                    Icons.image_not_supported,
-                                                    size: 60,
-                                                  );
-                                                },
-                                              )
-                                            : const Icon(
-                                                Icons.image_not_supported,
-                                                size: 60),
-                                        const SizedBox(width: 12),
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                dish.name,
-                                                style: const TextStyle(
-                                                    fontSize: 16,
-                                                    fontWeight:
-                                                        FontWeight.bold),
-                                              ),
-                                              const SizedBox(height: 4),
-                                              Text("\$${dish.price.toStringAsFixed(2)}"),
-                                              const SizedBox(height: 2),
-                                              Row(
-                                                children: List.generate(
-                                                  5,
-                                                  (i) => Icon(
-                                                    i < dish.rating
-                                                        ? Icons.star
-                                                        : Icons.star_border,
-                                                    color: Colors.amber,
-                                                    size: 16,
-                                                  ),
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                );
-                              }).toList(),
-                            ),
-                          );
-                        },
-                      ),
-
-                      // Botones inferiores
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                        child: Center(
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: const Color.fromARGB(255, 214, 145, 104),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: TextButton.icon(
-                              style: TextButton.styleFrom(
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(
-                                    vertical: 12, horizontal: 24),
-                              ),
-                              onPressed: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => EditMenuPage(
-                                      restaurantId: restaurant.id,
-                                    ),
-                                  ),
-                                );
-                              },
-                              icon: const Icon(Icons.restaurant_outlined),
-                              label: const Text(
-                                "New Dish",
-                                style: TextStyle(
-                                    fontSize: 16, fontWeight: FontWeight.bold),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-
-                    ],
-                  ),
-                ),
-
-               
+                // -------- OFFERS TAB --------
                 RestaurantOffersPage(restaurantId: restaurant.id),
 
-                
+                // -------- REVIEWS TAB --------
                 FutureBuilder<List<Review>>(
                   future: ReviewRepository()
                       .getReviewsByRestaurant(restaurant.id),
@@ -431,6 +126,41 @@ class RestaurantHomePage extends StatelessWidget {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Row(
+                                  children: [
+                                    const CircleAvatar(
+                                      radius: 18,
+                                      backgroundColor: Colors.grey,
+                                      child: Icon(Icons.person,
+                                          color: Colors.white),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    // 🔥 Aquí buscamos el nombre del usuario en Firestore
+                                    FutureBuilder<DocumentSnapshot>(
+                                      future: FirebaseFirestore.instance
+                                          .collection('Users')
+                                          .doc(review.userId)
+                                          .get(),
+                                      builder: (context, userSnapshot) {
+                                        if (!userSnapshot.hasData) {
+                                          return const Text("Loading...");
+                                        }
+                                        final userData = userSnapshot.data!
+                                            .data() as Map<String, dynamic>?;
+                                        final userName =
+                                            userData?['name'] ?? "Unknown User";
+                                        return Text(
+                                          userName,
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 16,
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 6),
+                                Row(
                                   children: List.generate(
                                     5,
                                     (i) => Icon(
@@ -444,6 +174,17 @@ class RestaurantHomePage extends StatelessWidget {
                                 ),
                                 const SizedBox(height: 6),
                                 Text(review.comment),
+                                if (review.imageUrl != null &&
+                                    review.imageUrl!.isNotEmpty)
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 8.0),
+                                    child: Image.network(
+                                      review.imageUrl!,
+                                      height: 120,
+                                      width: double.infinity,
+                                      fit: BoxFit.cover,
+                                    ),
+                                  ),
                               ],
                             ),
                           ),
@@ -457,6 +198,195 @@ class RestaurantHomePage extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+
+  // --- Extraí el Menu Tab a un método privado para que no quede tan largo ---
+  Widget _buildMenuTab(Restaurant restaurant, BuildContext context) {
+    return SingleChildScrollView(
+      child: Column(
+        children: [
+          // Card restaurante
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Card(
+              color: const Color.fromARGB(255, 107, 184, 194),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              elevation: 4,
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Row(
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: restaurant.imageUrl.isNotEmpty
+                          ? Image.network(
+                              restaurant.imageUrl,
+                              width: 64,
+                              height: 64,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                return const Icon(
+                                  Icons.image_not_supported,
+                                  size: 64,
+                                  color: Colors.white,
+                                );
+                              },
+                            )
+                          : const Icon(
+                              Icons.image_not_supported,
+                              size: 64,
+                              color: Colors.white,
+                            ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        restaurant.name,
+                        style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+
+          // Botón business hours
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  showDialog(
+                      context: context,
+                      builder: (_) => AlertDialog(
+                            title: const Text("Business Hours"),
+                            content: Text(
+                                "Opening: ${restaurant.openingTime}:00\nClosing: ${restaurant.closingTime}:00"),
+                            actions: [
+                              TextButton(
+                                  onPressed: () => Navigator.pop(context),
+                                  child: const Text("Close"))
+                            ],
+                          ));
+                },
+                icon: const Icon(Icons.access_time),
+                label: const Text("Business Hours"),
+                style: ElevatedButton.styleFrom(
+                    backgroundColor:
+                        const Color.fromARGB(255, 214, 145, 104)),
+              ),
+            ),
+          ),
+
+          // Platos
+          StreamBuilder<List<Dish>>(
+            stream: DishRepository().getDishesByRestaurant(restaurant.id),
+            builder: (context, snapshot) {
+              if (!snapshot.hasData) {
+                return const Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Center(child: CircularProgressIndicator()),
+                );
+              }
+
+              final dishes = snapshot.data!;
+              if (dishes.isEmpty) {
+                return const Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Text("No dishes yet."),
+                );
+              }
+
+              return Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Column(
+                  children: dishes.map((dish) {
+                    return Card(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      child: ListTile(
+                        leading: dish.imageUrl.isNotEmpty
+                            ? Image.network(
+                                dish.imageUrl,
+                                width: 60,
+                                height: 60,
+                                fit: BoxFit.cover,
+                              )
+                            : const Icon(Icons.image_not_supported, size: 60),
+                        title: Text(dish.name,
+                            style: const TextStyle(
+                                fontWeight: FontWeight.bold)),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text("\$${dish.price.toStringAsFixed(2)}"),
+                            Row(
+                              children: List.generate(
+                                5,
+                                (i) => Icon(
+                                  i < dish.rating
+                                      ? Icons.star
+                                      : Icons.star_border,
+                                  color: Colors.amber,
+                                  size: 16,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              );
+            },
+          ),
+
+          // Botón New Dish
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Center(
+              child: Container(
+                decoration: BoxDecoration(
+                  color: const Color.fromARGB(255, 214, 145, 104),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: TextButton.icon(
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                        vertical: 12, horizontal: 24),
+                  ),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => EditMenuPage(
+                          restaurantId: restaurant.id,
+                        ),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.restaurant_outlined),
+                  label: const Text(
+                    "New Dish",
+                    style:
+                        TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

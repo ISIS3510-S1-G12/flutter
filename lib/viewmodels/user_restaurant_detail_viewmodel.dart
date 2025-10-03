@@ -1,4 +1,3 @@
-// viewmodels/user_restaurant_detail_view_model.dart
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -15,29 +14,32 @@ class UserRestaurantDetailViewModel extends ChangeNotifier {
     return "$hour:$minute";
   }
 
+  ///Alternar favorito usando Users.favorite_restaurants
   Future<void> toggleFavorite(Restaurant restaurant) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
 
-    final favRef = FirebaseFirestore.instance
-        .collection('Favorites')
-        .doc(user.uid)
-        .collection('Restaurants')
-        .doc(restaurant.id);
+    final userRef = FirebaseFirestore.instance.collection('Users').doc(user.uid);
 
-    final snapshot = await favRef.get();
+    final snapshot = await userRef.get();
+    if (!snapshot.exists) return;
 
-    if (snapshot.exists) {
-      await favRef.delete();
+    final data = snapshot.data() as Map<String, dynamic>;
+    final currentFavorites =
+        Map<String, dynamic>.from(data["favorite_restaurants"] ?? {});
+
+    if (currentFavorites.containsKey(restaurant.id)) {
+      //Quitar de favoritos
+      await userRef.update({
+        "favorite_restaurants.${restaurant.id}": FieldValue.delete(),
+        "updated_at": FieldValue.serverTimestamp(),
+      });
       isFavorite = false;
     } else {
-      await favRef.set({
-        'restaurant_id': restaurant.id,
-        'name': restaurant.name,
-        'imageUrl': restaurant.imageUrl, 
-        'offer': restaurant.offer,
-        'typeOfFood': restaurant.typeOfFood,
-        'addedAt': FieldValue.serverTimestamp(),
+      //Agregar a favoritos con timestamp
+      await userRef.update({
+        "favorite_restaurants.${restaurant.id}": FieldValue.serverTimestamp(),
+        "updated_at": FieldValue.serverTimestamp(),
       });
       isFavorite = true;
     }
@@ -45,18 +47,24 @@ class UserRestaurantDetailViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// ✅ Verificar si está en favoritos
   Future<void> checkIfFavorite(Restaurant restaurant) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
 
-    final favRef = FirebaseFirestore.instance
-        .collection('Favorites')
-        .doc(user.uid)
-        .collection('Restaurants')
-        .doc(restaurant.id);
+    final userRef = FirebaseFirestore.instance.collection('Users').doc(user.uid);
+    final snapshot = await userRef.get();
+    if (!snapshot.exists) {
+      isFavorite = false;
+      notifyListeners();
+      return;
+    }
 
-    final snapshot = await favRef.get();
-    isFavorite = snapshot.exists;
+    final data = snapshot.data() as Map<String, dynamic>;
+    final currentFavorites =
+        Map<String, dynamic>.from(data["favorite_restaurants"] ?? {});
+
+    isFavorite = currentFavorites.containsKey(restaurant.id);
     notifyListeners();
   }
 
