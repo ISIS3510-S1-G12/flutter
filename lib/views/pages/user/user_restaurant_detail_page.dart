@@ -9,6 +9,7 @@ import '/repositories/dish_repository.dart';
 import '/views/widget/restaurant_detail_card.dart';
 import '/views/pages/user/write_review_page.dart';
 import '/viewmodels/user_restaurant_detail_viewmodel.dart';
+import 'package:moviles/viewmodels/review_viewmodel.dart';// 👈 IMPORTANTE
 import 'package:flutter_map/flutter_map.dart';
 import '/views/pages/user/user_ofertas_page.dart';
 
@@ -18,11 +19,19 @@ class UserRestaurantDetailPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) =>
-          UserRestaurantDetailViewModel()..checkIfFavorite(restaurant),
-      child: Consumer<UserRestaurantDetailViewModel>(
-        builder: (context, vm, _) {
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(
+          create: (_) =>
+              UserRestaurantDetailViewModel()..checkIfFavorite(restaurant),
+        ),
+        ChangeNotifierProvider(
+          create: (_) =>
+              ReviewViewModel(ReviewRepository())..loadReviews(restaurant.id),
+        ),
+      ],
+      child: Consumer2<UserRestaurantDetailViewModel, ReviewViewModel>(
+        builder: (context, vm, reviewVM, _) {
           return StreamBuilder<DocumentSnapshot>(
             stream: FirebaseFirestore.instance
                 .collection("Restaurants")
@@ -166,7 +175,7 @@ class UserRestaurantDetailPage extends StatelessWidget {
                               child: ClipRRect(
                                 borderRadius: BorderRadius.circular(12),
                                 child: FlutterMap(
-                                  options: MapOptions(maxZoom: 13.0),
+                                  options: const MapOptions(maxZoom: 13.0),
                                   children: [
                                     TileLayer(
                                       urlTemplate:
@@ -244,32 +253,27 @@ class UserRestaurantDetailPage extends StatelessWidget {
                           ],
                         ),
                       ),
+
+                      // OFFERS TAB
                       UserOfertasPage(restaurantId: fullRestaurant.id),
+
                       // REVIEWS TAB
-                      FutureBuilder<List<Review>>(
-                        future: ReviewRepository()
-                            .getReviewsByRestaurant(fullRestaurant.id),
-                        builder: (context, snapshot) {
-                          if (snapshot.connectionState ==
-                              ConnectionState.waiting) {
+                      Consumer<ReviewViewModel>(
+                        builder: (context, reviewVM, _) {
+                          if (reviewVM.isLoading) {
                             return const Center(
                                 child: CircularProgressIndicator());
                           }
-                          if (snapshot.hasError) {
-                            return Center(
-                                child: Text('Error: ${snapshot.error}'));
-                          }
 
-                          final reviews = snapshot.data ?? [];
-                          if (reviews.isEmpty) {
+                          if (reviewVM.reviews.isEmpty) {
                             return const Center(child: Text("No reviews yet."));
                           }
 
                           return ListView.builder(
                             padding: const EdgeInsets.all(16),
-                            itemCount: reviews.length,
+                            itemCount: reviewVM.reviews.length,
                             itemBuilder: (context, index) {
-                              final review = reviews[index];
+                              final review = reviewVM.reviews[index];
                               return Card(
                                 margin: const EdgeInsets.only(bottom: 12),
                                 child: Padding(
@@ -292,13 +296,13 @@ class UserRestaurantDetailPage extends StatelessWidget {
                                       ),
                                       const SizedBox(height: 6),
                                       Text(review.comment),
-                                      if (review.photoUrl != null &&
-                                          review.photoUrl!.isNotEmpty)
+                                      if (review.imageUrl != null &&
+                                          review.imageUrl!.isNotEmpty)
                                         Padding(
                                           padding:
                                               const EdgeInsets.only(top: 8.0),
                                           child: Image.network(
-                                            review.photoUrl!,
+                                            review.imageUrl!,
                                             height: 120,
                                             width: double.infinity,
                                             fit: BoxFit.cover,
@@ -315,6 +319,7 @@ class UserRestaurantDetailPage extends StatelessWidget {
                     ],
                   ),
 
+                  // Botón para escribir review
                   bottomNavigationBar: Padding(
                     padding: const EdgeInsets.all(16.0),
                     child: Container(

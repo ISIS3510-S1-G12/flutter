@@ -6,7 +6,7 @@ class ReviewViewModel extends ChangeNotifier {
   final ReviewRepository _repository;
   List<Review> reviews = [];
   bool isLoading = false;
-  String? photoUrl; 
+  String? imageUrl; 
 
   ReviewViewModel(this._repository);
 
@@ -21,22 +21,31 @@ class ReviewViewModel extends ChangeNotifier {
   }
 
   Future<void> loadReviewsByUser(String userId) async {
-  isLoading = true;
-  notifyListeners();
+    isLoading = true;
+    notifyListeners();
 
-  reviews = await _repository.getReviewsByUser(userId);
+    reviews = await _repository.getReviewsByUser(userId);
 
-  isLoading = false;
-  notifyListeners();
-}
+    isLoading = false;
+    notifyListeners();
+  }
 
+  Future<void> loadReviewsByDish(String dishId) async {
+    isLoading = true;
+    notifyListeners();
+
+    reviews = await _repository.getReviewsByDish(dishId);
+
+    isLoading = false;
+    notifyListeners();
+  }
 
   /// Tomar foto y subir a Storage
   Future<void> pickImage(String reviewId) async {
     isLoading = true;
     notifyListeners();
 
-    photoUrl = await _repository.pickAndUploadImage(reviewId);
+    imageUrl = await _repository.pickAndUploadImage(reviewId);
 
     isLoading = false;
     notifyListeners();
@@ -48,6 +57,7 @@ class ReviewViewModel extends ChangeNotifier {
     required int stars,
     required String userId,
     required String restaurantId,
+    String? dishId,
   }) async {
     isLoading = true;
     notifyListeners();
@@ -57,12 +67,11 @@ class ReviewViewModel extends ChangeNotifier {
       stars: stars,
       userId: userId,
       restaurantId: restaurantId,
-      photoUrl: photoUrl, // 👈 pasamos la URL si existe
+      dishId: dishId,
+      imageUrl: imageUrl,
     );
 
-    // limpiamos foto temporal
-    photoUrl = null;
-
+    imageUrl = null;
 
     await loadReviews(restaurantId);
 

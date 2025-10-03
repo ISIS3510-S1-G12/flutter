@@ -1,9 +1,11 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:moviles/viewmodels/write_review_viewmodel.dart';
 
 class WriteReviewPage extends StatelessWidget {
   final String restaurantId;
+
   const WriteReviewPage({super.key, required this.restaurantId});
 
   @override
@@ -27,7 +29,8 @@ class WriteReviewPage extends StatelessWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text("Calificación:", style: TextStyle(fontSize: 16)),
+                        const Text("Calificación:",
+                            style: TextStyle(fontSize: 16)),
                         Text("${vm.rating.toStringAsFixed(1)} ⭐"),
                       ],
                     ),
@@ -52,8 +55,9 @@ class WriteReviewPage extends StatelessWidget {
                         border: OutlineInputBorder(),
                       ),
                       maxLines: 4,
-                      validator: (val) =>
-                          val == null || val.trim().isEmpty ? "Por favor escribe un comentario" : null,
+                      validator: (val) => val == null || val.trim().isEmpty
+                          ? "Por favor escribe un comentario"
+                          : null,
                     ),
                     const SizedBox(height: 20),
 
@@ -65,7 +69,7 @@ class WriteReviewPage extends StatelessWidget {
                     ),
                     const SizedBox(height: 10),
 
-                    // 👀 Vista previa de la foto
+                    // 👀 Vista previa
                     if (vm.imageFile != null)
                       ClipRRect(
                         borderRadius: BorderRadius.circular(12),
@@ -84,7 +88,8 @@ class WriteReviewPage extends StatelessWidget {
                         : ElevatedButton.icon(
                             onPressed: () => vm.submitReview(context),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color.fromARGB(255, 121, 39, 101),
+                              backgroundColor:
+                                  const Color.fromARGB(255, 121, 39, 101),
                               foregroundColor: Colors.white,
                               minimumSize: const Size.fromHeight(50),
                             ),

@@ -6,8 +6,9 @@ class Review {
   final int stars;
   final String userId;
   final String restaurantId;
-  final String? dishId; // 🔹 Nuevo campo
-  final String? photoUrl;
+  final String? dishId;
+  final String? imageUrl;
+  final DateTime? createdAt;
 
   Review({
     required this.id,
@@ -15,35 +16,35 @@ class Review {
     required this.stars,
     required this.userId,
     required this.restaurantId,
-    this.dishId, // 🔹 Nuevo
-    this.photoUrl,
+    this.dishId,
+    this.imageUrl,
+    this.createdAt,
   });
 
+  /// 🔄 Desde Firestore
   factory Review.fromFirestore(String id, Map<String, dynamic> data) {
     return Review(
       id: id,
       comment: data["comment"] ?? "",
       stars: data["stars"] ?? 0,
-      userId: (data["user_id"] as DocumentReference).id,
-      restaurantId: (data["restaurant_id"] as DocumentReference).id,
-      dishId: data["dish_id"] != null
-          ? (data["dish_id"] as DocumentReference).id
-          : null, // 🔹 Nuevo
-      photoUrl: data["photoUrl"],
+      userId: data["user_id"] ?? "",
+      restaurantId: data["restaurant_id"] ?? "",
+      dishId: data["dish_id"],
+      imageUrl: data["imageUrl"],
+      createdAt: (data["createdAt"] as Timestamp?)?.toDate(),
     );
   }
 
-  Map<String, dynamic> toFirestore() {
+  /// 🔄 Convertir a JSON
+  Map<String, dynamic> toJson() {
     return {
       "comment": comment,
       "stars": stars,
-      "user_id": FirebaseFirestore.instance.doc("users/$userId"),
-      "restaurant_id":
-          FirebaseFirestore.instance.doc("restaurants/$restaurantId"),
-      "dish_id": dishId != null
-          ? FirebaseFirestore.instance.doc("dishes/$dishId")
-          : null, // 🔹 Nuevo
-      "photoUrl": photoUrl,
+      "user_id": userId,
+      "restaurant_id": restaurantId,
+      "dish_id": dishId,
+      "imageUrl": imageUrl,
+      "createdAt": createdAt,
     };
   }
 }

@@ -1,16 +1,12 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
-import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-
-// Tus imports
 import 'package:moviles/views/pages/users_page.dart';
 import 'package:moviles/repositories/auth_repository.dart';
 import 'package:moviles/repositories/user_repository.dart';
 import 'package:moviles/repositories/offer_repository.dart';
 import 'package:moviles/repositories/restaurant_repository.dart';
-
 import 'package:moviles/viewmodels/auth_viewmodel.dart';
 import 'package:moviles/viewmodels/user_viewmodel.dart';
 import 'package:moviles/viewmodels/offer_viewmodel.dart';
