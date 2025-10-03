@@ -1,32 +1,70 @@
-// lib/repositories/user_repository.dart
+import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:moviles/models/user.dart';
 
 class UserRepository {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
+  final FirebaseStorage _storage = FirebaseStorage.instance;
 
-  // Obtener datos del usuario por ID
-  Future<Map<String, dynamic>?> getUserData(String uid) async {
-    final doc = await _db.collection("Users").doc(uid).get();
-    return doc.data();
+  /// Crear o actualizar un usuario
+  Future<void> saveUser(User user) async {
+    await _db
+        .collection("Users")
+        .doc(user.id)
+        .set(user.toFirestore(), SetOptions(merge: true));
   }
 
-  // Actualizar perfil (ejemplo: nombre, foto, preferencias, etc.)
-  Future<void> updateUserProfile(
-    String uid, {
-    String? name,
-    String? profilePicture,
-    Map<String, dynamic>? preferences,
-    List<String>? favoriteRestaurants,
-  }) async {
-    final data = <String, dynamic>{};
+  /// Obtener un usuario por su id
+  Future<User?> getUser(String userId) async {
+    final doc = await _db.collection("Users").doc(userId).get();
+    if (!doc.exists) return null;
+    return User.fromFirestore(doc.id, doc.data()!);
+  }
 
-    if (name != null) data['name'] = name;
-    if (profilePicture != null) data['profile_picture'] = profilePicture;
-    if (preferences != null) data['preferences'] = preferences;
-    if (favoriteRestaurants != null) {
-      data['favorite_restaurants'] = favoriteRestaurants;
-    }
+  /// Actualizar solo preferencias
+  Future<void> updateUserPreferences(
+      String userId, Map<String, dynamic> preferences) async {
+    await _db.collection("Users").doc(userId).update({
+      "preferences": preferences,
+      "updated_at": FieldValue.serverTimestamp(),
+    });
+  }
 
-    await _db.collection("Users").doc(uid).update(data);
+  /// Subir imagen de perfil y devolver la URL
+  Future<String> uploadProfilePicture(String userId, String filePath) async {
+    final ref = _storage.ref().child("users/$userId/profile.jpg");
+    final uploadTask = await ref.putFile(File(filePath));
+    return await uploadTask.ref.getDownloadURL();
+  }
+
+  /// Agregar restaurante favorito
+  Future<void> addFavoriteRestaurant(String userId, String restaurantId) async {
+    await _db.collection("Users").doc(userId).update({
+      "favorite_restaurants.$restaurantId": FieldValue.serverTimestamp(),
+      "updated_at": FieldValue.serverTimestamp(),
+    });
+  }
+
+  /// Quitar restaurante favorito
+  Future<void> removeFavoriteRestaurant(String userId, String restaurantId) async {
+    await _db.collection("Users").doc(userId).update({
+      "favorite_restaurants.$restaurantId": FieldValue.delete(),
+      "updated_at": FieldValue.serverTimestamp(),
+    });
+  }
+
+  /// Actualizar mapa completo de favoritos
+  Future<void> updateFavorites(
+      String userId, Map<String, Timestamp> favorites) async {
+    await _db.collection("Users").doc(userId).update({
+      "favorite_restaurants": favorites,
+      "updated_at": FieldValue.serverTimestamp(),
+    });
+  }
+
+  /// Eliminar usuario
+  Future<void> deleteUser(String userId) async {
+    await _db.collection("Users").doc(userId).delete();
   }
 }
