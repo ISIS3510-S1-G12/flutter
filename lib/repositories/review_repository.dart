@@ -9,7 +9,7 @@ class ReviewRepository {
   final FirebaseStorage _storage = FirebaseStorage.instance;
   final ImagePicker _picker = ImagePicker();
 
-  /// 📸 Tomar foto con cámara y subir a Firebase Storage
+  /// 📸 Tomar foto y subirla a Firebase Storage
   Future<String?> pickAndUploadImage(String reviewId) async {
     final XFile? image = await _picker.pickImage(source: ImageSource.camera);
     if (image == null) return null;
@@ -20,36 +20,31 @@ class ReviewRepository {
     return await ref.getDownloadURL();
   }
 
-  /// 📝 Guardar review en Firestore (con plato opcional y foto opcional)
+  /// 📝 Guardar review
   Future<void> addReview({
     required String comment,
     required int stars,
     required String userId,
     required String restaurantId,
-    String? dishId,   
-    String? photoUrl,
+    String? dishId,
+    String? imageUrl,
   }) async {
     await _db.collection("Reviews").add({
       "comment": comment,
       "stars": stars,
-      "dish_id": dishId != null
-          ? _db.collection("Dishes").doc(dishId)
-          : null, 
-      "photoUrl": photoUrl,
-      "restaurant_id": _db.collection("Restaurants").doc(restaurantId),
-      "user_id": _db.collection("Users").doc(userId),
+      "dish_id": dishId, // ✅ id simple
+      "imageUrl": imageUrl,
+      "restaurant_id": restaurantId, // ✅ id simple
+      "user_id": userId,             // ✅ id simple
       "createdAt": FieldValue.serverTimestamp(),
     });
   }
 
-  /// 🍴 Obtener todas las reviews de un restaurante
+  /// 🍴 Reviews por restaurante
   Future<List<Review>> getReviewsByRestaurant(String restaurantId) async {
     final snapshot = await _db
         .collection("Reviews")
-        .where(
-          "restaurant_id",
-          isEqualTo: _db.collection("Restaurants").doc(restaurantId),
-        )
+        .where("restaurant_id", isEqualTo: restaurantId)
         .get();
 
     return snapshot.docs
@@ -57,14 +52,11 @@ class ReviewRepository {
         .toList();
   }
 
-  /// 👤 Obtener todas las reviews hechas por un usuario
+  /// 👤 Reviews por usuario
   Future<List<Review>> getReviewsByUser(String userId) async {
     final snapshot = await _db
         .collection("Reviews")
-        .where(
-          "user_id",
-          isEqualTo: _db.collection("Users").doc(userId),
-        )
+        .where("user_id", isEqualTo: userId)
         .get();
 
     return snapshot.docs
@@ -72,14 +64,11 @@ class ReviewRepository {
         .toList();
   }
 
-  /// 🍽 Obtener todas las reviews asociadas a un plato específico
+  /// 🍽 Reviews por plato
   Future<List<Review>> getReviewsByDish(String dishId) async {
     final snapshot = await _db
         .collection("Reviews")
-        .where(
-          "dish_id",
-          isEqualTo: _db.collection("Dishes").doc(dishId),
-        )
+        .where("dish_id", isEqualTo: dishId)
         .get();
 
     return snapshot.docs
