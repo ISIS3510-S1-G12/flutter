@@ -25,18 +25,14 @@ class _UserHomePageState extends State<UserHomePage> {
   void initState() {
     super.initState();
 
-    // 🔹 Permitir mostrar mensajes In-App
     fiam.setMessagesSuppressed(false);
 
-    // 🔹 Trigger de evento (según la hora)
     _triggerMealEvent();
 
-    // 🔹 Cargar restaurantes
     Future.microtask(() =>
         context.read<RestaurantViewModel>().fetchRestaurants());
 
-    // 🔹 Mostrar AlertDialog a los 10 segundos
-    Future.delayed(const Duration(seconds: 10), () async {
+    Future.delayed(const Duration(seconds: 5), () async {
       if (!mounted) return;
 
       final visitVM = context.read<VisitViewModel>();

@@ -29,7 +29,8 @@ class UserViewModel extends ChangeNotifier {
     if (user.profilePicture != null &&
         user.profilePicture!.isNotEmpty &&
         File(user.profilePicture!).existsSync()) {
-      final url = await _repository.uploadProfilePicture(user.id, user.profilePicture!);
+      final url =
+          await _repository.uploadProfilePicture(user.id, user.profilePicture!);
       user = User(
         id: user.id,
         name: user.name,
@@ -55,7 +56,8 @@ class UserViewModel extends ChangeNotifier {
   Future<void> toggleFavoriteRestaurant(String restaurantId) async {
     if (currentUser == null) return;
 
-    final favorites = Map<String, Timestamp>.from(currentUser!.favoriteRestaurants);
+    final favorites =
+        Map<String, Timestamp>.from(currentUser!.favoriteRestaurants);
     final isFavorite = favorites.containsKey(restaurantId);
 
     if (isFavorite) {
@@ -80,5 +82,16 @@ class UserViewModel extends ChangeNotifier {
     );
 
     notifyListeners();
+  }
+
+  /// ✅ Getter auxiliar para Budget
+  int? getBudget() {
+    if (currentUser == null) return null;
+    if (currentUser!.preferences.containsKey("budget")) {
+      final val = currentUser!.preferences["budget"];
+      if (val is int) return val;
+      if (val is double) return val.toInt();
+    }
+    return null;
   }
 }

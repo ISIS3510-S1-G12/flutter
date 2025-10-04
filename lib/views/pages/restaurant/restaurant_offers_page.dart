@@ -30,7 +30,7 @@ class RestaurantOffersPage extends StatelessWidget {
           }
 
           final offers = snapshot.data!;
-          print("📲 Renderizando ${offers.length} ofertas");
+          print("Renderizando ${offers.length} ofertas");
 
           return ListView.builder(
             padding: const EdgeInsets.all(16),
@@ -50,7 +50,7 @@ class RestaurantOffersPage extends StatelessWidget {
                       : const Icon(Icons.local_offer, color: Colors.teal),
                   title: Text(offer.title),
                   subtitle: Text(
-                    "${offer.description}\n${offer.discountPercentage}% OFF",
+                    "${offer.description}\n${offer.discount_percentage}% OFF",
                   ),
                   isThreeLine: true,
                 ),

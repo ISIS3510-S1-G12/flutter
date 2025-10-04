@@ -42,14 +42,15 @@ class OfferFormPage extends StatelessWidget {
                         child: vm.imageFile != null
                             ? Image.file(vm.imageFile!, fit: BoxFit.cover)
                             : (vm.imageUrl != null && vm.imageUrl!.isNotEmpty)
-                                ? Image.network(vm.imageUrl!,
+                                ? Image.network(
+                                    vm.imageUrl!,
                                     fit: BoxFit.cover,
                                     errorBuilder: (ctx, _, __) =>
-                                        const Icon(Icons.image_not_supported))
+                                        const Icon(Icons.image_not_supported),
+                                  )
                                 : const Center(
                                     child: Column(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
+                                      mainAxisAlignment: MainAxisAlignment.center,
                                       children: [
                                         Icon(Icons.add_a_photo,
                                             size: 40, color: Colors.grey),
@@ -80,6 +81,23 @@ class OfferFormPage extends StatelessWidget {
                     ),
                     const SizedBox(height: 12),
 
+                    // ---- Precio ----
+                    TextFormField(
+                      controller: vm.priceController,
+                      decoration: const InputDecoration(labelText: "Price"),
+                      keyboardType:
+                          const TextInputType.numberWithOptions(decimal: true),
+                      validator: (value) {
+                        final p = double.tryParse(value ?? "");
+                        if (p == null || p <= 0) {
+                          return "Enter a valid price";
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 12),
+
+                    // ---- Descuento ----
                     TextFormField(
                       controller: vm.discountController,
                       decoration:
@@ -95,11 +113,12 @@ class OfferFormPage extends StatelessWidget {
                     ),
                     const SizedBox(height: 12),
 
+                    // ---- Tags ----
                     TextFormField(
                       controller: vm.tagsController,
                       decoration: const InputDecoration(
                         labelText: "Tags (comma separated)",
-                        hintText: "Ej: big, cheap, weekend",
+                        hintText: "Eg: big, cheap, weekend",
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -108,13 +127,12 @@ class OfferFormPage extends StatelessWidget {
                     Row(
                       children: [
                         Expanded(
-                          child: Text(vm.validFrom == null
+                          child: Text(vm.valid_from == null
                               ? "Valid from: Not set"
-                              : "Valid from: ${vm.validFrom!.toLocal()}".split(" ")[0]),
+                              : "Valid from: ${vm.valid_from!.toLocal()}".split(" ")[0]),
                         ),
                         TextButton(
-                          onPressed: () =>
-                              vm.pickDate(context, isFrom: true),
+                          onPressed: () => vm.pickDate(context, isFrom: true),
                           child: const Text("Pick"),
                         ),
                       ],
@@ -122,13 +140,12 @@ class OfferFormPage extends StatelessWidget {
                     Row(
                       children: [
                         Expanded(
-                          child: Text(vm.validTo == null
+                          child: Text(vm.valid_to == null
                               ? "Valid to: Not set"
-                              : "Valid to: ${vm.validTo!.toLocal()}".split(" ")[0]),
+                              : "Valid to: ${vm.valid_to!.toLocal()}".split(" ")[0]),
                         ),
                         TextButton(
-                          onPressed: () =>
-                              vm.pickDate(context, isFrom: false),
+                          onPressed: () => vm.pickDate(context, isFrom: false),
                           child: const Text("Pick"),
                         ),
                       ],

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:firebase_auth/firebase_auth.dart'; // 👈 Necesario para obtener uid
 import '../../../models/offer.dart';
 import '../../../repositories/offer_repository.dart';
 import '../../../viewmodels/offer_viewmodel.dart';
+import '../../../viewmodels/user_viewmodel.dart';
 
 class UserOfertasPage extends StatefulWidget {
   final String? restaurantId; // opcional
@@ -14,8 +16,25 @@ class UserOfertasPage extends StatefulWidget {
 }
 
 class _UserOfertasPageState extends State<UserOfertasPage> {
-  String _filter = "All"; // All | Today
+  String _filter = "All";
   String _searchQuery = "";
+  bool _dialogShown = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // 🚀 Cargar automáticamente el usuario autenticado
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final userVM = Provider.of<UserViewModel>(context, listen: false);
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+      if (uid != null) {
+        print("DEBUG: Cargando usuario con uid -> $uid");
+        userVM.loadUser(uid);
+      } else {
+        print("DEBUG: No hay usuario logueado en FirebaseAuth");
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -31,12 +50,11 @@ class _UserOfertasPageState extends State<UserOfertasPage> {
             backgroundColor: Colors.white,
             body: Column(
               children: [
-                // 🔹 SearchBar + Botón de filtro
+                // Barra de búsqueda
                 Padding(
                   padding: const EdgeInsets.all(12.0),
                   child: Row(
                     children: [
-                      // Barra de búsqueda
                       Expanded(
                         child: TextField(
                           decoration: InputDecoration(
@@ -60,8 +78,6 @@ class _UserOfertasPageState extends State<UserOfertasPage> {
                         ),
                       ),
                       const SizedBox(width: 10),
-
-                      // Botón de filtro
                       Container(
                         decoration: BoxDecoration(
                           color: const Color.fromARGB(255, 214, 145, 104),
@@ -79,7 +95,7 @@ class _UserOfertasPageState extends State<UserOfertasPage> {
                   ),
                 ),
 
-                // 🔹 Lista de ofertas
+                // Listado de Ofertas
                 Expanded(
                   child: StreamBuilder<List<Offer>>(
                     stream: stream,
@@ -96,7 +112,7 @@ class _UserOfertasPageState extends State<UserOfertasPage> {
 
                       var offers = snapshot.data ?? [];
 
-                      // Filtro por búsqueda
+                      // Filtro búsqueda
                       if (_searchQuery.isNotEmpty) {
                         offers = offers.where((o) {
                           final title = o.title.toLowerCase();
@@ -106,23 +122,94 @@ class _UserOfertasPageState extends State<UserOfertasPage> {
                         }).toList();
                       }
 
-                      // Filtro por fecha "Hoy"
+                      // Filtro Today
                       if (_filter == "Today") {
                         final today = DateTime.now();
                         offers = offers.where((o) {
-                          return o.validFrom != null &&
-                              o.validTo != null &&
-                              today.isAfter(o.validFrom!) &&
-                              today.isBefore(o.validTo!);
+                          return o.valid_from != null &&
+                              o.valid_to != null &&
+                              today.isAfter(o.valid_from!) &&
+                              today.isBefore(o.valid_to!);
                         }).toList();
                       }
 
+                      // DEBUG: Verificar usuario y budget
+                      final userVM =
+                          Provider.of<UserViewModel>(context, listen: false);
+                      final user = userVM.currentUser;
+                      final budget = userVM.getBudget();
+
+                      print("DEBUG: Entró al build de ofertas");
+                      print("DEBUG: Usuario actual -> $user");
+                      print("DEBUG: Budget obtenido -> $budget");
+
+                      if (!_dialogShown &&
+                          user != null &&
+                          budget != null &&
+                          offers.isNotEmpty) {
+                        final today = DateTime.now();
+
+                        final todayOffers = offers.where((o) {
+                          return o.valid_from != null &&
+                              o.valid_to != null &&
+                              today.isAfter(o.valid_from!) &&
+                              today.isBefore(o.valid_to!);
+                        }).toList();
+
+                        print(
+                            "DEBUG: Hoy hay ${todayOffers.length} ofertas activas");
+
+                        if (todayOffers.isNotEmpty) {
+                          final withinBudget = todayOffers.where(
+                            (o) => o.price <= budget,
+                          ).toList();
+
+                          print(
+                              "DEBUG: Ofertas dentro del budget -> ${withinBudget.length}");
+
+                          final percentage =
+                              (withinBudget.length / todayOffers.length) * 100;
+
+                          WidgetsBinding.instance.addPostFrameCallback((_) {
+                            if (mounted) {
+                              _dialogShown = true;
+                              print("DEBUG: Mostrando AlertDialog...");
+                              showDialog(
+                                context: context,
+                                builder: (context) {
+                                  return AlertDialog(
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    title: const Text("Budget Insight"),
+                                    content: Text(
+                                      "${percentage.toStringAsFixed(0)}% of today’s offers fit your budget",
+                                    ),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () =>
+                                            Navigator.pop(context),
+                                        child: const Text("OK"),
+                                      ),
+                                    ],
+                                  );
+                                },
+                              );
+                            }
+                          });
+                        } else {
+                          print("DEBUG: No hay ofertas activas hoy.");
+                        }
+                      }
+
+                      // No hay ofertas
                       if (offers.isEmpty) {
                         return const Center(
-                          child: Text("No hay ofertas disponibles."),
+                          child: Text("There are no offers available."),
                         );
                       }
 
+                      // Lista
                       return ListView.builder(
                         padding: const EdgeInsets.all(12),
                         itemCount: offers.length,
@@ -163,15 +250,15 @@ class _UserOfertasPageState extends State<UserOfertasPage> {
                                       Text(offer.description),
                                       const SizedBox(height: 8),
                                       Text(
-                                        "Descuento: ${offer.discountPercentage.toStringAsFixed(0)}%",
+                                        "Discount: ${offer.discount_percentage.toStringAsFixed(0)}%",
                                         style: const TextStyle(
                                             color: Colors.green,
                                             fontWeight: FontWeight.bold),
                                       ),
-                                      if (offer.validFrom != null &&
-                                          offer.validTo != null)
+                                      if (offer.valid_from != null &&
+                                          offer.valid_to != null)
                                         Text(
-                                          "Válido: ${offer.validFrom!.toLocal().toString().split(' ')[0]} - ${offer.validTo!.toLocal().toString().split(' ')[0]}",
+                                          "Valid: ${offer.valid_from!.toLocal().toString().split(' ')[0]} - ${offer.valid_to!.toLocal().toString().split(' ')[0]}",
                                           style: const TextStyle(
                                               fontSize: 12,
                                               color: Colors.grey),
@@ -195,7 +282,7 @@ class _UserOfertasPageState extends State<UserOfertasPage> {
     );
   }
 
-  // 🔹 Función para mostrar filtros en un BottomSheet
+  // BottomSheet de filtros
   void _showFilterOptions(BuildContext context) {
     showModalBottomSheet(
       context: context,
@@ -210,7 +297,7 @@ class _UserOfertasPageState extends State<UserOfertasPage> {
             children: [
               ListTile(
                 leading: const Icon(Icons.list),
-                title: const Text("Todas las ofertas"),
+                title: const Text("All offers"),
                 onTap: () {
                   setState(() => _filter = "All");
                   Navigator.pop(context);
@@ -218,7 +305,7 @@ class _UserOfertasPageState extends State<UserOfertasPage> {
               ),
               ListTile(
                 leading: const Icon(Icons.today),
-                title: const Text("Solo las de hoy"),
+                title: const Text("Today only"),
                 onTap: () {
                   setState(() => _filter = "Today");
                   Navigator.pop(context);

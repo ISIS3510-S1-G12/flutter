@@ -21,7 +21,6 @@ class Review {
     this.createdAt,
   });
 
-  /// 🔄 Desde Firestore
   factory Review.fromFirestore(String id, Map<String, dynamic> data) {
     return Review(
       id: id,
@@ -35,7 +34,6 @@ class Review {
     );
   }
 
-  /// 🔄 Convertir a JSON
   Map<String, dynamic> toJson() {
     return {
       "comment": comment,

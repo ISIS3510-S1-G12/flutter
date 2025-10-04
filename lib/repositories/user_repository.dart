@@ -47,7 +47,8 @@ class UserRepository {
   }
 
   /// Quitar restaurante favorito
-  Future<void> removeFavoriteRestaurant(String userId, String restaurantId) async {
+  Future<void> removeFavoriteRestaurant(
+      String userId, String restaurantId) async {
     await _db.collection("Users").doc(userId).update({
       "favorite_restaurants.$restaurantId": FieldValue.delete(),
       "updated_at": FieldValue.serverTimestamp(),

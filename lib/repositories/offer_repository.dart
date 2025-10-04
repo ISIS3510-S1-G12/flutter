@@ -12,7 +12,7 @@ class OfferRepository {
     return await ref.getDownloadURL();
   }
 
-  ///  Crear oferta
+  /// Crear oferta
   Future<void> createOffer(Offer offer, {File? image}) async {
     final docRef = _firestore.collection("Offers").doc();
 
@@ -23,21 +23,22 @@ class OfferRepository {
 
     final newOffer = Offer(
       id: docRef.id,
-      restaurantId: offer.restaurantId,
+      restaurant_id: offer.restaurant_id,
       title: offer.title,
       description: offer.description,
-      discountPercentage: offer.discountPercentage,
+      discount_percentage: offer.discount_percentage,
+      price: offer.price, // 👈 incluimos price
       image: imageUrl ?? offer.image,
       tags: offer.tags,
-      validFrom: offer.validFrom,
-      validTo: offer.validTo,
+      valid_from: offer.valid_from,
+      valid_to: offer.valid_to,
       createdAt: DateTime.now(),
     );
 
     await docRef.set(newOffer.toMap());
   }
 
-  ///  Actualizar oferta
+  /// Actualizar oferta
   Future<void> updateOffer(Offer offer, {File? image}) async {
     final docRef = _firestore.collection("Offers").doc(offer.id);
 
@@ -51,16 +52,16 @@ class OfferRepository {
     await docRef.update(updatedOffer.toMap());
   }
 
-  ///  Eliminar oferta
+  /// Eliminar oferta
   Future<void> deleteOffer(String offerId) async {
     await _firestore.collection("Offers").doc(offerId).delete();
   }
 
-  ///  Obtener ofertas de un restaurante
+  /// Obtener ofertas de un restaurante
   Stream<List<Offer>> getOffersByRestaurant(String restaurantId) {
     return _firestore
         .collection("Offers")
-        .where("restaurantId", isEqualTo: restaurantId)
+        .where("restaurant_id", isEqualTo: restaurantId) // 👈 snake_case
         .snapshots()
         .map((snapshot) {
           return snapshot.docs
@@ -69,7 +70,7 @@ class OfferRepository {
         });
   }
 
-  ///  Obtener todas las ofertas
+  /// Obtener todas las ofertas
   Stream<List<Offer>> getAllOffers() {
     return _firestore
         .collection("Offers")
@@ -78,7 +79,7 @@ class OfferRepository {
             snapshot.docs.map((doc) => Offer.fromMap(doc.data(), doc.id)).toList());
   }
 
-  ///  Obtener ofertas activas de hoy
+  /// Obtener ofertas activas de hoy
   Future<List<Offer>> getActiveOffers() async {
     final now = DateTime.now();
 
@@ -89,8 +90,8 @@ class OfferRepository {
     }).toList();
 
     return offers.where((offer) {
-      final from = offer.validFrom ?? DateTime(2000);
-      final to = offer.validTo ?? DateTime(2100);
+      final from = offer.valid_from ?? DateTime(2000);
+      final to = offer.valid_to ?? DateTime(2100);
       return now.isAfter(from) && now.isBefore(to);
     }).toList();
   }
