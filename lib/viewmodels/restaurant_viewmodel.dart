@@ -48,6 +48,7 @@ class RestaurantViewModel extends ChangeNotifier {
   List<Restaurant> restaurants = [];
   List<Restaurant> filteredRestaurants = [];
   List<Restaurant> favorites = [];
+  List<Restaurant> todaysDiscounts = [];
 
   bool isLoading = false;
   bool isLoadingFavorites = false;
@@ -55,7 +56,18 @@ class RestaurantViewModel extends ChangeNotifier {
 
   RestaurantFilter? _activeFilter;
 
-  /// 🔹 Cargar todos los restaurantes
+  ///  NUEVOS GETTERS
+  int get totalFavorites => favorites.length;
+
+  int get favoritesWithOffers => todaysDiscounts.length;
+
+  String get percentageWithOffers {
+    if (favorites.isEmpty) return "0";
+    final value = (todaysDiscounts.length / favorites.length) * 100;
+    return value.toStringAsFixed(1); // ejemplo: 33.3
+  }
+
+  ///  Cargar todos los restaurantes
   Future<void> fetchRestaurants() async {
     try {
       isLoading = true;
@@ -73,7 +85,7 @@ class RestaurantViewModel extends ChangeNotifier {
     }
   }
 
-  /// 🔹 Guardar un restaurante con imagen
+  ///  Guardar un restaurante con imagen
   Future<void> saveRestaurantOwner({
     required String id,
     required String name,
@@ -118,7 +130,7 @@ class RestaurantViewModel extends ChangeNotifier {
     }
   }
 
-  /// 🔹 Cargar favoritos desde Users/{uid}.favorite_restaurants
+  ///  Cargar favoritos
   Future<void> fetchFavorites() async {
     try {
       isLoadingFavorites = true;
@@ -127,6 +139,7 @@ class RestaurantViewModel extends ChangeNotifier {
       final userAuth = FirebaseAuth.instance.currentUser;
       if (userAuth == null) {
         favorites = [];
+        todaysDiscounts = [];
         isLoadingFavorites = false;
         notifyListeners();
         return;
@@ -135,9 +148,11 @@ class RestaurantViewModel extends ChangeNotifier {
       final app_user.User? userData = await _userRepo.getUser(userAuth.uid);
       if (userData == null || userData.favoriteRestaurants.isEmpty) {
         favorites = [];
+        todaysDiscounts = [];
       } else {
         favorites = await _restaurantRepo
             .getFavoriteRestaurants(userData.favoriteRestaurants);
+        todaysDiscounts = favorites.where((r) => r.offer).toList();
       }
 
       isLoadingFavorites = false;
@@ -146,8 +161,15 @@ class RestaurantViewModel extends ChangeNotifier {
       isLoadingFavorites = false;
       errorMessage = e.toString();
       favorites = [];
+      todaysDiscounts = [];
       notifyListeners();
     }
+  }
+
+  Future<void> fetchTodaysDiscounts() async {
+    await fetchFavorites();
+    todaysDiscounts = favorites.where((r) => r.offer).toList();
+    notifyListeners();
   }
 
   /// --- FILTROS ---
@@ -163,3 +185,4 @@ class RestaurantViewModel extends ChangeNotifier {
     notifyListeners();
   }
 }
+
