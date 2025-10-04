@@ -14,6 +14,9 @@ import '/views/widget/restaurant_detail_card.dart';
 import '/views/pages/user/write_review_page.dart';
 import '/views/pages/user/user_ofertas_page.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
+import 'package:geocoding/geocoding.dart';
+
 
 class UserRestaurantDetailPage extends StatefulWidget {
   final Restaurant restaurant;
@@ -24,10 +27,31 @@ class UserRestaurantDetailPage extends StatefulWidget {
 }
 
 class _UserRestaurantDetailPageState extends State<UserRestaurantDetailPage> {
+  LatLng? _restaurantLocation; // 📍 ubicación del restaurante
+
+
   @override
   void initState() {
     super.initState();
-    // ❌ Ya no hay lógica de AlertDialog aquí
+    _loadRestaurantLocation();
+    
+  }
+  // 🔹 Geocodifica la dirección del restaurante actual
+  Future<void> _loadRestaurantLocation() async {
+    try {
+      final address = widget.restaurant.address;
+      if (address.isNotEmpty) {
+        final locations = await locationFromAddress(address);
+        if (locations.isNotEmpty) {
+          final loc = locations.first;
+          setState(() {
+            _restaurantLocation = LatLng(loc.latitude, loc.longitude);
+          });
+        }
+      }
+    } catch (e) {
+      print("Error al geocodificar ${widget.restaurant.address}: $e");
+    }
   }
 
   @override
@@ -252,7 +276,10 @@ class _UserRestaurantDetailPageState extends State<UserRestaurantDetailPage> {
                               child: ClipRRect(
                                 borderRadius: BorderRadius.circular(12),
                                 child: FlutterMap(
-                                  options: const MapOptions(maxZoom: 13.0),
+                                  options: MapOptions(
+                                    initialCenter: _restaurantLocation!, // Bogotá por defecto
+                                    maxZoom: 13.0,
+                                  ),
                                   children: [
                                     TileLayer(
                                       urlTemplate:
@@ -260,6 +287,20 @@ class _UserRestaurantDetailPageState extends State<UserRestaurantDetailPage> {
                                       userAgentPackageName:
                                           'com.example.moviles',
                                     ),
+                                                                           MarkerLayer(
+                                            markers: [
+                                              Marker(
+                                                point: _restaurantLocation!,
+                                                width: 60,
+                                                height: 60,
+                                                child: const Icon(
+                  Icons.location_pin,
+                  color: Color.fromARGB(255, 170, 98, 153),
+                  size: 40,
+                ),
+                                              ),
+                                            ],
+                                          ),
                                   ],
                                 ),
                               ),
