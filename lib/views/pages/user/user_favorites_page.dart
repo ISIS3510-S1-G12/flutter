@@ -78,9 +78,7 @@ class _UserFavoritesPageState extends State<UserFavoritesPage> {
         }
 
         if (vm.errorMessage != null) {
-          return Center(
-            child: Text("Error: ${vm.errorMessage}"),
-          );
+          return Center(child: Text("Error: ${vm.errorMessage}"));
         }
 
         if (vm.favorites.isEmpty) {
@@ -143,7 +141,7 @@ class _UserFavoritesPageState extends State<UserFavoritesPage> {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              "Tipo de comida: ${restaurant.typeOfFood}",
+                              "Type of food: ${restaurant.typeOfFood}",
                               style: const TextStyle(
                                 fontSize: 14,
                                 color: Colors.white,

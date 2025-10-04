@@ -177,6 +177,12 @@ class RestaurantViewModel extends ChangeNotifier {
     }
   }
 
+  Future<void> fetchTodaysDiscounts() async {
+    await fetchFavorites();
+    todaysDiscounts = favorites.where((r) => r.offer).toList();
+    notifyListeners();
+  }
+
   /// --- FILTROS ---
   void applyFilter(RestaurantFilter filter) {
     _activeFilter = filter;
@@ -190,3 +196,4 @@ class RestaurantViewModel extends ChangeNotifier {
     notifyListeners();
   }
 }
+
