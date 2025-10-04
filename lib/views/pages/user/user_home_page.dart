@@ -9,6 +9,7 @@ import 'package:moviles/views/pages/user/user_favorites_page.dart';
 import 'package:moviles/views/pages/user/user_restaurant_detail_page.dart';
 import 'package:moviles/views/pages/user/user_ofertas_page.dart';
 import 'package:moviles/views/pages/user/user_review_history.dart';
+import 'package:moviles/viewmodels/visit_viewmodel.dart';
 
 class UserHomePage extends StatefulWidget {
   const UserHomePage({super.key});
@@ -27,41 +28,65 @@ class _UserHomePageState extends State<UserHomePage> {
     // 🔹 Permitir mostrar mensajes In-App
     fiam.setMessagesSuppressed(false);
 
-    // 🔹 Trigger de evento (simulado ahora)
+    // 🔹 Trigger de evento (según la hora)
     _triggerMealEvent();
 
     // 🔹 Cargar restaurantes
     Future.microtask(() =>
         context.read<RestaurantViewModel>().fetchRestaurants());
+
+    // 🔹 Mostrar AlertDialog a los 10 segundos
+    Future.delayed(const Duration(seconds: 10), () async {
+      if (!mounted) return;
+
+      final visitVM = context.read<VisitViewModel>();
+      await visitVM.loadDaysSinceLastVisitGlobal();
+
+      if (!mounted) return;
+
+      int? days = visitVM.daysSinceLastVisitGlobal;
+      String message;
+
+      if (days == null) {
+        message = "You have not visited any restaurant yet.";
+      } else if (days == 0) {
+        message = "You visited a restaurant today.";
+      } else if (days == 1) {
+        message = "It’s been 1 day since your last restaurant visit.";
+      } else {
+        message = "It’s been $days days since your last restaurant visit.";
+      }
+
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text("Last visit"),
+          content: Text(message),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("OK"),
+            ),
+          ],
+        ),
+      );
+    });
   }
 
   void _triggerMealEvent() {
-    // 🛠️ Simular hora ficticia para pruebas → 7:30 p.m.
     final now = DateTime.now();
     final hour = now.hour;
 
-    print("Hora simulada: ${now.hour}:${now.minute}");
+    print("Hora actual: ${now.hour}:${now.minute}");
 
-    //  Breakfast → 5:00 a.m. - 12:00 p.m.
     if (hour >= 5 && hour < 12) {
-      print("Disparando evento: breakfast_time (${now.hour}:${now.minute})");
       fiam.triggerEvent('breakfast_time');
-    }
-
-    //  Lunch → 12:00 p.m. - 6:00 p.m.
-    else if (hour >= 12 && hour < 18) {
-      print("Disparando evento: lunch_time (${now.hour}:${now.minute})");
+    } else if (hour >= 12 && hour < 18) {
       fiam.triggerEvent('lunch_time');
-    }
-
-    //  Dinner → 6:00 p.m. - 10:00 p.m.
-    else if (hour >= 18 && hour < 22) {
-      print(" Disparando evento: dinner_time (${now.hour}:${now.minute})");
+    } else if (hour >= 18 && hour < 22) {
       fiam.triggerEvent('dinner_time');
-    }
-
-    else {
-      print("ℹNo se disparó ningún evento (${now.hour}:${now.minute})");
+    } else {
+      print("ℹ No se disparó ningún evento (${now.hour}:${now.minute})");
     }
   }
 

@@ -38,10 +38,10 @@ class AuthViewModel extends ChangeNotifier {
         password: password,
       );
       _error = null;
-      return uid; // 🔹 Retornamos el UID
+      return uid; //  Retornamos el UID
     } catch (e) {
       _error = e.toString();
-      rethrow; // 🔹 Lanzamos la excepción para manejarla en UI
+      rethrow; //  Lanzamos la excepción para manejarla en UI
     } finally {
       _loading = false;
       notifyListeners();
