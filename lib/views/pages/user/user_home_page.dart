@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_in_app_messaging/firebase_in_app_messaging.dart';
 
@@ -10,6 +11,8 @@ import 'package:moviles/views/pages/user/user_restaurant_detail_page.dart';
 import 'package:moviles/views/pages/user/user_ofertas_page.dart';
 import 'package:moviles/views/pages/user/user_review_history.dart';
 import 'package:moviles/viewmodels/visit_viewmodel.dart';
+import 'package:geocoding/geocoding.dart';
+
 
 class UserHomePage extends StatefulWidget {
   const UserHomePage({super.key});
@@ -20,6 +23,8 @@ class UserHomePage extends StatefulWidget {
 
 class _UserHomePageState extends State<UserHomePage> {
   final FirebaseInAppMessaging fiam = FirebaseInAppMessaging.instance;
+  List<LatLng> restaurantLocations = [];
+
 
   @override
   void initState() {
@@ -31,10 +36,37 @@ class _UserHomePageState extends State<UserHomePage> {
     // 🔹 Trigger de evento (según la hora)
     _triggerMealEvent();
 
-    // 🔹 Cargar restaurantes
-    Future.microtask(() =>
-        context.read<RestaurantViewModel>().fetchRestaurants());
+  Future<void> _loadRestaurantLocations(RestaurantViewModel vm) async {
+    final List<LatLng> coords = [];
 
+    for (final r in vm.filteredRestaurants) {
+      try {
+        print("Dirección del restaurante: ${r.address}");
+        if (r.address != null && r.address!.isNotEmpty) {
+          final locations = await locationFromAddress(r.address!);
+          if (locations.isNotEmpty) {
+            final loc = locations.first;
+            coords.add(LatLng(loc.latitude, loc.longitude));
+          }
+        }
+      } catch (e) {
+        print("Error al geocodificar ${r.address}: $e");
+      }
+    }
+
+    setState(() {
+      restaurantLocations = coords;
+    });
+  }
+
+  // 🔹 Cargar restaurantes
+  Future.microtask(() async {
+    final vm = context.read<RestaurantViewModel>();
+    await vm.fetchRestaurants();
+    await _loadRestaurantLocations(vm);
+    });
+        
+  
     // 🔹 Mostrar AlertDialog a los 10 segundos
     Future.delayed(const Duration(seconds: 10), () async {
       if (!mounted) return;
@@ -225,20 +257,53 @@ class _UserHomePageState extends State<UserHomePage> {
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(12),
                         child: FlutterMap(
-                          options: MapOptions(
-                            onTap: (tapPosition, latLng) {
-                              print("Tapped at: $latLng");
-                            },
-                            maxZoom: 12.0,
-                          ),
-                          children: [
-                            TileLayer(
-                              urlTemplate:
-                                  "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-                              userAgentPackageName: 'com.example.moviles',
-                            ),
-                          ],
-                        ),
+  options: MapOptions(
+    initialCenter: LatLng(4.65, -74.08), // Bogotá por defecto
+    initialZoom: 12.0,
+    maxZoom: 18.0,
+    onTap: (tapPosition, latLng) {
+      print("Tapped at: $latLng");
+      print("Direcciones de restaurants: ${vm.filteredRestaurants.map((r) => r.address).join(' otro ')}");
+      print("Coordenadas de restaurants: $restaurantLocations");
+    },
+  ),
+  children: [
+    TileLayer(
+      urlTemplate: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+      userAgentPackageName: 'com.example.moviles',
+    ),
+    MarkerLayer(
+      markers: [
+        for (int i = 0; i < vm.filteredRestaurants.length; i++)
+          if (i < restaurantLocations.length)
+            Marker(
+              width: 40,
+              height: 40,
+              point: restaurantLocations[i],
+              child: GestureDetector(
+                onTap: () {
+                  final restaurant = vm.filteredRestaurants[i];
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) =>
+                          UserRestaurantDetailPage(restaurant: restaurant),
+                    ),
+                  );
+                },
+                child: const Icon(
+                  Icons.location_pin,
+                  color: Color.fromARGB(255, 170, 98, 153),
+                  size: 40,
+                ),
+              ),
+            ),
+      ],
+    ),
+
+  ],
+),
+
                       ),
                     ),
 
