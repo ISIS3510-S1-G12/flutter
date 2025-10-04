@@ -8,53 +8,69 @@ class VisitViewModel extends ChangeNotifier {
   VisitViewModel(this._visitsRepository);
 
   bool isLoading = false;
-  String? errorMessage;
-  int? daysSinceLastVisit;
+
+  /// Última visita general (en días) de todos los restaurantes
+  int? daysSinceLastVisitGlobal;
 
   /// Registrar visita
   Future<void> registerVisit(String restaurantId) async {
     try {
       isLoading = true;
       notifyListeners();
+      print("🔹 Registering visit for restaurant: $restaurantId");
 
       final user = FirebaseAuth.instance.currentUser;
-      if (user == null) throw Exception("User not logged in");
+      if (user == null) {
+        print("❌ No user logged in");
+        return;
+      }
 
       await _visitsRepository.registerVisit(restaurantId, user.uid);
+
+      print("✅ Visit registered successfully");
+
+      // refrescar global
+      await loadDaysSinceLastVisitGlobal();
 
       isLoading = false;
       notifyListeners();
     } catch (e) {
       isLoading = false;
-      errorMessage = e.toString();
+      print("❌ Error registering visit: $e");
       notifyListeners();
     }
   }
 
-  /// Calcular los días desde la última visita de este usuario a este restaurant
-  Future<void> loadDaysSinceLastVisit(String restaurantId) async {
+  /// Calcular los días desde la última visita global (cualquier restaurante)
+  Future<void> loadDaysSinceLastVisitGlobal() async {
     try {
       isLoading = true;
       notifyListeners();
+      print("🔹 Loading global days since last visit");
 
       final user = FirebaseAuth.instance.currentUser;
-      if (user == null) throw Exception("User not logged in");
+      if (user == null) {
+        print("❌ No user logged in");
+        return;
+      }
 
-      final lastVisit =
-          await _visitsRepository.getLastVisit(restaurantId, user.uid);
+      final visits = await _visitsRepository.getUserVisits(user.uid);
 
-      if (lastVisit == null) {
-        daysSinceLastVisit = null; // nunca visitado
+      if (visits.isEmpty) {
+        daysSinceLastVisitGlobal = null;
+        print("ℹ️ User has never visited any restaurant");
       } else {
+        final lastVisit = visits.first; // ya vienen ordenados por fecha desc
         final now = DateTime.now();
-        daysSinceLastVisit = now.difference(lastVisit).inDays;
+        daysSinceLastVisitGlobal = now.difference(lastVisit).inDays;
+        print("✅ Days since last visit (global): $daysSinceLastVisitGlobal");
       }
 
       isLoading = false;
       notifyListeners();
     } catch (e) {
       isLoading = false;
-      errorMessage = e.toString();
+      print("❌ Error loading global last visit: $e");
       notifyListeners();
     }
   }

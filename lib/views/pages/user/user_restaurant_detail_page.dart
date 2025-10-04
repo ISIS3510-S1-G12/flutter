@@ -210,10 +210,8 @@ class _UserRestaurantDetailPageState extends State<UserRestaurantDetailPage> {
                                             builder: (context) => AlertDialog(
                                               title:
                                                   const Text("Visit recorded"),
-                                              content: Text(
-                                                visitVM.errorMessage ??
-                                                    "Your visit has been saved.",
-                                              ),
+                                              content: const Text(
+                                                  "Your visit has been recorded successfully."),
                                               actions: [
                                                 TextButton(
                                                   onPressed: () =>

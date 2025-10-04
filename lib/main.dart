@@ -8,10 +8,12 @@ import 'package:moviles/repositories/auth_repository.dart';
 import 'package:moviles/repositories/user_repository.dart';
 import 'package:moviles/repositories/offer_repository.dart';
 import 'package:moviles/repositories/restaurant_repository.dart';
+import 'package:moviles/repositories/visits_repository.dart'; // <-- agregado
 import 'package:moviles/viewmodels/auth_viewmodel.dart';
 import 'package:moviles/viewmodels/user_viewmodel.dart';
 import 'package:moviles/viewmodels/offer_viewmodel.dart';
 import 'package:moviles/viewmodels/restaurant_viewmodel.dart';
+import 'package:moviles/viewmodels/visit_viewmodel.dart'; // <-- agregado
 import 'services/analytics_service.dart';
 
 import 'package:firebase_in_app_messaging/firebase_in_app_messaging.dart';
@@ -52,7 +54,16 @@ class Sumaq extends StatelessWidget {
           create: (_) => OfferViewModel(OfferRepository()),
         ),
         ChangeNotifierProvider(
-          create: (_) => RestaurantViewModel(RestaurantRepository(),UserRepository(),OfferRepository()),
+          // Asegúrate que el constructor de RestaurantViewModel reciba (RestaurantRepository, UserRepository, OfferRepository)
+          create: (_) => RestaurantViewModel(
+            RestaurantRepository(),
+            UserRepository(),
+            OfferRepository(),
+          ),
+        ),
+        ChangeNotifierProvider(
+          // <-- nuevo provider para visitas
+          create: (_) => VisitViewModel(VisitsRepository()),
         ),
       ],
       child: MaterialApp(

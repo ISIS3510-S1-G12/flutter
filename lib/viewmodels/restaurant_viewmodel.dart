@@ -153,14 +153,14 @@ class RestaurantViewModel extends ChangeNotifier {
         favorites = [];
         todaysDiscounts = [];
       } else {
-        // 🔹 Traemos favoritos
+        //  Traemos favoritos
         favorites = await _restaurantRepo
             .getFavoriteRestaurants(userData.favoriteRestaurants);
 
-        // 🔹 Traemos ofertas activas de hoy
+        //  Traemos ofertas activas de hoy
         final activeOffers = await _offerRepo.getActiveOffers();
 
-        // 🔹 Filtramos favoritos que tienen una oferta activa
+        //  Filtramos favoritos que tienen una oferta activa
         todaysDiscounts = favorites.where((restaurant) {
           return activeOffers.any((offer) => offer.restaurantId == restaurant.id);
         }).toList();
