@@ -15,10 +15,43 @@ class _UserFavoritesPageState extends State<UserFavoritesPage> {
   @override
   void initState() {
     super.initState();
-    // 🔹 Ejecutamos fetchFavorites apenas se monta el widget
-    Future.microtask(() {
-      Provider.of<RestaurantViewModel>(context, listen: false)
-          .fetchFavorites();
+    Future.microtask(() async {
+      final vm = Provider.of<RestaurantViewModel>(context, listen: false);
+      await vm.fetchFavorites();
+
+      if (vm.totalFavorites > 0) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: const Text("Favorites"),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    "Favorite restaurants: ${vm.totalFavorites}",
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  Text(
+                    "With offer: ${vm.favoritesWithOffers}",
+                    style: const TextStyle(color: Colors.green),
+                  ),
+                  Text(
+                    "Percentage with offer: ${vm.percentageWithOffers}%",
+                    style: const TextStyle(color: Colors.blue),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text("Ok"),
+                ),
+              ],
+            ),
+          );
+        });
+      }
     });
   }
 
@@ -31,9 +64,7 @@ class _UserFavoritesPageState extends State<UserFavoritesPage> {
         }
 
         if (vm.errorMessage != null) {
-          return Center(
-            child: Text("Error: ${vm.errorMessage}"),
-          );
+          return Center(child: Text("Error: ${vm.errorMessage}"));
         }
 
         if (vm.favorites.isEmpty) {
@@ -93,7 +124,7 @@ class _UserFavoritesPageState extends State<UserFavoritesPage> {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              "Tipo de comida: ${restaurant.typeOfFood}",
+                              "Type of food: ${restaurant.typeOfFood}",
                               style: const TextStyle(
                                 fontSize: 14,
                                 color: Colors.white,
