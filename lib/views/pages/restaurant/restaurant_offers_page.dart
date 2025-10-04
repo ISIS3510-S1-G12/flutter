@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:moviles/viewmodels/offer_viewmodel.dart';
-import 'package:moviles/views/pages/restaurant/offerFormPage.dart';
+import 'package:moviles/views/pages/restaurant/offer_form_page.dart';
 import 'package:moviles/models/offer.dart';
 
 class RestaurantOffersPage extends StatelessWidget {

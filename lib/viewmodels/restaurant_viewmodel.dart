@@ -1,8 +1,13 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../models/restaurant.dart';
+import '../../models/user.dart' as app_user;
 import '../../repositories/restaurant_repository.dart';
+import '../../repositories/user_repository.dart';
 
+/// --- FILTROS ---
 abstract class RestaurantFilter {
   List<Restaurant> apply(List<Restaurant> restaurants);
 }
@@ -33,24 +38,30 @@ class FilterWithoutOffer implements RestaurantFilter {
   }
 }
 
+/// --- VIEWMODEL ---
 class RestaurantViewModel extends ChangeNotifier {
-  final RestaurantRepository _repo;
-  RestaurantViewModel(this._repo);
+  final RestaurantRepository _restaurantRepo;
+  final UserRepository _userRepo;
 
-  List<Restaurant> restaurants = []; // todos
-  List<Restaurant> filteredRestaurants = []; // filtrados
+  RestaurantViewModel(this._restaurantRepo, this._userRepo);
+
+  List<Restaurant> restaurants = [];
+  List<Restaurant> filteredRestaurants = [];
+  List<Restaurant> favorites = [];
+
   bool isLoading = false;
+  bool isLoadingFavorites = false;
   String? errorMessage;
 
   RestaurantFilter? _activeFilter;
 
-  /// Cargar todos los restaurantes
+  /// 🔹 Cargar todos los restaurantes
   Future<void> fetchRestaurants() async {
     try {
       isLoading = true;
       notifyListeners();
 
-      restaurants = await _repo.getRestaurants();
+      restaurants = await _restaurantRepo.getRestaurants();
       filteredRestaurants = restaurants;
 
       isLoading = false;
@@ -62,7 +73,7 @@ class RestaurantViewModel extends ChangeNotifier {
     }
   }
 
-  /// Guardar un restaurante con imagen opcional
+  /// 🔹 Guardar un restaurante con imagen
   Future<void> saveRestaurantOwner({
     required String id,
     required String name,
@@ -78,7 +89,7 @@ class RestaurantViewModel extends ChangeNotifier {
 
       String imageUrl = "";
       if (imageFile != null) {
-        imageUrl = await _repo.uploadImage(id, imageFile);
+        imageUrl = await _restaurantRepo.uploadImage(id, imageFile);
       }
 
       final restaurant = Restaurant(
@@ -95,8 +106,8 @@ class RestaurantViewModel extends ChangeNotifier {
         rating: 0.0,
       );
 
-      await _repo.saveRestaurantWithId(id, restaurant);
-      await fetchRestaurants(); // refresca lista
+      await _restaurantRepo.saveRestaurantWithId(id, restaurant);
+      await fetchRestaurants();
 
       isLoading = false;
       notifyListeners();
@@ -107,14 +118,45 @@ class RestaurantViewModel extends ChangeNotifier {
     }
   }
 
-  /// Aplica un filtro
+  /// 🔹 Cargar favoritos desde Users/{uid}.favorite_restaurants
+  Future<void> fetchFavorites() async {
+    try {
+      isLoadingFavorites = true;
+      notifyListeners();
+
+      final userAuth = FirebaseAuth.instance.currentUser;
+      if (userAuth == null) {
+        favorites = [];
+        isLoadingFavorites = false;
+        notifyListeners();
+        return;
+      }
+
+      final app_user.User? userData = await _userRepo.getUser(userAuth.uid);
+      if (userData == null || userData.favoriteRestaurants.isEmpty) {
+        favorites = [];
+      } else {
+        favorites = await _restaurantRepo
+            .getFavoriteRestaurants(userData.favoriteRestaurants);
+      }
+
+      isLoadingFavorites = false;
+      notifyListeners();
+    } catch (e) {
+      isLoadingFavorites = false;
+      errorMessage = e.toString();
+      favorites = [];
+      notifyListeners();
+    }
+  }
+
+  /// --- FILTROS ---
   void applyFilter(RestaurantFilter filter) {
     _activeFilter = filter;
     filteredRestaurants = filter.apply(restaurants);
     notifyListeners();
   }
 
-  /// Limpia el filtro
   void clearFilter() {
     _activeFilter = null;
     filteredRestaurants = restaurants;

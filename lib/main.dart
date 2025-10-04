@@ -2,6 +2,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import 'package:moviles/views/pages/users_page.dart';
 import 'package:moviles/repositories/auth_repository.dart';
 import 'package:moviles/repositories/user_repository.dart';
@@ -13,13 +14,21 @@ import 'package:moviles/viewmodels/offer_viewmodel.dart';
 import 'package:moviles/viewmodels/restaurant_viewmodel.dart';
 import 'services/analytics_service.dart';
 
+import 'package:firebase_in_app_messaging/firebase_in_app_messaging.dart';
+
+// Instancia global de Firebase In-App Messaging
+final FirebaseInAppMessaging fiam = FirebaseInAppMessaging.instance;
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Inicializar Firebase
   final app = await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
   print('Firebase initialized: ${app.name}');
+
+  // Inicializar analytics
   final analyticsService = AnalyticsService();
   analyticsService.init();
 
@@ -43,7 +52,7 @@ class Sumaq extends StatelessWidget {
           create: (_) => OfferViewModel(OfferRepository()),
         ),
         ChangeNotifierProvider(
-          create: (_) => RestaurantViewModel(RestaurantRepository()),
+          create: (_) => RestaurantViewModel(RestaurantRepository(),UserRepository()),
         ),
       ],
       child: MaterialApp(
@@ -54,9 +63,9 @@ class Sumaq extends StatelessWidget {
           useMaterial3: true,
         ),
         routes: {
-          '/pages/users.dart': (context) => const UsersPage(),
+          '/users': (context) => const UsersPage(),
         },
-        initialRoute: '/pages/users.dart',
+        initialRoute: '/users',
       ),
     );
   }

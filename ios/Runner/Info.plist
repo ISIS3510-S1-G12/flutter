@@ -22,6 +22,17 @@
 	<key>NSLocationAlwaysUsageDescription</key>
 	<string>Necesitamos acceso a tu ubicación incluso en segundo plano para mejorar tu experiencia.</string>
 
+	<!-- 🔹 Notificaciones -->
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>fetch</string>
+		<string>remote-notification</string>
+	</array>
+
+	<key>NSUserNotificationUsageDescription</key>
+	<string>Necesitamos enviar notificaciones para avisarte de ofertas según la hora.</string>
+	<key>UIUserNotificationAlertStyle</key>
+	<string>alert</string>
 
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>

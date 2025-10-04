@@ -10,9 +10,7 @@ class RestaurantRepository {
   /// Obtener todos los restaurantes
   Future<List<Restaurant>> getRestaurants() async {
     final snapshot = await _db.collection("Restaurants").get();
-    return snapshot.docs
-        .map((doc) => Restaurant.fromFirestore(doc))
-        .toList();
+    return snapshot.docs.map((doc) => Restaurant.fromFirestore(doc)).toList();
   }
 
   /// Guardar restaurante con ID fijo
@@ -33,4 +31,18 @@ class RestaurantRepository {
     if (!doc.exists) return null;
     return Restaurant.fromFirestore(doc);
   }
+
+  /// Obtener restaurantes favoritos a partir de un mapa {restaurantId: timestamp}
+    Future<List<Restaurant>> getFavoriteRestaurants(
+          Map<String, Timestamp> favoritesMap) async {
+        if (favoritesMap.isEmpty) return [];
+
+        final ids = favoritesMap.keys.toList();
+        final snapshot = await _db
+            .collection("Restaurants")
+            .where(FieldPath.documentId, whereIn: ids)
+            .get();
+
+        return snapshot.docs.map((doc) => Restaurant.fromFirestore(doc)).toList();
+      }
 }

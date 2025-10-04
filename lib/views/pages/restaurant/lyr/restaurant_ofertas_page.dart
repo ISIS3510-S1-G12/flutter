@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '/models/restaurant.dart';
-import 'package:moviles/views/pages/restaurant/offerFormPage.dart'; 
+import 'package:moviles/views/pages/restaurant/offer_form_page.dart';
 class RestaurantOfertasPage extends StatelessWidget {
   const RestaurantOfertasPage({super.key});
 
