@@ -1,3 +1,4 @@
+// 📌 UserRestaurantDetailPage sin alert dialog en initState
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
@@ -5,19 +6,34 @@ import '/models/restaurant.dart';
 import '/models/dish.dart';
 import '/repositories/review_repository.dart';
 import '/repositories/dish_repository.dart';
+import '/repositories/visits_repository.dart';
+import '/viewmodels/user_restaurant_detail_viewmodel.dart';
+import '/viewmodels/review_viewmodel.dart';
+import '/viewmodels/visit_viewmodel.dart';
 import '/views/widget/restaurant_detail_card.dart';
 import '/views/pages/user/write_review_page.dart';
-import '/viewmodels/user_restaurant_detail_viewmodel.dart';
-import 'package:moviles/viewmodels/review_viewmodel.dart';// 👈 IMPORTANTE
-import 'package:flutter_map/flutter_map.dart';
 import '/views/pages/user/user_ofertas_page.dart';
+import 'package:flutter_map/flutter_map.dart';
 
-class UserRestaurantDetailPage extends StatelessWidget {
+class UserRestaurantDetailPage extends StatefulWidget {
   final Restaurant restaurant;
   const UserRestaurantDetailPage({super.key, required this.restaurant});
 
   @override
+  State<UserRestaurantDetailPage> createState() => _UserRestaurantDetailPageState();
+}
+
+class _UserRestaurantDetailPageState extends State<UserRestaurantDetailPage> {
+  @override
+  void initState() {
+    super.initState();
+    // ❌ Ya no hay lógica de AlertDialog aquí
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final restaurant = widget.restaurant;
+
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(
@@ -28,9 +44,13 @@ class UserRestaurantDetailPage extends StatelessWidget {
           create: (_) =>
               ReviewViewModel(ReviewRepository())..loadReviews(restaurant.id),
         ),
+        ChangeNotifierProvider(
+          create: (_) => VisitViewModel(VisitsRepository()),
+        ),
       ],
-      child: Consumer2<UserRestaurantDetailViewModel, ReviewViewModel>(
-        builder: (context, vm, reviewVM, _) {
+      child: Consumer3<UserRestaurantDetailViewModel, ReviewViewModel,
+          VisitViewModel>(
+        builder: (context, vm, reviewVM, visitVM, _) {
           return StreamBuilder<DocumentSnapshot>(
             stream: FirebaseFirestore.instance
                 .collection("Restaurants")
@@ -59,7 +79,6 @@ class UserRestaurantDetailPage extends StatelessWidget {
                 closingTime: data['closingTime'] ?? 0,
                 email: data['email'] ?? '',
               );
-
               return DefaultTabController(
                 length: 3,
                 child: Scaffold(
@@ -99,46 +118,102 @@ class UserRestaurantDetailPage extends StatelessWidget {
                           children: [
                             RestaurantDetailCard(restaurant: fullRestaurant),
 
-                            // Botones Favorito + Bluetooth
+                            // 🔹 Botones Favorito + People arriba, Visited abajo
                             Padding(
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 16, vertical: 8),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
+                              child: Column(
                                 children: [
-                                  SizedBox(
-                                    width: 150,
-                                    child: ElevatedButton.icon(
-                                      onPressed: () =>
-                                          vm.toggleFavorite(fullRestaurant),
-                                      icon: Icon(vm.isFavorite
-                                          ? Icons.favorite
-                                          : Icons.favorite_border),
-                                      label: Text(vm.isFavorite
-                                          ? "Favorite"
-                                          : "Favorite"),
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: const Color.fromARGB(
-                                            255, 121, 39, 101),
-                                        foregroundColor: Colors.white,
+                                  // fila con 2 botones
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Expanded(
+                                        child: ElevatedButton.icon(
+                                          onPressed: () =>
+                                              vm.toggleFavorite(fullRestaurant),
+                                          icon: Icon(
+                                            vm.isFavorite
+                                                ? Icons.favorite
+                                                : Icons.favorite_border,
+                                            size: 18,
+                                          ),
+                                          label: const Text(
+                                            "Favorite",
+                                            style: TextStyle(fontSize: 12),
+                                          ),
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor:
+                                                const Color.fromARGB(
+                                                    255, 121, 39, 101),
+                                            foregroundColor: Colors.white,
+                                            padding: const EdgeInsets.symmetric(
+                                                vertical: 6),
+                                          ),
+                                        ),
                                       ),
-                                    ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: ElevatedButton.icon(
+                                          onPressed: () async {
+                                            int peopleCount =
+                                                await vm.scanNearbyDevices();
+                                            if (context.mounted) {
+                                              showDialog(
+                                                context: context,
+                                                builder: (context) =>
+                                                    AlertDialog(
+                                                  title: const Text(
+                                                      "People detected"),
+                                                  content: Text(
+                                                      "We detected $peopleCount nearby devices in this restaurant."),
+                                                  actions: [
+                                                    TextButton(
+                                                      onPressed: () =>
+                                                          Navigator.pop(
+                                                              context),
+                                                      child: const Text("OK"),
+                                                    ),
+                                                  ],
+                                                ),
+                                              );
+                                            }
+                                          },
+                                          icon: const Icon(
+                                              Icons.bluetooth_searching,
+                                              size: 18),
+                                          label: const Text(
+                                            "People",
+                                            style: TextStyle(fontSize: 12),
+                                          ),
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: Colors.teal,
+                                            foregroundColor: Colors.white,
+                                            padding: const EdgeInsets.symmetric(
+                                                vertical: 6),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                  const SizedBox(width: 12),
+                                  const SizedBox(height: 8),
+                                  // botón único abajo
                                   SizedBox(
-                                    width: 150,
+                                    width: double.infinity,
                                     child: ElevatedButton.icon(
                                       onPressed: () async {
-                                        int peopleCount =
-                                            await vm.scanNearbyDevices();
+                                        await visitVM
+                                            .registerVisit(restaurant.id);
                                         if (context.mounted) {
                                           showDialog(
                                             context: context,
                                             builder: (context) => AlertDialog(
-                                              title: const Text(
-                                                  "People detected"),
+                                              title:
+                                                  const Text("Visit recorded"),
                                               content: Text(
-                                                  "We detected $peopleCount nearby devices in this restaurant."),
+                                                visitVM.errorMessage ??
+                                                    "Your visit has been saved.",
+                                              ),
                                               actions: [
                                                 TextButton(
                                                   onPressed: () =>
@@ -150,12 +225,17 @@ class UserRestaurantDetailPage extends StatelessWidget {
                                           );
                                         }
                                       },
-                                      icon: const Icon(
-                                          Icons.bluetooth_searching),
-                                      label: const Text("# People"),
+                                      icon: const Icon(Icons.check_circle,
+                                          size: 18),
+                                      label: const Text(
+                                        "Visited",
+                                        style: TextStyle(fontSize: 12),
+                                      ),
                                       style: ElevatedButton.styleFrom(
-                                        backgroundColor: Colors.teal,
+                                        backgroundColor: Colors.orange,
                                         foregroundColor: Colors.white,
+                                        padding: const EdgeInsets.symmetric(
+                                            vertical: 6),
                                       ),
                                     ),
                                   ),
@@ -187,7 +267,7 @@ class UserRestaurantDetailPage extends StatelessWidget {
                               ),
                             ),
 
-                            // Dishes
+                            // DISHES
                             StreamBuilder<List<Dish>>(
                               stream: DishRepository()
                                   .getDishesByRestaurant(fullRestaurant.id),
@@ -199,7 +279,6 @@ class UserRestaurantDetailPage extends StatelessWidget {
                                         child: CircularProgressIndicator()),
                                   );
                                 }
-
                                 final dishes = snapshot.data!;
                                 if (dishes.isEmpty) {
                                   return const Padding(
@@ -207,7 +286,6 @@ class UserRestaurantDetailPage extends StatelessWidget {
                                     child: Text("No dishes yet."),
                                   );
                                 }
-
                                 return Column(
                                   children: dishes.map((dish) {
                                     return Card(
@@ -260,35 +338,32 @@ class UserRestaurantDetailPage extends StatelessWidget {
                       Consumer<ReviewViewModel>(
                         builder: (context, reviewVM, _) {
                           if (reviewVM.isLoading) {
-                            return const Center(child: CircularProgressIndicator());
+                            return const Center(
+                                child: CircularProgressIndicator());
                           }
-
                           if (reviewVM.reviews.isEmpty) {
                             return const Center(child: Text("No reviews yet."));
                           }
-
                           return ListView.builder(
                             padding: const EdgeInsets.all(16),
                             itemCount: reviewVM.reviews.length,
                             itemBuilder: (context, index) {
                               final review = reviewVM.reviews[index];
-
                               return FutureBuilder<DocumentSnapshot>(
                                 future: FirebaseFirestore.instance
                                     .collection("Users")
                                     .doc(review.userId)
                                     .get(),
                                 builder: (context, userSnapshot) {
-                                  if (userSnapshot.connectionState == ConnectionState.waiting) {
+                                  if (userSnapshot.connectionState ==
+                                      ConnectionState.waiting) {
                                     return const SizedBox();
                                   }
-
-                                  final userData =
-                                      userSnapshot.data?.data() as Map<String, dynamic>?;
-
-                                  final userName = userData?['name'] ?? "Unknown User";
+                                  final userData = userSnapshot.data?.data()
+                                      as Map<String, dynamic>?;
+                                  final userName =
+                                      userData?['name'] ?? "Unknown User";
                                   final userPic = userData?['profile_picture'];
-
                                   return Card(
                                     margin: const EdgeInsets.only(bottom: 12),
                                     shape: RoundedRectangleBorder(
@@ -298,32 +373,34 @@ class UserRestaurantDetailPage extends StatelessWidget {
                                     child: Padding(
                                       padding: const EdgeInsets.all(12),
                                       child: Row(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
                                         children: [
-                                          // 🔹 Avatar del usuario
                                           CircleAvatar(
                                             radius: 24,
-                                            backgroundImage:
-                                                userPic != null ? NetworkImage(userPic) : null,
+                                            backgroundImage: userPic != null
+                                                ? NetworkImage(userPic)
+                                                : null,
                                             child: userPic == null
                                                 ? const Icon(Icons.person)
                                                 : null,
                                           ),
                                           const SizedBox(width: 12),
-
-                                          // 🔹 Contenido de la review
                                           Expanded(
                                             child: Column(
-                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
                                               children: [
-                                                // Nombre del usuario + estrellas
                                                 Row(
-                                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                  mainAxisAlignment:
+                                                      MainAxisAlignment
+                                                          .spaceBetween,
                                                   children: [
                                                     Text(
                                                       userName,
                                                       style: const TextStyle(
-                                                        fontWeight: FontWeight.bold,
+                                                        fontWeight:
+                                                            FontWeight.bold,
                                                         fontSize: 15,
                                                       ),
                                                     ),
@@ -333,8 +410,10 @@ class UserRestaurantDetailPage extends StatelessWidget {
                                                         (i) => Icon(
                                                           i < review.stars
                                                               ? Icons.star
-                                                              : Icons.star_border,
-                                                          color: const Color.fromARGB(
+                                                              : Icons
+                                                                  .star_border,
+                                                          color: const Color
+                                                              .fromARGB(
                                                               255, 170, 98, 153),
                                                           size: 18,
                                                         ),
@@ -343,20 +422,21 @@ class UserRestaurantDetailPage extends StatelessWidget {
                                                   ],
                                                 ),
                                                 const SizedBox(height: 6),
-
-                                                // Comentario
                                                 Text(
                                                   review.comment,
-                                                  style: const TextStyle(fontSize: 14),
+                                                  style: const TextStyle(
+                                                      fontSize: 14),
                                                 ),
-
-                                                // Imagen si existe
                                                 if (review.imageUrl != null &&
                                                     review.imageUrl!.isNotEmpty)
                                                   Padding(
-                                                    padding: const EdgeInsets.only(top: 8.0),
+                                                    padding:
+                                                        const EdgeInsets.only(
+                                                            top: 8.0),
                                                     child: ClipRRect(
-                                                      borderRadius: BorderRadius.circular(8),
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              8),
                                                       child: Image.network(
                                                         review.imageUrl!,
                                                         height: 140,
@@ -378,7 +458,6 @@ class UserRestaurantDetailPage extends StatelessWidget {
                           );
                         },
                       ),
-
                     ],
                   ),
                   // Botón para escribir review
@@ -397,8 +476,8 @@ class UserRestaurantDetailPage extends StatelessWidget {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) => WriteReviewPage(
-                                  restaurantId: fullRestaurant.id),
+                              builder: (_) =>
+                                  WriteReviewPage(restaurantId: fullRestaurant.id),
                             ),
                           );
                         },

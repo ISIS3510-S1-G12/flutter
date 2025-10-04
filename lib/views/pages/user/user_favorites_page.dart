@@ -15,10 +15,57 @@ class _UserFavoritesPageState extends State<UserFavoritesPage> {
   @override
   void initState() {
     super.initState();
-    // 🔹 Ejecutamos fetchFavorites apenas se monta el widget
-    Future.microtask(() {
-      Provider.of<RestaurantViewModel>(context, listen: false)
-          .fetchFavorites();
+    Future.microtask(() async {
+      final vm = Provider.of<RestaurantViewModel>(context, listen: false);
+      await vm.fetchFavorites();
+
+      if (vm.totalFavorites > 0) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: const Text("Favorites Summary"),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Total favorites: ${vm.totalFavorites}",
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  Text(
+                    "With active offers: ${vm.favoritesWithOffers}",
+                    style: const TextStyle(color: Colors.green),
+                  ),
+                  Text(
+                    "Percentage with offers: ${vm.percentageWithOffers}%",
+                    style: const TextStyle(color: Colors.blue),
+                  ),
+                  const SizedBox(height: 12),
+                  const Text(
+                    "Restaurants with offers today:",
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  ...vm.todaysDiscounts.map((r) => ListTile(
+                        dense: true,
+                        leading: CircleAvatar(
+                          backgroundImage: NetworkImage(r.imageUrl),
+                          onBackgroundImageError: (_, __) {},
+                        ),
+                        title: Text(r.name),
+                      )),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text("Ok"),
+                ),
+              ],
+            ),
+          );
+        });
+      }
     });
   }
 
@@ -45,6 +92,9 @@ class _UserFavoritesPageState extends State<UserFavoritesPage> {
           itemCount: vm.favorites.length,
           itemBuilder: (context, index) {
             final Restaurant restaurant = vm.favorites[index];
+            final bool hasActiveOffer = vm.todaysDiscounts
+                .any((r) => r.id == restaurant.id); // 🔹 check real offers
+
             return InkWell(
               onTap: () {
                 Navigator.push(
@@ -100,7 +150,7 @@ class _UserFavoritesPageState extends State<UserFavoritesPage> {
                               ),
                             ),
                             const SizedBox(height: 4),
-                            if (restaurant.offer)
+                            if (hasActiveOffer)
                               Container(
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 8, vertical: 4),
@@ -109,7 +159,7 @@ class _UserFavoritesPageState extends State<UserFavoritesPage> {
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: const Text(
-                                  "Offers available!",
+                                  "Active Offer!",
                                   style: TextStyle(
                                     fontSize: 12,
                                     color: Colors.green,

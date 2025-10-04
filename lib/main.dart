@@ -52,7 +52,7 @@ class Sumaq extends StatelessWidget {
           create: (_) => OfferViewModel(OfferRepository()),
         ),
         ChangeNotifierProvider(
-          create: (_) => RestaurantViewModel(RestaurantRepository(),UserRepository()),
+          create: (_) => RestaurantViewModel(RestaurantRepository(),UserRepository(),OfferRepository()),
         ),
       ],
       child: MaterialApp(

@@ -3,9 +3,11 @@ import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../models/restaurant.dart';
+import '../../models/offer.dart';
 import '../../models/user.dart' as app_user;
 import '../../repositories/restaurant_repository.dart';
 import '../../repositories/user_repository.dart';
+import '../../repositories/offer_repository.dart';
 
 /// --- FILTROS ---
 abstract class RestaurantFilter {
@@ -42,12 +44,14 @@ class FilterWithoutOffer implements RestaurantFilter {
 class RestaurantViewModel extends ChangeNotifier {
   final RestaurantRepository _restaurantRepo;
   final UserRepository _userRepo;
+  final OfferRepository _offerRepo;
 
-  RestaurantViewModel(this._restaurantRepo, this._userRepo);
+  RestaurantViewModel(this._restaurantRepo, this._userRepo, this._offerRepo);
 
   List<Restaurant> restaurants = [];
   List<Restaurant> filteredRestaurants = [];
   List<Restaurant> favorites = [];
+  List<Restaurant> todaysDiscounts = [];
 
   bool isLoading = false;
   bool isLoadingFavorites = false;
@@ -55,7 +59,18 @@ class RestaurantViewModel extends ChangeNotifier {
 
   RestaurantFilter? _activeFilter;
 
-  /// 🔹 Cargar todos los restaurantes
+  /// --- GETTERS PARA PORCENTAJE ---
+  int get totalFavorites => favorites.length;
+
+  int get favoritesWithOffers => todaysDiscounts.length;
+
+  String get percentageWithOffers {
+    if (favorites.isEmpty) return "0";
+    final value = (todaysDiscounts.length / favorites.length) * 100;
+    return value.toStringAsFixed(1);
+  }
+
+  /// --- CARGAR TODOS LOS RESTAURANTES ---
   Future<void> fetchRestaurants() async {
     try {
       isLoading = true;
@@ -73,7 +88,7 @@ class RestaurantViewModel extends ChangeNotifier {
     }
   }
 
-  /// 🔹 Guardar un restaurante con imagen
+  /// --- GUARDAR UN RESTAURANTE CON IMAGEN ---
   Future<void> saveRestaurantOwner({
     required String id,
     required String name,
@@ -118,7 +133,7 @@ class RestaurantViewModel extends ChangeNotifier {
     }
   }
 
-  /// 🔹 Cargar favoritos desde Users/{uid}.favorite_restaurants
+  /// --- CARGAR FAVORITOS Y DESCUENTOS ACTIVOS ---
   Future<void> fetchFavorites() async {
     try {
       isLoadingFavorites = true;
@@ -127,6 +142,7 @@ class RestaurantViewModel extends ChangeNotifier {
       final userAuth = FirebaseAuth.instance.currentUser;
       if (userAuth == null) {
         favorites = [];
+        todaysDiscounts = [];
         isLoadingFavorites = false;
         notifyListeners();
         return;
@@ -135,9 +151,19 @@ class RestaurantViewModel extends ChangeNotifier {
       final app_user.User? userData = await _userRepo.getUser(userAuth.uid);
       if (userData == null || userData.favoriteRestaurants.isEmpty) {
         favorites = [];
+        todaysDiscounts = [];
       } else {
+        // 🔹 Traemos favoritos
         favorites = await _restaurantRepo
             .getFavoriteRestaurants(userData.favoriteRestaurants);
+
+        // 🔹 Traemos ofertas activas de hoy
+        final activeOffers = await _offerRepo.getActiveOffers();
+
+        // 🔹 Filtramos favoritos que tienen una oferta activa
+        todaysDiscounts = favorites.where((restaurant) {
+          return activeOffers.any((offer) => offer.restaurantId == restaurant.id);
+        }).toList();
       }
 
       isLoadingFavorites = false;
@@ -146,6 +172,7 @@ class RestaurantViewModel extends ChangeNotifier {
       isLoadingFavorites = false;
       errorMessage = e.toString();
       favorites = [];
+      todaysDiscounts = [];
       notifyListeners();
     }
   }
