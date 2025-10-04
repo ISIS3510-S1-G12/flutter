@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:provider/provider.dart';
+import 'package:firebase_in_app_messaging/firebase_in_app_messaging.dart';
 
 import 'package:moviles/viewmodels/restaurant_viewmodel.dart';
 import 'package:moviles/views/widget/restaurant_card.dart';
@@ -17,12 +18,51 @@ class UserHomePage extends StatefulWidget {
 }
 
 class _UserHomePageState extends State<UserHomePage> {
+  final FirebaseInAppMessaging fiam = FirebaseInAppMessaging.instance;
+
   @override
   void initState() {
     super.initState();
-    // Llamamos al fetch una sola vez cuando carga la pantalla
+
+    // 🔹 Permitir mostrar mensajes In-App
+    fiam.setMessagesSuppressed(false);
+
+    // 🔹 Trigger de evento (simulado ahora)
+    _triggerMealEvent();
+
+    // 🔹 Cargar restaurantes
     Future.microtask(() =>
         context.read<RestaurantViewModel>().fetchRestaurants());
+  }
+
+  void _triggerMealEvent() {
+    // 🛠️ Simular hora ficticia para pruebas → 7:30 p.m.
+    final now = DateTime.now();
+    final hour = now.hour;
+
+    print("Hora simulada: ${now.hour}:${now.minute}");
+
+    //  Breakfast → 5:00 a.m. - 12:00 p.m.
+    if (hour >= 5 && hour < 12) {
+      print("Disparando evento: breakfast_time (${now.hour}:${now.minute})");
+      fiam.triggerEvent('breakfast_time');
+    }
+
+    //  Lunch → 12:00 p.m. - 6:00 p.m.
+    else if (hour >= 12 && hour < 18) {
+      print("Disparando evento: lunch_time (${now.hour}:${now.minute})");
+      fiam.triggerEvent('lunch_time');
+    }
+
+    //  Dinner → 6:00 p.m. - 10:00 p.m.
+    else if (hour >= 18 && hour < 22) {
+      print(" Disparando evento: dinner_time (${now.hour}:${now.minute})");
+      fiam.triggerEvent('dinner_time');
+    }
+
+    else {
+      print("ℹNo se disparó ningún evento (${now.hour}:${now.minute})");
+    }
   }
 
   @override

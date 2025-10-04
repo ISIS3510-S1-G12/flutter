@@ -6,7 +6,7 @@ import '/repositories/review_repository.dart';
 import 'edit_menu_page.dart';
 import 'package:moviles/models/dish.dart';
 import 'package:moviles/repositories/dish_repository.dart';
-import 'restaurantOffersPage.dart';
+import 'restaurant_offers_page.dart';
 
 class RestaurantHomePage extends StatelessWidget {
   final String restaurantId;

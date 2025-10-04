@@ -1,66 +1,50 @@
-import 'dart:convert';
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import '/views/pages/user/user_restaurant_detail_page.dart';
+import 'package:provider/provider.dart';
+import '/viewmodels/restaurant_viewmodel.dart';
 import '/models/restaurant.dart';
+import '/views/pages/user/user_restaurant_detail_page.dart';
 
-class UserFavoritesPage extends StatelessWidget {
+class UserFavoritesPage extends StatefulWidget {
   const UserFavoritesPage({super.key});
 
-  Uint8List decodeBase64Image(String base64String) {
-    final base64Data = base64String.split(',').last;
-    return base64Decode(base64Data);
+  @override
+  State<UserFavoritesPage> createState() => _UserFavoritesPageState();
+}
+
+class _UserFavoritesPageState extends State<UserFavoritesPage> {
+  @override
+  void initState() {
+    super.initState();
+    // 🔹 Ejecutamos fetchFavorites apenas se monta el widget
+    Future.microtask(() {
+      Provider.of<RestaurantViewModel>(context, listen: false)
+          .fetchFavorites();
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) {
-      return const Center(child: Text('No user logged in'));
-    }
-
-    return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('Favorites')
-          .doc(user.uid)
-          .collection('Restaurants')
-          .snapshots(),
-      builder: (context, snapshot) {
-        if (!snapshot.hasData) {
+    return Consumer<RestaurantViewModel>(
+      builder: (context, vm, child) {
+        if (vm.isLoadingFavorites) {
           return const Center(child: CircularProgressIndicator());
         }
 
-        final restaurants = snapshot.data!.docs.map((doc) {
-          final data = doc.data() as Map<String, dynamic>;
-          return Restaurant(
-            id: doc.id,
-            name: data['name'] ?? '',
-            typeOfFood: data['typeOfFood'] ?? '',
-            rating: (data['rating'] != null)
-                ? double.tryParse(data['rating'].toString()) ?? 0.0
-                : 0.0,
-            offer: data['offer'] ?? false, // ✅ bool seguro
-            imageUrl: data['imageUrl'] ?? '',
-            address: data['address'] ?? '',
-            email: data['email'] ?? '',
-            openingTime:
-                int.tryParse(data['openingTime']?.toString() ?? '0') ?? 0,
-            closingTime:
-                int.tryParse(data['closingTime']?.toString() ?? '0') ?? 0,
+        if (vm.errorMessage != null) {
+          return Center(
+            child: Text("Error: ${vm.errorMessage}"),
           );
-        }).toList();
+        }
 
-        if (restaurants.isEmpty) {
-          return const Center(child: Text('No favorites yet'));
+        if (vm.favorites.isEmpty) {
+          return const Center(child: Text("No favorites yet"));
         }
 
         return ListView.builder(
           padding: const EdgeInsets.all(16),
-          itemCount: restaurants.length,
+          itemCount: vm.favorites.length,
           itemBuilder: (context, index) {
-            final restaurant = restaurants[index];
+            final Restaurant restaurant = vm.favorites[index];
             return InkWell(
               onTap: () {
                 Navigator.push(
@@ -116,7 +100,7 @@ class UserFavoritesPage extends StatelessWidget {
                               ),
                             ),
                             const SizedBox(height: 4),
-                            if (restaurant.offer) // ✅ bool
+                            if (restaurant.offer)
                               Container(
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 8, vertical: 4),
@@ -138,27 +122,20 @@ class UserFavoritesPage extends StatelessWidget {
                       const SizedBox(width: 12),
                       ClipRRect(
                         borderRadius: BorderRadius.circular(12),
-                        child: restaurant.imageUrl.startsWith('data:image')
-                            ? Image.memory(
-                                decodeBase64Image(restaurant.imageUrl),
-                                width: 80,
-                                height: 80,
-                                fit: BoxFit.cover,
-                              )
-                            : Image.network(
-                                restaurant.imageUrl,
-                                width: 80,
-                                height: 80,
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) {
-                                  return Image.asset(
-                                    'images/default.png',
-                                    width: 80,
-                                    height: 80,
-                                    fit: BoxFit.cover,
-                                  );
-                                },
-                              ),
+                        child: Image.network(
+                          restaurant.imageUrl,
+                          width: 80,
+                          height: 80,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Image.asset(
+                              'images/default.png',
+                              width: 80,
+                              height: 80,
+                              fit: BoxFit.cover,
+                            );
+                          },
+                        ),
                       ),
                     ],
                   ),
