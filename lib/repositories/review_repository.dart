@@ -9,7 +9,6 @@ class ReviewRepository {
   final FirebaseStorage _storage = FirebaseStorage.instance;
   final ImagePicker _picker = ImagePicker();
 
-  /// 📸 Tomar foto y subirla a Firebase Storage
   Future<String?> pickAndUploadImage(String reviewId) async {
     final XFile? image = await _picker.pickImage(source: ImageSource.camera);
     if (image == null) return null;
@@ -20,7 +19,6 @@ class ReviewRepository {
     return await ref.getDownloadURL();
   }
 
-  /// 📝 Guardar review
   Future<void> addReview({
     required String comment,
     required int stars,
@@ -32,15 +30,14 @@ class ReviewRepository {
     await _db.collection("Reviews").add({
       "comment": comment,
       "stars": stars,
-      "dish_id": dishId, // ✅ id simple
+      "dish_id": dishId, 
       "imageUrl": imageUrl,
-      "restaurant_id": restaurantId, // ✅ id simple
-      "user_id": userId,             // ✅ id simple
+      "restaurant_id": restaurantId, 
+      "user_id": userId,            
       "createdAt": FieldValue.serverTimestamp(),
     });
   }
 
-  /// 🍴 Reviews por restaurante
   Future<List<Review>> getReviewsByRestaurant(String restaurantId) async {
     final snapshot = await _db
         .collection("Reviews")
@@ -52,7 +49,6 @@ class ReviewRepository {
         .toList();
   }
 
-  /// 👤 Reviews por usuario
   Future<List<Review>> getReviewsByUser(String userId) async {
     final snapshot = await _db
         .collection("Reviews")
@@ -64,7 +60,6 @@ class ReviewRepository {
         .toList();
   }
 
-  /// 🍽 Reviews por plato
   Future<List<Review>> getReviewsByDish(String dishId) async {
     final snapshot = await _db
         .collection("Reviews")

@@ -8,15 +8,17 @@ import 'package:moviles/repositories/auth_repository.dart';
 import 'package:moviles/repositories/user_repository.dart';
 import 'package:moviles/repositories/offer_repository.dart';
 import 'package:moviles/repositories/restaurant_repository.dart';
-import 'package:moviles/repositories/visits_repository.dart'; // <-- agregado
+import 'package:moviles/repositories/visits_repository.dart';
 import 'package:moviles/viewmodels/auth_viewmodel.dart';
 import 'package:moviles/viewmodels/user_viewmodel.dart';
 import 'package:moviles/viewmodels/offer_viewmodel.dart';
 import 'package:moviles/viewmodels/restaurant_viewmodel.dart';
-import 'package:moviles/viewmodels/visit_viewmodel.dart'; // <-- agregado
+import 'package:moviles/viewmodels/visit_viewmodel.dart';
 import 'services/analytics_service.dart';
 
 import 'package:firebase_in_app_messaging/firebase_in_app_messaging.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 // Instancia global de Firebase In-App Messaging
 final FirebaseInAppMessaging fiam = FirebaseInAppMessaging.instance;
@@ -24,17 +26,45 @@ final FirebaseInAppMessaging fiam = FirebaseInAppMessaging.instance;
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Inicializar Firebase
+  // 1. Inicializar Firebase
   final app = await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
   print('Firebase initialized: ${app.name}');
 
-  // Inicializar analytics
+  // 2. Inicializar Firebase Analytics
   final analyticsService = AnalyticsService();
   analyticsService.init();
 
+  // 3. Solicitar permiso de ubicación y registrar evento en Analytics
+  await _checkAndLogLocationPermission();
+
+  // 4. Ejecutar la app
   runApp(const Sumaq());
+}
+
+// --- Función auxiliar para manejar el permiso de ubicación ---
+Future<void> _checkAndLogLocationPermission() async {
+  final FirebaseAnalytics analytics = FirebaseAnalytics.instance;
+  final status = await Permission.location.request();
+
+  String permissionStatus;
+  if (status.isGranted) {
+    permissionStatus = 'granted';
+  } else if (status.isDenied) {
+    permissionStatus = 'denied';
+  } else if (status.isPermanentlyDenied) {
+    permissionStatus = 'permanently_denied';
+  } else {
+    permissionStatus = 'unknown';
+  }
+
+  await analytics.logEvent(
+    name: 'location_permission_granted',
+    parameters: {'status': permissionStatus},
+  );
+
+  print('Logged location_permission_granted: $permissionStatus');
 }
 
 class Sumaq extends StatelessWidget {
@@ -54,7 +84,6 @@ class Sumaq extends StatelessWidget {
           create: (_) => OfferViewModel(OfferRepository()),
         ),
         ChangeNotifierProvider(
-          // Asegúrate que el constructor de RestaurantViewModel reciba (RestaurantRepository, UserRepository, OfferRepository)
           create: (_) => RestaurantViewModel(
             RestaurantRepository(),
             UserRepository(),
@@ -62,7 +91,6 @@ class Sumaq extends StatelessWidget {
           ),
         ),
         ChangeNotifierProvider(
-          // <-- nuevo provider para visitas
           create: (_) => VisitViewModel(VisitsRepository()),
         ),
       ],

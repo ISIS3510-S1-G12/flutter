@@ -30,10 +30,8 @@ class _UserHomePageState extends State<UserHomePage> {
   void initState() {
     super.initState();
 
-    // 🔹 Permitir mostrar mensajes In-App
     fiam.setMessagesSuppressed(false);
 
-    // 🔹 Trigger de evento (según la hora)
     _triggerMealEvent();
 
   Future<void> _loadRestaurantLocations(RestaurantViewModel vm) async {
@@ -185,7 +183,7 @@ class _UserHomePageState extends State<UserHomePage> {
 
                 return Column(
                   children: [
-                    // 🔎 Barra búsqueda + filtro + chat
+                    
                     Padding(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 16, vertical: 8),
@@ -245,7 +243,7 @@ class _UserHomePageState extends State<UserHomePage> {
                       ),
                     ),
 
-                    // 🗺️ Mapa
+                    
                     Container(
                       height: 200,
                       margin: const EdgeInsets.symmetric(
@@ -307,7 +305,7 @@ class _UserHomePageState extends State<UserHomePage> {
                       ),
                     ),
 
-                    // 📋 Lista de restaurantes
+                    
                     Expanded(
                       child: ListView.builder(
                         padding: const EdgeInsets.all(16),

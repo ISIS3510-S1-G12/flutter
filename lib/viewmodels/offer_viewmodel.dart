@@ -26,6 +26,12 @@ class OfferViewModel extends ChangeNotifier {
   }
 
   Stream<List<Offer>> getOffersByRestaurant(String restaurantId) {
-  return _offerRepo.getOffersByRestaurant(restaurantId);
-}
+    return _offerRepo.getOffersByRestaurant(restaurantId);
+  }
+
+  Future<List<Offer>> fetchAllOffersOnce() async {
+    final stream = _offerRepo.getAllOffers();
+    final offers = await stream.first; // se queda con la primera emisión
+    return offers;
+  }
 }

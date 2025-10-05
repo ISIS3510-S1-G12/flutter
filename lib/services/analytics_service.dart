@@ -10,10 +10,9 @@ class AnalyticsService with WidgetsBindingObserver {
   DateTime? _startTime;
   final FirebaseAnalytics _analytics = FirebaseAnalytics.instance;
 
-  /// Inicializa el observador de ciclo de vida
   void init() {
     WidgetsBinding.instance.addObserver(this);
-    _startTime = DateTime.now(); // ⏱ empieza a contar
+    _startTime = DateTime.now(); 
   }
 
   void dispose() {
@@ -26,7 +25,7 @@ class AnalyticsService with WidgetsBindingObserver {
       _logSessionDuration();
     }
     if (state == AppLifecycleState.resumed) {
-      _startTime = DateTime.now(); // reinicia conteo al volver
+      _startTime = DateTime.now(); 
     }
   }
 
@@ -41,6 +40,5 @@ class AnalyticsService with WidgetsBindingObserver {
       },
     );
 
-    print("Sesión registrada: $duration segundos");
   }
 }

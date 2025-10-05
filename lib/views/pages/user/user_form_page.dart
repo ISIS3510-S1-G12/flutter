@@ -32,7 +32,7 @@ class _UserFormPageState extends State<UserFormPage> {
   late TextEditingController _dietController;
   late TextEditingController _budgetController;
 
-  String? _profileImagePath; // 🔹 aquí guardamos la ruta local de la imagen
+  String? _profileImagePath; 
 
   @override
   void initState() {
@@ -46,11 +46,9 @@ class _UserFormPageState extends State<UserFormPage> {
     _budgetController = TextEditingController(
         text: widget.initialUser?.preferences["budget"]?.toString() ?? "0");
 
-    // Si ya tiene una foto guardada en Firestore (URL), la mostramos
     _profileImagePath = widget.initialUser?.profilePicture;
   }
 
-  /// 📸 Elegir imagen desde galería
   Future<void> _pickImage() async {
     final picker = ImagePicker();
     final pickedFile =
@@ -58,7 +56,7 @@ class _UserFormPageState extends State<UserFormPage> {
 
     if (pickedFile != null) {
       setState(() {
-        _profileImagePath = pickedFile.path; // guardamos el path local
+        _profileImagePath = pickedFile.path;
       });
     }
   }
@@ -77,7 +75,7 @@ class _UserFormPageState extends State<UserFormPage> {
         "budget": int.tryParse(_budgetController.text) ?? 0,
       },
       favoriteRestaurants: widget.initialUser?.favoriteRestaurants ?? {},
-      profilePicture: _profileImagePath, // 🔹 puede ser URL o path local
+      profilePicture: _profileImagePath,
       createdAt: widget.initialUser?.createdAt ?? Timestamp.now(),
       updatedAt: Timestamp.now(),
     );
@@ -103,7 +101,7 @@ class _UserFormPageState extends State<UserFormPage> {
           child: SingleChildScrollView(
             child: Column(
               children: [
-                /// 📸 Imagen de perfil
+                
                 GestureDetector(
                   onTap: _pickImage,
                   child: CircleAvatar(

@@ -18,7 +18,8 @@
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT"/>
     <!-- Para escaneo (necesario en muchos dispositivos) -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
-    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/> 
+
 
     <application
         android:label="moviles"
