@@ -3,6 +3,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_in_app_messaging/firebase_in_app_messaging.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
 
 import 'package:moviles/viewmodels/restaurant_viewmodel.dart';
 import 'package:moviles/views/widget/restaurant_card.dart';
@@ -21,14 +22,29 @@ class UserHomePage extends StatefulWidget {
   State<UserHomePage> createState() => _UserHomePageState();
 }
 
-class _UserHomePageState extends State<UserHomePage> {
+class _UserHomePageState extends State<UserHomePage> with SingleTickerProviderStateMixin {
   final FirebaseInAppMessaging fiam = FirebaseInAppMessaging.instance;
   List<LatLng> restaurantLocations = [];
+  late TabController _tabController;
+  final FirebaseAnalytics analytics = FirebaseAnalytics.instance;
+
 
 
   @override
   void initState() {
     super.initState();
+_tabController = TabController(length: 4, vsync: this);
+
+_tabController.addListener(() {
+      if (!_tabController.indexIsChanging) {
+        final currentIndex = _tabController.index;
+        analytics.logEvent(name: "tab_changed", parameters: {
+          "index": currentIndex,
+        });
+        print("Tab changed to index: $currentIndex");
+      }
+    });
+
 
     fiam.setMessagesSuppressed(false);
 
@@ -121,10 +137,14 @@ class _UserHomePageState extends State<UserHomePage> {
   }
 
   @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return DefaultTabController(
-      length: 4,
-      child: Scaffold(
+    return Scaffold(
         backgroundColor: Colors.white,
         appBar: AppBar(
           backgroundColor: Colors.white,
@@ -146,12 +166,13 @@ class _UserHomePageState extends State<UserHomePage> {
               ),
             ],
           ),
-          bottom: const PreferredSize(
+          bottom: PreferredSize(
             preferredSize: Size.fromHeight(70),
             child: Column(
               children: [
                 Divider(color: Colors.black, thickness: 1),
                 TabBar(
+                  controller: _tabController,
                   tabAlignment: TabAlignment.fill,
                   isScrollable: false,
                   labelColor: Colors.black,
@@ -169,6 +190,7 @@ class _UserHomePageState extends State<UserHomePage> {
           ),
         ),
         body: TabBarView(
+          controller: _tabController,
           children: [
             Consumer<RestaurantViewModel>(
               builder: (context, vm, child) {
@@ -337,8 +359,7 @@ class _UserHomePageState extends State<UserHomePage> {
             const UserReviewHistoryPage(),
           ],
         ),
-      ),
-    );
+      );
   }
 
   void _showFilterOptions(BuildContext context, RestaurantViewModel vm) {

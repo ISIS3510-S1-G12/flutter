@@ -9,11 +9,15 @@ class AnalyticsService with WidgetsBindingObserver {
 
   DateTime? _startTime;
   final FirebaseAnalytics _analytics = FirebaseAnalytics.instance;
+  FirebaseAnalytics get analytics => _analytics;
 
-  void init() {
-    WidgetsBinding.instance.addObserver(this);
-    _startTime = DateTime.now(); 
-  }
+  /// Inicializa el observador de ciclo de vida
+Future<void> init() async {
+  WidgetsBinding.instance.addObserver(this);
+  _startTime = DateTime.now();
+  await _analytics.logEvent(name: 'app_started');
+}
+
 
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
@@ -40,5 +44,19 @@ class AnalyticsService with WidgetsBindingObserver {
       },
     );
 
+  }
+ /// 🔹 NUEVO: registrar uso de funcionalidades
+  Future<void> logFeatureUsed(String featureName) async {
+    await _analytics.logEvent(
+      name: "feature_used",
+      parameters: {"feature_name": featureName},
+    );
+    print("Funcionalidad usada: $featureName");
+  }
+
+  /// 🔹 (Opcional) registrar vistas de pantalla
+  Future<void> logScreenView(String screenName) async {
+    await _analytics.logScreenView(screenName: screenName);
+    print("Vista registrada: $screenName");
   }
 }

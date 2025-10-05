@@ -15,6 +15,8 @@ import 'package:moviles/viewmodels/offer_viewmodel.dart';
 import 'package:moviles/viewmodels/restaurant_viewmodel.dart';
 import 'package:moviles/viewmodels/visit_viewmodel.dart';
 import 'services/analytics_service.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:firebase_analytics/observer.dart';
 
 import 'package:firebase_in_app_messaging/firebase_in_app_messaging.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
@@ -32,15 +34,15 @@ Future<void> main() async {
   );
   print('Firebase initialized: ${app.name}');
 
+  // Inicializar AnalyticsService
   // 2. Inicializar Firebase Analytics
   final analyticsService = AnalyticsService();
-  analyticsService.init();
+  await analyticsService.init();
 
+  runApp(Sumaq(analyticsService: analyticsService));
   // 3. Solicitar permiso de ubicación y registrar evento en Analytics
   await _checkAndLogLocationPermission();
 
-  // 4. Ejecutar la app
-  runApp(const Sumaq());
 }
 
 // --- Función auxiliar para manejar el permiso de ubicación ---
@@ -68,7 +70,9 @@ Future<void> _checkAndLogLocationPermission() async {
 }
 
 class Sumaq extends StatelessWidget {
-  const Sumaq({super.key});
+  const Sumaq({super.key, required this.analyticsService});
+
+  final AnalyticsService analyticsService;
 
   @override
   Widget build(BuildContext context) {
@@ -104,6 +108,9 @@ class Sumaq extends StatelessWidget {
         routes: {
           '/users': (context) => const UsersPage(),
         },
+        navigatorObservers: [
+          FirebaseAnalyticsObserver(analytics: analyticsService.analytics),
+        ],
         initialRoute: '/users',
       ),
     );
