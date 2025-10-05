@@ -1,19 +1,20 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../models/restaurant.dart';
-import '../../models/offer.dart';
 import '../../models/user.dart' as app_user;
 import '../../repositories/restaurant_repository.dart';
 import '../../repositories/user_repository.dart';
 import '../../repositories/offer_repository.dart';
 
-/// --- FILTROS ---
+/// --- FILTROS (Strategy Pattern) ---
+
+/// Estrategia base
 abstract class RestaurantFilter {
   List<Restaurant> apply(List<Restaurant> restaurants);
 }
 
+/// Estrategia concreta: filtrar por tipo de comida
 class FilterByType implements RestaurantFilter {
   final String query;
   FilterByType(this.query);
@@ -26,6 +27,7 @@ class FilterByType implements RestaurantFilter {
   }
 }
 
+/// Estrategia concreta: solo restaurantes con oferta
 class FilterWithOffer implements RestaurantFilter {
   @override
   List<Restaurant> apply(List<Restaurant> restaurants) {
@@ -33,6 +35,7 @@ class FilterWithOffer implements RestaurantFilter {
   }
 }
 
+/// Estrategia concreta: solo restaurantes sin oferta
 class FilterWithoutOffer implements RestaurantFilter {
   @override
   List<Restaurant> apply(List<Restaurant> restaurants) {
@@ -40,13 +43,33 @@ class FilterWithoutOffer implements RestaurantFilter {
   }
 }
 
-/// --- VIEWMODEL ---
+/// Contexto del patrón Strategy
+class FilterContext {
+  RestaurantFilter? _strategy;
+
+  void setStrategy(RestaurantFilter strategy) {
+    _strategy = strategy;
+  }
+
+  void clearStrategy() {
+    _strategy = null;
+  }
+
+  List<Restaurant> execute(List<Restaurant> restaurants) {
+    if (_strategy == null) return restaurants;
+    return _strategy!.apply(restaurants);
+  }
+}
+
+/// --- VIEWMODEL (usa el contexto de estrategia) ---
 class RestaurantViewModel extends ChangeNotifier {
   final RestaurantRepository _restaurantRepo;
   final UserRepository _userRepo;
   final OfferRepository _offerRepo;
 
   RestaurantViewModel(this._restaurantRepo, this._userRepo, this._offerRepo);
+
+  final FilterContext _filterContext = FilterContext();
 
   List<Restaurant> restaurants = [];
   List<Restaurant> filteredRestaurants = [];
@@ -56,8 +79,6 @@ class RestaurantViewModel extends ChangeNotifier {
   bool isLoading = false;
   bool isLoadingFavorites = false;
   String? errorMessage;
-
-  RestaurantFilter? _activeFilter;
 
   /// --- GETTERS PARA PORCENTAJE ---
   int get totalFavorites => favorites.length;
@@ -153,16 +174,13 @@ class RestaurantViewModel extends ChangeNotifier {
         favorites = [];
         todaysDiscounts = [];
       } else {
-        //  Traemos favoritos
         favorites = await _restaurantRepo
             .getFavoriteRestaurants(userData.favoriteRestaurants);
 
-        //  Traemos ofertas activas de hoy
         final activeOffers = await _offerRepo.getActiveOffers();
 
-        //  Filtramos favoritos que tienen una oferta activa
         todaysDiscounts = favorites.where((restaurant) {
-          return activeOffers.any((offer) => offer.restaurantId == restaurant.id);
+          return activeOffers.any((offer) => offer.restaurant_id == restaurant.id);
         }).toList();
       }
 
@@ -183,17 +201,16 @@ class RestaurantViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// --- FILTROS ---
+  /// --- APLICAR / LIMPIAR FILTROS (Strategy) ---
   void applyFilter(RestaurantFilter filter) {
-    _activeFilter = filter;
-    filteredRestaurants = filter.apply(restaurants);
+    _filterContext.setStrategy(filter);
+    filteredRestaurants = _filterContext.execute(restaurants);
     notifyListeners();
   }
 
   void clearFilter() {
-    _activeFilter = null;
+    _filterContext.clearStrategy();
     filteredRestaurants = restaurants;
     notifyListeners();
   }
 }
-

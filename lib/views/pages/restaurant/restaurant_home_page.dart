@@ -134,7 +134,7 @@ class RestaurantHomePage extends StatelessWidget {
                                           color: Colors.white),
                                     ),
                                     const SizedBox(width: 8),
-                                    // 🔥 Aquí buscamos el nombre del usuario en Firestore
+                                   
                                     FutureBuilder<DocumentSnapshot>(
                                       future: FirebaseFirestore.instance
                                           .collection('Users')
@@ -350,7 +350,6 @@ class RestaurantHomePage extends StatelessWidget {
             },
           ),
 
-          // Botón New Dish
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Center(

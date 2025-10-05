@@ -24,13 +24,12 @@ class WriteReviewPage extends StatelessWidget {
                 key: vm.formKey,
                 child: Column(
                   children: [
-                    // ⭐ Rating
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         const Text("Calificación:",
                             style: TextStyle(fontSize: 16)),
-                        Text("${vm.rating.toStringAsFixed(1)} ⭐"),
+                        Text("${vm.rating.toStringAsFixed(1)}"),
                       ],
                     ),
                     Slider(
@@ -45,8 +44,6 @@ class WriteReviewPage extends StatelessWidget {
                       },
                     ),
                     const SizedBox(height: 20),
-
-                    // 📝 Comentario
                     TextFormField(
                       controller: vm.reviewController,
                       decoration: const InputDecoration(
@@ -59,16 +56,12 @@ class WriteReviewPage extends StatelessWidget {
                           : null,
                     ),
                     const SizedBox(height: 20),
-
-                    // 📸 Botón cámara
                     ElevatedButton.icon(
                       onPressed: vm.pickImage,
                       icon: const Icon(Icons.camera_alt),
                       label: const Text("Tomar foto"),
                     ),
                     const SizedBox(height: 10),
-
-                    // 👀 Vista previa
                     if (vm.imageFile != null)
                       ClipRRect(
                         borderRadius: BorderRadius.circular(12),
@@ -78,10 +71,7 @@ class WriteReviewPage extends StatelessWidget {
                           fit: BoxFit.cover,
                         ),
                       ),
-
                     const Spacer(),
-
-                    // 🔘 Botón enviar
                     vm.loading
                         ? const CircularProgressIndicator()
                         : ElevatedButton.icon(

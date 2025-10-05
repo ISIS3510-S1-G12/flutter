@@ -29,7 +29,7 @@ Future<void> init() async {
       _logSessionDuration();
     }
     if (state == AppLifecycleState.resumed) {
-      _startTime = DateTime.now(); // reinicia conteo al volver
+      _startTime = DateTime.now(); 
     }
   }
 
@@ -44,7 +44,6 @@ Future<void> init() async {
       },
     );
 
-    print("Sesión registrada: $duration segundos");
   }
  /// 🔹 NUEVO: registrar uso de funcionalidades
   Future<void> logFeatureUsed(String featureName) async {

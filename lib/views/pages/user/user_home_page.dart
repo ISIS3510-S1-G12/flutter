@@ -46,10 +46,8 @@ _tabController.addListener(() {
     });
 
 
-    // 🔹 Permitir mostrar mensajes In-App
     fiam.setMessagesSuppressed(false);
 
-    // 🔹 Trigger de evento (según la hora)
     _triggerMealEvent();
 
   Future<void> _loadRestaurantLocations(RestaurantViewModel vm) async {
@@ -207,7 +205,7 @@ _tabController.addListener(() {
 
                 return Column(
                   children: [
-                    // 🔎 Barra búsqueda + filtro + chat
+                    
                     Padding(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 16, vertical: 8),
@@ -267,7 +265,7 @@ _tabController.addListener(() {
                       ),
                     ),
 
-                    // 🗺️ Mapa
+                    
                     Container(
                       height: 200,
                       margin: const EdgeInsets.symmetric(
@@ -329,7 +327,7 @@ _tabController.addListener(() {
                       ),
                     ),
 
-                    // 📋 Lista de restaurantes
+                    
                     Expanded(
                       child: ListView.builder(
                         padding: const EdgeInsets.all(16),

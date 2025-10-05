@@ -5,7 +5,7 @@ import 'package:moviles/models/offer.dart';
 import 'package:moviles/repositories/offer_repository.dart';
 
 class OfferFormViewModel extends ChangeNotifier {
-  final String restaurantId;
+  final String restaurant_id; // 👈 snake_case
   final formKey = GlobalKey<FormState>();
   final OfferRepository _repository = OfferRepository();
 
@@ -13,6 +13,7 @@ class OfferFormViewModel extends ChangeNotifier {
   final titleController = TextEditingController();
   final descriptionController = TextEditingController();
   final discountController = TextEditingController();
+  final priceController = TextEditingController(); 
   final tagsController = TextEditingController();
 
   // Imagen
@@ -20,20 +21,21 @@ class OfferFormViewModel extends ChangeNotifier {
   String? imageUrl;
 
   // Fechas
-  DateTime? validFrom;
-  DateTime? validTo;
+  DateTime? valid_from;
+  DateTime? valid_to;
 
   bool isSubmitting = false;
 
-  OfferFormViewModel(this.restaurantId, {Offer? offer}) {
+  OfferFormViewModel(this.restaurant_id, {Offer? offer}) {
     if (offer != null) {
       titleController.text = offer.title;
       descriptionController.text = offer.description;
-      discountController.text = offer.discountPercentage.toString();
-      tagsController.text = offer.tags?.join(", ") ?? ""; // ✅ null-safe
+      discountController.text = offer.discount_percentage.toString();
+      priceController.text = offer.price.toString(); 
+      tagsController.text = offer.tags?.join(", ") ?? ""; 
       imageUrl = offer.image;
-      validFrom = offer.validFrom;
-      validTo = offer.validTo;
+      valid_from = offer.valid_from;
+      valid_to = offer.valid_to;
     }
   }
 
@@ -56,9 +58,9 @@ class OfferFormViewModel extends ChangeNotifier {
 
     if (picked != null) {
       if (isFrom) {
-        validFrom = picked;
+        valid_from = picked;
       } else {
-        validTo = picked;
+        valid_to = picked;
       }
       notifyListeners();
     }
@@ -72,6 +74,7 @@ class OfferFormViewModel extends ChangeNotifier {
 
     try {
       final discount = double.tryParse(discountController.text.trim()) ?? 0.0;
+      final price = double.tryParse(priceController.text.trim()) ?? 0.0; 
       final tags = tagsController.text
           .split(',')
           .map((e) => e.trim())
@@ -80,15 +83,16 @@ class OfferFormViewModel extends ChangeNotifier {
 
       final offer = Offer(
         id: editingOffer?.id ?? '',
-        restaurantId: restaurantId,
+        restaurant_id: restaurant_id,
         title: titleController.text.trim(),
         description: descriptionController.text.trim(),
-        discountPercentage: discount,
+        discount_percentage: discount,
+        price: price,
         image: imageUrl,
-        tags: tags.isEmpty ? null : tags, 
-        validFrom: validFrom,
-        validTo: validTo,
-        createdAt: editingOffer?.createdAt ?? DateTime.now(), 
+        tags: tags.isEmpty ? null : tags,
+        valid_from: valid_from,
+        valid_to: valid_to,
+        createdAt: editingOffer?.createdAt ?? DateTime.now(),
       );
 
       if (editingOffer == null) {
@@ -113,6 +117,7 @@ class OfferFormViewModel extends ChangeNotifier {
     titleController.dispose();
     descriptionController.dispose();
     discountController.dispose();
+    priceController.dispose(); 
     tagsController.dispose();
     super.dispose();
   }
