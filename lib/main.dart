@@ -15,6 +15,8 @@ import 'package:moviles/viewmodels/offer_viewmodel.dart';
 import 'package:moviles/viewmodels/restaurant_viewmodel.dart';
 import 'package:moviles/viewmodels/visit_viewmodel.dart'; // <-- agregado
 import 'services/analytics_service.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:firebase_analytics/observer.dart';
 
 import 'package:firebase_in_app_messaging/firebase_in_app_messaging.dart';
 
@@ -30,15 +32,17 @@ Future<void> main() async {
   );
   print('Firebase initialized: ${app.name}');
 
-  // Inicializar analytics
+  // Inicializar AnalyticsService
   final analyticsService = AnalyticsService();
-  analyticsService.init();
+  await analyticsService.init();
 
-  runApp(const Sumaq());
+  runApp(Sumaq(analyticsService: analyticsService));
 }
 
 class Sumaq extends StatelessWidget {
-  const Sumaq({super.key});
+  const Sumaq({super.key, required this.analyticsService});
+
+  final AnalyticsService analyticsService;
 
   @override
   Widget build(BuildContext context) {
@@ -76,6 +80,9 @@ class Sumaq extends StatelessWidget {
         routes: {
           '/users': (context) => const UsersPage(),
         },
+        navigatorObservers: [
+          FirebaseAnalyticsObserver(analytics: analyticsService.analytics),
+        ],
         initialRoute: '/users',
       ),
     );
