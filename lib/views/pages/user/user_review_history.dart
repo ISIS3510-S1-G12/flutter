@@ -38,7 +38,6 @@ class UserReviewHistoryPage extends StatelessWidget {
                     ),
                   ),
                   onChanged: (query) {
-                    // 🔍 aquí podrías filtrar las reviews por texto si quieres
                   },
                 ),
               ),
@@ -83,7 +82,6 @@ class UserReviewHistoryPage extends StatelessWidget {
                                         crossAxisAlignment:
                                             CrossAxisAlignment.start,
                                         children: [
-                                          // 🔹 Avatar del usuario
                                           CircleAvatar(
                                             radius: 24,
                                             backgroundImage: userPic != null
@@ -94,8 +92,6 @@ class UserReviewHistoryPage extends StatelessWidget {
                                                 : null,
                                           ),
                                           const SizedBox(width: 12),
-
-                                          // 🔹 Contenido de la review
                                           Expanded(
                                             child: Column(
                                               crossAxisAlignment:
@@ -114,7 +110,6 @@ class UserReviewHistoryPage extends StatelessWidget {
                                                         fontSize: 15,
                                                       ),
                                                     ),
-                                                    // ⭐ estrellas
                                                     Row(
                                                       children: List.generate(
                                                         5,
@@ -136,8 +131,6 @@ class UserReviewHistoryPage extends StatelessWidget {
                                                   ],
                                                 ),
                                                 const SizedBox(height: 4),
-
-                                                // 🔹 Nombre del restaurante
                                                 FutureBuilder<
                                                     DocumentSnapshot>(
                                                   future: FirebaseFirestore
@@ -189,8 +182,6 @@ class UserReviewHistoryPage extends StatelessWidget {
                                                   },
                                                 ),
                                                 const SizedBox(height: 6),
-
-                                                // 🔹 Comentario
                                                 Text(
                                                   review.comment,
                                                   style: const TextStyle(
@@ -198,8 +189,6 @@ class UserReviewHistoryPage extends StatelessWidget {
                                                     color: Colors.black,
                                                   ),
                                                 ),
-
-                                                // 🔹 Imagen de la reseña
                                                 if (review.imageUrl != null &&
                                                     review.imageUrl!.isNotEmpty)
                                                   Padding(

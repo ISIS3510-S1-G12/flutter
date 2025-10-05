@@ -149,7 +149,7 @@ class _UserHomePageState extends State<UserHomePage> {
 
                 return Column(
                   children: [
-                    // 🔎 Barra búsqueda + filtro + chat
+                    
                     Padding(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 16, vertical: 8),
@@ -209,7 +209,7 @@ class _UserHomePageState extends State<UserHomePage> {
                       ),
                     ),
 
-                    // 🗺️ Mapa
+                    
                     Container(
                       height: 200,
                       margin: const EdgeInsets.symmetric(
@@ -223,7 +223,6 @@ class _UserHomePageState extends State<UserHomePage> {
                         child: FlutterMap(
                           options: MapOptions(
                             onTap: (tapPosition, latLng) {
-                              print("Tapped at: $latLng");
                             },
                             maxZoom: 12.0,
                           ),
@@ -238,7 +237,7 @@ class _UserHomePageState extends State<UserHomePage> {
                       ),
                     ),
 
-                    // 📋 Lista de restaurantes
+                    
                     Expanded(
                       child: ListView.builder(
                         padding: const EdgeInsets.all(16),

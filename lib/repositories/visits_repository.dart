@@ -3,20 +3,18 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class VisitsRepository {
   final _firestore = FirebaseFirestore.instance;
 
-  ///  Registrar una nueva visita
   Future<void> registerVisit(String restaurantId, String userId) async {
     try {
       await _firestore.collection("Visits").add({
         "restaurantId": restaurantId,
         "userId": userId,
-        "visitedAt": FieldValue.serverTimestamp(), // ⏰ nombre correcto
+        "visitedAt": FieldValue.serverTimestamp(), 
       });
     } catch (e) {
       rethrow;
     }
   }
 
-  ///  Obtener la última visita de un usuario a un restaurante
   Future<DateTime?> getLastVisit(String restaurantId, String userId) async {
     try {
       final query = await _firestore
@@ -37,7 +35,7 @@ class VisitsRepository {
     }
   }
 
-  ///  Obtener la última visita global de un usuario
+
   Future<DateTime?> getLastVisitGlobal(String userId) async {
     try {
       final query = await _firestore
@@ -57,7 +55,6 @@ class VisitsRepository {
     }
   }
 
-  ///  Obtener todas las visitas de un usuario
   Future<List<DateTime>> getUserVisits(String userId) async {
     try {
       final query = await _firestore
@@ -78,7 +75,6 @@ class VisitsRepository {
     }
   }
 
-  ///  Obtener todas las visitas a un restaurante
   Future<List<DateTime>> getRestaurantVisits(String restaurantId) async {
     try {
       final query = await _firestore

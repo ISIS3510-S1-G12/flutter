@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:firebase_auth/firebase_auth.dart'; // 👈 Necesario para obtener uid
+import 'package:firebase_auth/firebase_auth.dart' as fbAuth;
+
 import '../../../models/offer.dart';
 import '../../../repositories/offer_repository.dart';
 import '../../../viewmodels/offer_viewmodel.dart';
 import '../../../viewmodels/user_viewmodel.dart';
 
 class UserOfertasPage extends StatefulWidget {
-  final String? restaurantId; // opcional
+  final String? restaurantId;
 
   const UserOfertasPage({super.key, this.restaurantId});
 
@@ -23,17 +24,14 @@ class _UserOfertasPageState extends State<UserOfertasPage> {
   @override
   void initState() {
     super.initState();
-    // 🚀 Cargar automáticamente el usuario autenticado
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final userVM = Provider.of<UserViewModel>(context, listen: false);
-      final uid = FirebaseAuth.instance.currentUser?.uid;
-      if (uid != null) {
-        print("DEBUG: Cargando usuario con uid -> $uid");
-        userVM.loadUser(uid);
-      } else {
-        print("DEBUG: No hay usuario logueado en FirebaseAuth");
-      }
-    });
+
+    final authUser = fbAuth.FirebaseAuth.instance.currentUser;
+    if (authUser != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        context.read<UserViewModel>().loadUser(authUser.uid);
+      });
+    } else {
+    }
   }
 
   @override
@@ -50,7 +48,6 @@ class _UserOfertasPageState extends State<UserOfertasPage> {
             backgroundColor: Colors.white,
             body: Column(
               children: [
-                // Barra de búsqueda
                 Padding(
                   padding: const EdgeInsets.all(12.0),
                   child: Row(
@@ -95,7 +92,6 @@ class _UserOfertasPageState extends State<UserOfertasPage> {
                   ),
                 ),
 
-                // Listado de Ofertas
                 Expanded(
                   child: StreamBuilder<List<Offer>>(
                     stream: stream,
@@ -109,10 +105,7 @@ class _UserOfertasPageState extends State<UserOfertasPage> {
                         return Center(
                             child: Text("Error: ${snapshot.error}"));
                       }
-
                       var offers = snapshot.data ?? [];
-
-                      // Filtro búsqueda
                       if (_searchQuery.isNotEmpty) {
                         offers = offers.where((o) {
                           final title = o.title.toLowerCase();
@@ -122,7 +115,6 @@ class _UserOfertasPageState extends State<UserOfertasPage> {
                         }).toList();
                       }
 
-                      // Filtro Today
                       if (_filter == "Today") {
                         final today = DateTime.now();
                         offers = offers.where((o) {
@@ -133,16 +125,10 @@ class _UserOfertasPageState extends State<UserOfertasPage> {
                         }).toList();
                       }
 
-                      // DEBUG: Verificar usuario y budget
                       final userVM =
                           Provider.of<UserViewModel>(context, listen: false);
                       final user = userVM.currentUser;
                       final budget = userVM.getBudget();
-
-                      print("DEBUG: Entró al build de ofertas");
-                      print("DEBUG: Usuario actual -> $user");
-                      print("DEBUG: Budget obtenido -> $budget");
-
                       if (!_dialogShown &&
                           user != null &&
                           budget != null &&
@@ -156,16 +142,10 @@ class _UserOfertasPageState extends State<UserOfertasPage> {
                               today.isBefore(o.valid_to!);
                         }).toList();
 
-                        print(
-                            "DEBUG: Hoy hay ${todayOffers.length} ofertas activas");
-
                         if (todayOffers.isNotEmpty) {
                           final withinBudget = todayOffers.where(
                             (o) => o.price <= budget,
                           ).toList();
-
-                          print(
-                              "DEBUG: Ofertas dentro del budget -> ${withinBudget.length}");
 
                           final percentage =
                               (withinBudget.length / todayOffers.length) * 100;
@@ -173,7 +153,6 @@ class _UserOfertasPageState extends State<UserOfertasPage> {
                           WidgetsBinding.instance.addPostFrameCallback((_) {
                             if (mounted) {
                               _dialogShown = true;
-                              print("DEBUG: Mostrando AlertDialog...");
                               showDialog(
                                 context: context,
                                 builder: (context) {
@@ -198,18 +177,15 @@ class _UserOfertasPageState extends State<UserOfertasPage> {
                             }
                           });
                         } else {
-                          print("DEBUG: No hay ofertas activas hoy.");
                         }
                       }
 
-                      // No hay ofertas
                       if (offers.isEmpty) {
                         return const Center(
                           child: Text("There are no offers available."),
                         );
                       }
 
-                      // Lista
                       return ListView.builder(
                         padding: const EdgeInsets.all(12),
                         itemCount: offers.length,
@@ -282,7 +258,6 @@ class _UserOfertasPageState extends State<UserOfertasPage> {
     );
   }
 
-  // BottomSheet de filtros
   void _showFilterOptions(BuildContext context) {
     showModalBottomSheet(
       context: context,

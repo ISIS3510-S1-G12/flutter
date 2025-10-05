@@ -16,11 +16,9 @@
 
 	<!-- 🔹 Ubicación (necesario para escaneo BLE en iOS) -->
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Necesitamos tu ubicación para mejorar tu experiencia en la app.</string>
+	<string>We use your location to show nearby restaurants.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>La aplicación requiere acceso a tu ubicación en segundo plano para contar personas cercanas.</string>
-	<key>NSLocationAlwaysUsageDescription</key>
-	<string>Necesitamos acceso a tu ubicación incluso en segundo plano para mejorar tu experiencia.</string>
+	<string>Your location helps us provide better recommendations and maps.</string>
 
 	<!-- 🔹 Notificaciones -->
 	<key>UIBackgroundModes</key>

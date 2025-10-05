@@ -1,4 +1,3 @@
-// 📌 UserRestaurantDetailPage sin alert dialog en initState
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
@@ -27,7 +26,6 @@ class _UserRestaurantDetailPageState extends State<UserRestaurantDetailPage> {
   @override
   void initState() {
     super.initState();
-    // ❌ Ya no hay lógica de AlertDialog aquí
   }
 
   @override
@@ -112,19 +110,15 @@ class _UserRestaurantDetailPageState extends State<UserRestaurantDetailPage> {
                   ),
                   body: TabBarView(
                     children: [
-                      // MENU TAB
                       SingleChildScrollView(
                         child: Column(
                           children: [
                             RestaurantDetailCard(restaurant: fullRestaurant),
-
-                            // 🔹 Botones Favorito + People arriba, Visited abajo
                             Padding(
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 16, vertical: 8),
                               child: Column(
                                 children: [
-                                  // fila con 2 botones
                                   Row(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
@@ -197,7 +191,6 @@ class _UserRestaurantDetailPageState extends State<UserRestaurantDetailPage> {
                                     ],
                                   ),
                                   const SizedBox(height: 8),
-                                  // botón único abajo
                                   SizedBox(
                                     width: double.infinity,
                                     child: ElevatedButton.icon(
@@ -240,8 +233,6 @@ class _UserRestaurantDetailPageState extends State<UserRestaurantDetailPage> {
                                 ],
                               ),
                             ),
-
-                            // 🌍 Mapa
                             Container(
                               height: 200,
                               margin: const EdgeInsets.all(16),
@@ -264,8 +255,6 @@ class _UserRestaurantDetailPageState extends State<UserRestaurantDetailPage> {
                                 ),
                               ),
                             ),
-
-                            // DISHES
                             StreamBuilder<List<Dish>>(
                               stream: DishRepository()
                                   .getDishesByRestaurant(fullRestaurant.id),
@@ -328,11 +317,7 @@ class _UserRestaurantDetailPageState extends State<UserRestaurantDetailPage> {
                           ],
                         ),
                       ),
-
-                      // OFFERS TAB
                       UserOfertasPage(restaurantId: fullRestaurant.id),
-
-                      // REVIEWS TAB
                       Consumer<ReviewViewModel>(
                         builder: (context, reviewVM, _) {
                           if (reviewVM.isLoading) {
@@ -458,7 +443,6 @@ class _UserRestaurantDetailPageState extends State<UserRestaurantDetailPage> {
                       ),
                     ],
                   ),
-                  // Botón para escribir review
                   bottomNavigationBar: Padding(
                     padding: const EdgeInsets.all(16.0),
                     child: Container(

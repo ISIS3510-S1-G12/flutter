@@ -11,7 +11,6 @@ class RestaurantOffersPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    //  Escucha cambios en OfferViewModel
     final offerVM = Provider.of<OfferViewModel>(context);
 
     return Scaffold(
@@ -30,7 +29,6 @@ class RestaurantOffersPage extends StatelessWidget {
           }
 
           final offers = snapshot.data!;
-          print("Renderizando ${offers.length} ofertas");
 
           return ListView.builder(
             padding: const EdgeInsets.all(16),
