@@ -14,12 +14,12 @@ class UserRestaurantDetailViewModel extends ChangeNotifier {
     return "$hour:$minute";
   }
 
-  ///Alternar favorito usando Users.favorite_restaurants
   Future<void> toggleFavorite(Restaurant restaurant) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
 
-    final userRef = FirebaseFirestore.instance.collection('Users').doc(user.uid);
+    final userRef =
+        FirebaseFirestore.instance.collection('Users').doc(user.uid);
 
     final snapshot = await userRef.get();
     if (!snapshot.exists) return;
@@ -28,31 +28,48 @@ class UserRestaurantDetailViewModel extends ChangeNotifier {
     final currentFavorites =
         Map<String, dynamic>.from(data["favorite_restaurants"] ?? {});
 
+    final now = FieldValue.serverTimestamp();
+
     if (currentFavorites.containsKey(restaurant.id)) {
-      //Quitar de favoritos
+      // 🔹 Quitar de favoritos
       await userRef.update({
         "favorite_restaurants.${restaurant.id}": FieldValue.delete(),
-        "updated_at": FieldValue.serverTimestamp(),
+        "updated_at": now,
+        "favorite_history": FieldValue.arrayUnion([
+          {
+            "restaurant_id": restaurant.id,
+            "action": "removed",
+            "timestamp": Timestamp.now(),
+          }
+        ]),
       });
+
       isFavorite = false;
     } else {
-      //Agregar a favoritos con timestamp
       await userRef.update({
-        "favorite_restaurants.${restaurant.id}": FieldValue.serverTimestamp(),
-        "updated_at": FieldValue.serverTimestamp(),
+        "favorite_restaurants.${restaurant.id}": now,
+        "updated_at": now,
+        "favorite_history": FieldValue.arrayUnion([
+          {
+            "restaurant_id": restaurant.id,
+            "action": "added",
+            "timestamp": Timestamp.now(),
+          }
+        ]),
       });
+
       isFavorite = true;
     }
 
     notifyListeners();
   }
-
-  /// ✅ Verificar si está en favoritos
+  
   Future<void> checkIfFavorite(Restaurant restaurant) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
 
-    final userRef = FirebaseFirestore.instance.collection('Users').doc(user.uid);
+    final userRef =
+        FirebaseFirestore.instance.collection('Users').doc(user.uid);
     final snapshot = await userRef.get();
     if (!snapshot.exists) {
       isFavorite = false;
@@ -68,7 +85,6 @@ class UserRestaurantDetailViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Escaneo Bluetooth
   Future<int> scanNearbyDevices() async {
     List<String> detectedDevices = [];
 
