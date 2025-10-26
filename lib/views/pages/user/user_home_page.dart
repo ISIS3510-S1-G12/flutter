@@ -74,14 +74,25 @@ _tabController.addListener(() {
   }
 
   // 🔹 Cargar restaurantes
-  Future.microtask(() async {
-    final vm = context.read<RestaurantViewModel>();
-    await vm.fetchRestaurants();
-    await _loadRestaurantLocations(vm);
-    });
-        
-  
-    // 🔹 Mostrar AlertDialog a los 10 segundos
+  Future.microtask(() {
+  final vm = context.read<RestaurantViewModel>();
+  // Future con handler
+    vm.fetchRestaurants()
+      .then((_) {
+        print("Restaurantes cargados correctamente.");
+        return _loadRestaurantLocations(vm);
+      })
+      .then((_) {
+        print("Coordenadas de restaurantes cargadas con éxito.");
+      })
+      .catchError((error) {
+        print("Error al cargar restaurantes o ubicaciones: $error");
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error al cargar restaurantes")),
+        );
+      });
+  });
+    // Mostrar AlertDialog a los 10 segundos
     Future.delayed(const Duration(seconds: 10), () async {
       if (!mounted) return;
 

@@ -3,13 +3,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import '/models/restaurant.dart';
-import '/services/analytics_service.dart'; // <-- Asegúrate de tener esta ruta correcta
+import '/services/analytics_service.dart'; // Asegúrate de que la ruta sea correcta
 
 class UserRestaurantDetailViewModel extends ChangeNotifier {
   bool isFavorite = false;
   final AnalyticsService _analytics = AnalyticsService();
 
-  // Formatea hora militar (ej: 1330 → "13:30")
   String formatTime(int time) {
     if (time < 0 || time > 2359) return "--:--";
     final hour = (time ~/ 100).toString().padLeft(2, '0');
@@ -17,17 +16,13 @@ class UserRestaurantDetailViewModel extends ChangeNotifier {
     return "$hour:$minute";
   }
 
-  // Alternar favorito en Firestore y registrar evento en Analytics
   Future<void> toggleFavorite(Restaurant restaurant) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null || restaurant.id == null) return;
 
-    final userRef =
-        FirebaseFirestore.instance.collection('Users').doc(user.uid);
-
+    final userRef = FirebaseFirestore.instance.collection('Users').doc(user.uid);
     final snapshot = await userRef.get();
 
-    // Crear documento si no existe
     if (!snapshot.exists) {
       await userRef.set({
         "favorite_restaurants": {},
@@ -39,10 +34,7 @@ class UserRestaurantDetailViewModel extends ChangeNotifier {
     final data = snapshot.data() ?? {};
     final currentFavorites =
         Map<String, dynamic>.from(data["favorite_restaurants"] ?? {});
-
     final now = FieldValue.serverTimestamp();
-
-    // Quitar o agregar de favoritos
     if (currentFavorites.containsKey(restaurant.id)) {
       await userRef.update({
         "favorite_restaurants.${restaurant.id}": FieldValue.delete(),
@@ -56,7 +48,7 @@ class UserRestaurantDetailViewModel extends ChangeNotifier {
         ]),
       });
 
-      // Registrar evento en Analytics
+      // Registrar evento en Firebase Analytics
       await _analytics.logFavoriteAction(
         restaurantId: restaurant.id!,
         action: "removed",
@@ -76,7 +68,7 @@ class UserRestaurantDetailViewModel extends ChangeNotifier {
         ]),
       });
 
-      // Registrar evento en Analytics
+      // Registrar evento en Firebase Analytics
       await _analytics.logFavoriteAction(
         restaurantId: restaurant.id!,
         action: "added",
@@ -88,34 +80,37 @@ class UserRestaurantDetailViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Verifica si el restaurante está en favoritos
   Future<void> checkIfFavorite(Restaurant restaurant) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null || restaurant.id == null) {
       isFavorite = false;
       notifyListeners();
-      return;
+      return Future.value(); // se devuelve un Future vacío
     }
 
-    final userRef =
-        FirebaseFirestore.instance.collection('Users').doc(user.uid);
-    final snapshot = await userRef.get();
+    final userRef = FirebaseFirestore.instance.collection('Users').doc(user.uid);
 
-    if (!snapshot.exists || snapshot.data() == null) {
+    // Uso de .then() en lugar de async/await
+    return userRef.get().then((snapshot) {
+      if (!snapshot.exists || snapshot.data() == null) {
+        isFavorite = false;
+        notifyListeners();
+        return;
+      }
+
+      final data = snapshot.data() as Map<String, dynamic>;
+      final currentFavorites =
+          Map<String, dynamic>.from(data["favorite_restaurants"] ?? {});
+
+      isFavorite = currentFavorites.containsKey(restaurant.id);
+      notifyListeners();
+    }).catchError((error) {
+      print("Error al verificar favorito: $error");
       isFavorite = false;
       notifyListeners();
-      return;
-    }
-
-    final data = snapshot.data() as Map<String, dynamic>;
-    final currentFavorites =
-        Map<String, dynamic>.from(data["favorite_restaurants"] ?? {});
-
-    isFavorite = currentFavorites.containsKey(restaurant.id);
-    notifyListeners();
+    });
   }
 
-  // Escanea dispositivos Bluetooth cercanos
   Future<int> scanNearbyDevices() async {
     List<String> detectedDevices = [];
 
