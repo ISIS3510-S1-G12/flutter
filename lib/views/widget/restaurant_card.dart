@@ -1,13 +1,14 @@
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:moviles/models/restaurant.dart';
 
 class RestaurantCard extends StatelessWidget {
   final Restaurant restaurant;
 
   const RestaurantCard({super.key, required this.restaurant});
-  
+
   // Función para decodificar Base64
   Uint8List decodeBase64Image(String base64String) {
     final base64Data = base64String.split(',').last; // Quita prefijo data:image
@@ -22,7 +23,7 @@ class RestaurantCard extends StatelessWidget {
     print('Restaurant: ${restaurant.name}, imageUrl: ${restaurant.imageUrl}');
     print('Restaurant: ${restaurant.name}, offer: ${restaurant.offer}');
     print('Restaurant: ${restaurant.name}, address: ${restaurant.address}');
-  
+
     return Card(
       color: const Color.fromARGB(255, 170, 98, 153),
       margin: const EdgeInsets.only(bottom: 16),
@@ -102,7 +103,7 @@ class RestaurantCard extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 12),
-            // Imagen del restaurante
+            // Imagen del restaurante con caché
             Expanded(
               flex: 1,
               child: ClipRRect(
@@ -115,13 +116,14 @@ class RestaurantCard extends StatelessWidget {
                             height: 80,
                             fit: BoxFit.cover,
                           )
-                        : Image.network(
-                            restaurant.imageUrl,
+                        : CachedNetworkImage(
+                            imageUrl: restaurant.imageUrl,
                             width: 80,
                             height: 80,
                             fit: BoxFit.cover,
-                            errorBuilder:
-                                (context, error, stackTrace) => Image.asset(
+                            placeholder: (context, url) =>
+                                const Center(child: CircularProgressIndicator()),
+                            errorWidget: (context, url, error) => Image.asset(
                               'images/default.png',
                               width: 80,
                               height: 80,

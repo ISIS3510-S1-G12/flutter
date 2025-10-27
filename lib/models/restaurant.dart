@@ -27,6 +27,7 @@ class Restaurant {
     required this.rating,
   });
 
+  /// --- Constructor desde Firestore ---
   factory Restaurant.fromFirestore(DocumentSnapshot<Map<String, dynamic>> doc) {
     final data = doc.data();
     return Restaurant(
@@ -44,8 +45,29 @@ class Restaurant {
     );
   }
 
+  /// --- Constructor desde Map (para caché local) ---
+  factory Restaurant.fromMap(Map<String, dynamic> map) {
+    return Restaurant(
+      id: map['id'] ?? '',
+      name: map['name'] ?? '',
+      typeOfFood: map['typeOfFood'] ?? '',
+      address: map['address'] ?? '',
+      email: map['email'] ?? '',
+      imageUrl: map['imageUrl'] ?? '',
+      offer: map['offer'] ?? false,
+      openingTime: map['opening_time'] ?? 9,
+      closingTime: map['closing_time'] ?? 22,
+      busiestHours: Map<String, dynamic>.from(map['busiest_hours'] ?? {}),
+      rating: (map['rating'] is int)
+          ? (map['rating'] as int).toDouble()
+          : (map['rating'] ?? 0.0),
+    );
+  }
+
+  /// --- Serializar a Map (para Firestore o caché local) ---
   Map<String, dynamic> toMap() {
     return {
+      'id': id,
       'name': name,
       'typeOfFood': typeOfFood,
       'address': address,
