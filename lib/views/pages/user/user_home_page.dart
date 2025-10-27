@@ -42,7 +42,6 @@ class _UserHomePageState extends State<UserHomePage> with SingleTickerProviderSt
         });
       }
     });
-
     fiam.setMessagesSuppressed(false);
     _triggerMealEvent();
 
@@ -249,31 +248,65 @@ class _UserHomePageState extends State<UserHomePage> with SingleTickerProviderSt
                   ),
 
                   // 🔹 Mapa
-                  Container(
-                    height: 200,
-                    margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.grey.shade300),
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: FlutterMap(
-                        options: const MapOptions(
-                          initialCenter: LatLng(4.65, -74.08),
+                      Container(
+                      height: 200,
+                      margin: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 8),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.grey.shade300),
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: FlutterMap(
+                        options: MapOptions(
+                          initialCenter: LatLng(4.65, -74.08), // Bogotá por defecto
                           initialZoom: 12.0,
                           maxZoom: 18.0,
+                          onTap: (tapPosition, latLng) {
+                            print("Tapped at: $latLng");
+                            print("Direcciones de restaurants: ${vm.filteredRestaurants.map((r) => r.address).join(' otro ')}");
+                            print("Coordenadas de restaurants: $restaurantLocations");
+                          },
                         ),
                         children: [
                           TileLayer(
                             urlTemplate: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
                             userAgentPackageName: 'com.example.moviles',
                           ),
+                          MarkerLayer(
+                            markers: [
+                              for (int i = 0; i < vm.filteredRestaurants.length; i++)
+                                if (i < restaurantLocations.length)
+                                  Marker(
+                                    width: 40,
+                                    height: 40,
+                                    point: restaurantLocations[i],
+                                    child: GestureDetector(
+                                      onTap: () {
+                                        final restaurant = vm.filteredRestaurants[i];
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) =>
+                                                UserRestaurantDetailPage(restaurant: restaurant),
+                                          ),
+                                        );
+                                      },
+                                      child: const Icon(
+                                        Icons.location_pin,
+                                        color: Color.fromARGB(255, 170, 98, 153),
+                                        size: 40,
+                                      ),
+                                    ),
+                                  ),
+                            ],
+                          ),
+
                         ],
                       ),
+                      ),
                     ),
-                  ),
-
                   // 🔹 Lista de restaurantes
                   Expanded(
                     child: ListView.builder(
