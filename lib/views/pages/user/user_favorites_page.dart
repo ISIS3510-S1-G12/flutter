@@ -15,8 +15,14 @@ class _UserFavoritesPageState extends State<UserFavoritesPage> {
   @override
   void initState() {
     super.initState();
+
     Future.microtask(() async {
       final vm = Provider.of<RestaurantViewModel>(context, listen: false);
+
+      // 🔹 Activar el stream de favoritos en tiempo real
+      vm.listenToFavoritesStream();
+
+      // 🔹 Mostrar el AlertDialog una vez cargados los favoritos
       await vm.fetchFavorites();
 
       if (vm.totalFavorites > 0) {
@@ -67,6 +73,14 @@ class _UserFavoritesPageState extends State<UserFavoritesPage> {
         });
       }
     });
+  }
+
+  @override
+  void dispose() {
+    // 🔹 Detener la escucha del stream cuando se sale de la pantalla
+    Provider.of<RestaurantViewModel>(context, listen: false)
+        .cancelFavoritesListener();
+    super.dispose();
   }
 
   @override

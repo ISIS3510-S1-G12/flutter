@@ -12,12 +12,11 @@ class AnalyticsService with WidgetsBindingObserver {
   FirebaseAnalytics get analytics => _analytics;
 
   /// Inicializa el observador de ciclo de vida
-Future<void> init() async {
-  WidgetsBinding.instance.addObserver(this);
-  _startTime = DateTime.now();
-  await _analytics.logEvent(name: 'app_started');
-}
-
+  Future<void> init() async {
+    WidgetsBinding.instance.addObserver(this);
+    _startTime = DateTime.now();
+    await _analytics.logEvent(name: 'app_started');
+  }
 
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
@@ -25,11 +24,12 @@ Future<void> init() async {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.paused || state == AppLifecycleState.detached) {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.detached) {
       _logSessionDuration();
     }
     if (state == AppLifecycleState.resumed) {
-      _startTime = DateTime.now(); 
+      _startTime = DateTime.now();
     }
   }
 
@@ -43,9 +43,9 @@ Future<void> init() async {
         "duration_seconds": duration,
       },
     );
-
   }
- /// 🔹 NUEVO: registrar uso de funcionalidades
+
+  /// Registrar uso de funcionalidades
   Future<void> logFeatureUsed(String featureName) async {
     await _analytics.logEvent(
       name: "feature_used",
@@ -54,9 +54,25 @@ Future<void> init() async {
     print("Funcionalidad usada: $featureName");
   }
 
-  /// 🔹 (Opcional) registrar vistas de pantalla
+  /// Registrar vistas de pantalla
   Future<void> logScreenView(String screenName) async {
     await _analytics.logScreenView(screenName: screenName);
     print("Vista registrada: $screenName");
+  }
+
+  /// Registrar acción de favoritos (añadir o quitar)
+  Future<void> logFavoriteAction({
+    required String restaurantId,
+    required String action, // "added" o "removed"
+  }) async {
+    await _analytics.logEvent(
+      name: "favorite_restaurant",
+      parameters: {
+        "restaurant_id": restaurantId,
+        "action": action,
+        "timestamp": DateTime.now().millisecondsSinceEpoch,
+      },
+    );
+    print("Acción de favorito registrada: $action para restaurante $restaurantId");
   }
 }
