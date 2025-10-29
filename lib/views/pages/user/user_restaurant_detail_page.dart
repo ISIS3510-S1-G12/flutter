@@ -259,6 +259,49 @@ class _UserRestaurantDetailPageState extends State<UserRestaurantDetailPage> {
                               ),
                             ),
 
+                            // 🟢 Banner del restaurante más visitado (NUEVO)
+                            FutureBuilder<Map<String, int>>(
+                              future: visitVM.getWeeklyVisitCounts(),
+                              builder: (context, snapshot) {
+                                if (!snapshot.hasData) return const SizedBox();
+                                final visitCounts = snapshot.data!;
+                                if (visitCounts.isEmpty) return const SizedBox();
+
+                                final mostVisited = visitCounts.entries.reduce(
+                                  (a, b) => a.value > b.value ? a : b,
+                                );
+
+                                if (mostVisited.key == restaurant.id) {
+                                  return Container(
+                                    margin: const EdgeInsets.symmetric(
+                                        horizontal: 16, vertical: 8),
+                                    padding: const EdgeInsets.all(12),
+                                    decoration: BoxDecoration(
+                                      color: Colors.amber.shade100,
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Row(
+                                      children: const [
+                                        
+                                        SizedBox(width: 8),
+                                        Expanded(
+                                          child: Text(
+                                            " 🏆 This is the most visited restaurant this week!",
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.black87,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                }
+                                return const SizedBox();
+                              },
+                            ),
+
+                            // ✅ Mapa
                             // ✅ Mapa corregido: se muestra sólo cuando _restaurantLocation no es null
                             Container(
                               height: 200,
@@ -305,6 +348,7 @@ class _UserRestaurantDetailPageState extends State<UserRestaurantDetailPage> {
                               ),
                             ),
 
+                            // ✅ Menú
                             StreamBuilder<List<Dish>>(
                               stream: DishRepository()
                                   .getDishesByRestaurant(fullRestaurant.id),
@@ -497,7 +541,8 @@ class _UserRestaurantDetailPageState extends State<UserRestaurantDetailPage> {
                     padding: const EdgeInsets.all(16.0),
                     child: Container(
                       decoration: BoxDecoration(
-                        color: const Color.fromARGB(255, 121, 39, 101),
+                        color:
+                            const Color.fromARGB(255, 121, 39, 101),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: TextButton.icon(
