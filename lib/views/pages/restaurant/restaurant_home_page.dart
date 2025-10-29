@@ -96,104 +96,9 @@ class RestaurantHomePage extends StatelessWidget {
             ),
             body: TabBarView(
               children: [
-                // -------- MENU TAB --------
-                _buildMenuTab(restaurant, context),
-
-                // -------- OFFERS TAB --------
+                _buildMenuTab(context, restaurant),
                 RestaurantOffersPage(restaurantId: restaurant.id),
-
-                // -------- REVIEWS TAB --------
-                FutureBuilder<List<Review>>(
-                  future: ReviewRepository()
-                      .getReviewsByRestaurant(restaurant.id),
-                  builder: (context, snapshot) {
-                    if (!snapshot.hasData) {
-                      return const Center(
-                          child: CircularProgressIndicator());
-                    }
-                    final reviews = snapshot.data!;
-                    if (reviews.isEmpty) {
-                      return const Center(child: Text("No reviews yet."));
-                    }
-                    return ListView.builder(
-                      padding: const EdgeInsets.all(16),
-                      itemCount: reviews.length,
-                      itemBuilder: (context, index) {
-                        final review = reviews[index];
-                        return Card(
-                          margin: const EdgeInsets.only(bottom: 12),
-                          child: Padding(
-                            padding: const EdgeInsets.all(12),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    const CircleAvatar(
-                                      radius: 18,
-                                      backgroundColor: Colors.grey,
-                                      child: Icon(Icons.person,
-                                          color: Colors.white),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    FutureBuilder<DocumentSnapshot>(
-                                      future: FirebaseFirestore.instance
-                                          .collection('Users')
-                                          .doc(review.userId)
-                                          .get(),
-                                      builder: (context, userSnapshot) {
-                                        if (!userSnapshot.hasData) {
-                                          return const Text("Loading...");
-                                        }
-                                        final userData = userSnapshot.data!
-                                            .data() as Map<String, dynamic>?;
-                                        final userName =
-                                            userData?['name'] ?? "Unknown User";
-                                        return Text(
-                                          userName,
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 16,
-                                          ),
-                                        );
-                                      },
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 6),
-                                Row(
-                                  children: List.generate(
-                                    5,
-                                    (i) => Icon(
-                                      i < review.stars
-                                          ? Icons.star
-                                          : Icons.star_border,
-                                      color: Colors.amber,
-                                      size: 18,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(height: 6),
-                                Text(review.comment),
-                                if (review.imageUrl != null &&
-                                    review.imageUrl!.isNotEmpty)
-                                  Padding(
-                                    padding: const EdgeInsets.only(top: 8.0),
-                                    child: Image.network(
-                                      review.imageUrl!,
-                                      height: 120,
-                                      width: double.infinity,
-                                      fit: BoxFit.cover,
-                                    ),
-                                  ),
-                              ],
-                            ),
-                          ),
-                        );
-                      },
-                    );
-                  },
-                ),
+                _buildReviewsTab(restaurant),
               ],
             ),
           ),
@@ -202,55 +107,96 @@ class RestaurantHomePage extends StatelessWidget {
     );
   }
 
-  // --- Sección de menú del restaurante ---
-  Widget _buildMenuTab(Restaurant restaurant, BuildContext context) {
+  // --- MENU TAB ---
+  Widget _buildMenuTab(BuildContext context, Restaurant restaurant) {
+    final visitVM = context.read<VisitViewModel>();
+
     return SingleChildScrollView(
       child: Column(
         children: [
-          // 🏆 Banner: restaurante más visitado de la semana
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: FutureBuilder<Map<String, int>>(
-              future: context.read<VisitViewModel>().getWeeklyVisitCounts(),
-              builder: (context, snapshot) {
-                if (!snapshot.hasData) return const SizedBox();
-                final visitCounts = snapshot.data!;
-                if (visitCounts.isEmpty) return const SizedBox();
+          const SizedBox(height: 12),
 
-                final mostVisited = visitCounts.entries.reduce(
-                  (a, b) => a.value > b.value ? a : b,
-                );
+          /// 🔹 Banner del restaurante más visitado
+          FutureBuilder<Map<String, int>>(
+            future: visitVM.getWeeklyVisitCounts(),
+            builder: (context, snapshot) {
+              if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                return const SizedBox();
+              }
+              final visits = snapshot.data!;
+              final mostVisited = visits.entries.reduce(
+                (a, b) => a.value > b.value ? a : b,
+              );
 
-                if (mostVisited.key != restaurant.id) return const SizedBox();
+              if (mostVisited.key != restaurant.id) return const SizedBox();
 
-                return Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.amber.shade100,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.orange.shade300),
-                  ),
-                  child: Row(
-                    children: [
-                      
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          "🏆 ¡Your restaurant was the most visited this week!",
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black87,
-                          ),
-                        ),
+              return Container(
+                margin:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.amber.shade100,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.orange.shade200),
+                ),
+                child: const Row(
+                  children: [
+                   
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        "🏆 You are the most visited restaurant this week!",
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold, color: Colors.black87),
                       ),
-                    ],
-                  ),
-                );
-              },
-            ),
+                    ),
+                  ],
+                ),
+              );
+            },
           ),
 
-          // 🍽️ Card del restaurante
+          /// 🔹 Loyalty Rate (mismo cálculo que usuarios)
+          FutureBuilder<Map<String, double>>(
+            future: visitVM.getWeeklyLoyaltyRates(),
+            builder: (context, snapshot) {
+              if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                return const SizedBox();
+              }
+
+              final loyaltyRates = snapshot.data!;
+              final rate = loyaltyRates[restaurant.id] ?? 0.0;
+
+              return Container(
+                margin:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color.fromARGB(255, 214, 145, 104)
+                      .withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border:
+                      Border.all(color: const Color.fromARGB(255, 214, 145, 104)),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.repeat, color: Colors.orange),
+                    const SizedBox(width: 8),
+                    Text(
+                      "Loyalty Rate: ${(rate * 100).toStringAsFixed(1)}%",
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+
+          /// --- Info del restaurante ---
           Padding(
             padding: const EdgeInsets.all(16),
             child: Card(
@@ -271,19 +217,9 @@ class RestaurantHomePage extends StatelessWidget {
                               width: 64,
                               height: 64,
                               fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) {
-                                return const Icon(
-                                  Icons.image_not_supported,
-                                  size: 64,
-                                  color: Colors.white,
-                                );
-                              },
                             )
-                          : const Icon(
-                              Icons.image_not_supported,
-                              size: 64,
-                              color: Colors.white,
-                            ),
+                          : const Icon(Icons.image_not_supported,
+                              size: 64, color: Colors.white),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -301,36 +237,7 @@ class RestaurantHomePage extends StatelessWidget {
             ),
           ),
 
-          // ⏰ Botón de horario de atención
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: () {
-                  showDialog(
-                      context: context,
-                      builder: (_) => AlertDialog(
-                            title: const Text("Business Hours"),
-                            content: Text(
-                                "Opening: ${restaurant.openingTime}:00\nClosing: ${restaurant.closingTime}:00"),
-                            actions: [
-                              TextButton(
-                                  onPressed: () => Navigator.pop(context),
-                                  child: const Text("Close"))
-                            ],
-                          ));
-                },
-                icon: const Icon(Icons.access_time),
-                label: const Text("Business Hours"),
-                style: ElevatedButton.styleFrom(
-                    backgroundColor:
-                        const Color.fromARGB(255, 214, 145, 104)),
-              ),
-            ),
-          ),
-
-          // 🍛 Lista de platos
+          /// --- Lista de platos ---
           StreamBuilder<List<Dish>>(
             stream: DishRepository().getDishesByRestaurant(restaurant.id),
             builder: (context, snapshot) {
@@ -365,9 +272,10 @@ class RestaurantHomePage extends StatelessWidget {
                                 fit: BoxFit.cover,
                               )
                             : const Icon(Icons.image_not_supported, size: 60),
-                        title: Text(dish.name,
-                            style: const TextStyle(
-                                fontWeight: FontWeight.bold)),
+                        title: Text(
+                          dish.name,
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
                         subtitle: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -393,44 +301,100 @@ class RestaurantHomePage extends StatelessWidget {
               );
             },
           ),
-
-          // 🍽️ Botón de agregar nuevo plato
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Center(
-              child: Container(
-                decoration: BoxDecoration(
-                  color: const Color.fromARGB(255, 214, 145, 104),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: TextButton.icon(
-                  style: TextButton.styleFrom(
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(
-                        vertical: 12, horizontal: 24),
-                  ),
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => EditMenuPage(
-                          restaurantId: restaurant.id,
-                        ),
-                      ),
-                    );
-                  },
-                  icon: const Icon(Icons.restaurant_outlined),
-                  label: const Text(
-                    "New Dish",
-                    style:
-                        TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ),
-            ),
-          ),
         ],
       ),
+    );
+  }
+
+  // --- REVIEWS TAB ---
+  Widget _buildReviewsTab(Restaurant restaurant) {
+    return FutureBuilder<List<Review>>(
+      future: ReviewRepository().getReviewsByRestaurant(restaurant.id),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        final reviews = snapshot.data!;
+        if (reviews.isEmpty) {
+          return const Center(child: Text("No reviews yet."));
+        }
+        return ListView.builder(
+          padding: const EdgeInsets.all(16),
+          itemCount: reviews.length,
+          itemBuilder: (context, index) {
+            final review = reviews[index];
+            return Card(
+              margin: const EdgeInsets.only(bottom: 12),
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const CircleAvatar(
+                          radius: 18,
+                          backgroundColor: Colors.grey,
+                          child: Icon(Icons.person, color: Colors.white),
+                        ),
+                        const SizedBox(width: 8),
+                        FutureBuilder<DocumentSnapshot>(
+                          future: FirebaseFirestore.instance
+                              .collection('Users')
+                              .doc(review.userId)
+                              .get(),
+                          builder: (context, userSnapshot) {
+                            if (!userSnapshot.hasData) {
+                              return const Text("Loading...");
+                            }
+                            final userData = userSnapshot.data!.data()
+                                as Map<String, dynamic>?;
+                            final userName =
+                                userData?['name'] ?? "Unknown User";
+                            return Text(
+                              userName,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: List.generate(
+                        5,
+                        (i) => Icon(
+                          i < review.stars
+                              ? Icons.star
+                              : Icons.star_border,
+                          color: Colors.amber,
+                          size: 18,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(review.comment),
+                    if (review.imageUrl != null &&
+                        review.imageUrl!.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8.0),
+                        child: Image.network(
+                          review.imageUrl!,
+                          height: 120,
+                          width: double.infinity,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
     );
   }
 }

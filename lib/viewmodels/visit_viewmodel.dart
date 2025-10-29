@@ -105,6 +105,71 @@ class VisitViewModel extends ChangeNotifier {
     }
   }
 
+  
+    /// 🔹 Calcula la tasa de lealtad semanal basada en número total de visitas (no usuarios).
+  Future<Map<String, double>> getWeeklyLoyaltyRates() async {
+    try {
+      final now = DateTime.now();
+      final oneWeekAgo = now.subtract(const Duration(days: 7));
+
+      // Obtener todas las visitas de la última semana
+      final snapshot = await FirebaseFirestore.instance
+          .collection("Visits")
+          .where("visitedAt", isGreaterThanOrEqualTo: oneWeekAgo)
+          .get();
+
+      final Map<String, List<String>> restaurantUserMap = {};
+      final Map<String, int> visitCounts = {};
+
+      // Contar total de visitas y usuarios únicos por restaurante
+      for (final doc in snapshot.docs) {
+        final data = doc.data();
+        final restaurantField = data["restaurantId"];
+        final userField = data["userId"];
+
+        // 🔧 Puede ser referencia o string
+        String? restaurantId;
+        String? userId;
+
+        if (restaurantField is DocumentReference) {
+          restaurantId = restaurantField.id;
+        } else if (restaurantField is String) {
+          restaurantId = restaurantField;
+        }
+
+        if (userField is DocumentReference) {
+          userId = userField.id;
+        } else if (userField is String) {
+          userId = userField;
+        }
+
+        if (restaurantId == null || userId == null) continue;
+
+        visitCounts[restaurantId] = (visitCounts[restaurantId] ?? 0) + 1;
+
+        restaurantUserMap.putIfAbsent(restaurantId, () => []);
+        if (!restaurantUserMap[restaurantId]!.contains(userId)) {
+          restaurantUserMap[restaurantId]!.add(userId);
+        }
+      }
+
+      // Calcular tasa de lealtad
+      final Map<String, double> loyaltyRates = {};
+      visitCounts.forEach((restaurantId, totalVisits) {
+        final uniqueUsers = restaurantUserMap[restaurantId]?.length ?? 1;
+        final repeatVisits = (totalVisits - uniqueUsers).clamp(0, totalVisits);
+        final rate = totalVisits == 0 ? 0.0 : repeatVisits / totalVisits;
+        loyaltyRates[restaurantId] = rate.toDouble();
+      });
+
+      print("✅ Loyalty rates calculated (by visits): $loyaltyRates");
+      return loyaltyRates;
+    } catch (e) {
+      print("❌ Error al calcular tasas de lealtad: $e");
+      return {};
+    }
+  }
+
 
 
 
