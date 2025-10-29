@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../models/restaurant.dart';
@@ -9,12 +10,10 @@ import '../../repositories/offer_repository.dart';
 
 /// --- FILTROS (Strategy Pattern) ---
 
-/// Estrategia base
 abstract class RestaurantFilter {
   List<Restaurant> apply(List<Restaurant> restaurants);
 }
 
-/// Estrategia concreta: filtrar por tipo de comida
 class FilterByType implements RestaurantFilter {
   final String query;
   FilterByType(this.query);
@@ -27,7 +26,6 @@ class FilterByType implements RestaurantFilter {
   }
 }
 
-/// Estrategia concreta: solo restaurantes con oferta
 class FilterWithOffer implements RestaurantFilter {
   @override
   List<Restaurant> apply(List<Restaurant> restaurants) {
@@ -35,7 +33,6 @@ class FilterWithOffer implements RestaurantFilter {
   }
 }
 
-/// Estrategia concreta: solo restaurantes sin oferta
 class FilterWithoutOffer implements RestaurantFilter {
   @override
   List<Restaurant> apply(List<Restaurant> restaurants) {
@@ -43,7 +40,6 @@ class FilterWithoutOffer implements RestaurantFilter {
   }
 }
 
-/// Contexto del patrón Strategy
 class FilterContext {
   RestaurantFilter? _strategy;
 
@@ -61,7 +57,7 @@ class FilterContext {
   }
 }
 
-/// --- VIEWMODEL (usa el contexto de estrategia) ---
+/// --- VIEWMODEL ---
 class RestaurantViewModel extends ChangeNotifier {
   final RestaurantRepository _restaurantRepo;
   final UserRepository _userRepo;
@@ -80,9 +76,10 @@ class RestaurantViewModel extends ChangeNotifier {
   bool isLoadingFavorites = false;
   String? errorMessage;
 
-  /// --- GETTERS PARA PORCENTAJE ---
-  int get totalFavorites => favorites.length;
+  StreamSubscription<List<Restaurant>>? _favoritesSubscription;
 
+  /// --- GETTERS ---
+  int get totalFavorites => favorites.length;
   int get favoritesWithOffers => todaysDiscounts.length;
 
   String get percentageWithOffers {
@@ -91,7 +88,7 @@ class RestaurantViewModel extends ChangeNotifier {
     return value.toStringAsFixed(1);
   }
 
-  /// --- CARGAR TODOS LOS RESTAURANTES ---
+  /// --- CARGAR RESTAURANTES ---
   Future<void> fetchRestaurants() async {
     try {
       isLoading = true;
@@ -109,7 +106,7 @@ class RestaurantViewModel extends ChangeNotifier {
     }
   }
 
-  /// --- GUARDAR UN RESTAURANTE CON IMAGEN ---
+  /// --- GUARDAR RESTAURANTE ---
   Future<void> saveRestaurantOwner({
     required String id,
     required String name,
@@ -154,7 +151,7 @@ class RestaurantViewModel extends ChangeNotifier {
     }
   }
 
-  /// --- CARGAR FAVORITOS Y DESCUENTOS ACTIVOS ---
+  /// --- CARGAR FAVORITOS CON FUTURE ---
   Future<void> fetchFavorites() async {
     try {
       isLoadingFavorites = true;
@@ -195,13 +192,45 @@ class RestaurantViewModel extends ChangeNotifier {
     }
   }
 
+  /// --- ESCUCHAR FAVORITOS EN TIEMPO REAL (STREAM) ---
+  Future<void> listenToFavoritesStream() async {
+    final userAuth = FirebaseAuth.instance.currentUser;
+    if (userAuth == null) return;
+
+    final app_user.User? userData = await _userRepo.getUser(userAuth.uid);
+    if (userData == null || userData.favoriteRestaurants.isEmpty) return;
+
+    // Cancelar suscripción anterior si existe
+    await _favoritesSubscription?.cancel();
+
+    _favoritesSubscription = _restaurantRepo
+        .getFavoriteRestaurantsStream(userData.favoriteRestaurants)
+        .listen((favList) async {
+      favorites = favList;
+
+      final activeOffers = await _offerRepo.getActiveOffers();
+      todaysDiscounts = favorites.where((r) {
+        return activeOffers.any((o) => o.restaurant_id == r.id);
+      }).toList();
+
+      notifyListeners();
+    });
+  }
+
+  /// --- Cancelar el Stream cuando ya no se use ---
+  void cancelFavoritesListener() {
+    _favoritesSubscription?.cancel();
+    _favoritesSubscription = null;
+  }
+
+  /// --- DESCUENTOS ---
   Future<void> fetchTodaysDiscounts() async {
     await fetchFavorites();
     todaysDiscounts = favorites.where((r) => r.offer).toList();
     notifyListeners();
   }
 
-  /// --- APLICAR / LIMPIAR FILTROS (Strategy) ---
+  /// --- FILTROS ---
   void applyFilter(RestaurantFilter filter) {
     _filterContext.setStrategy(filter);
     filteredRestaurants = _filterContext.execute(restaurants);
