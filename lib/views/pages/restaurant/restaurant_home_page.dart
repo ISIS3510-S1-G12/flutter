@@ -7,6 +7,8 @@ import 'edit_menu_page.dart';
 import 'package:moviles/models/dish.dart';
 import 'package:moviles/repositories/dish_repository.dart';
 import 'restaurant_offers_page.dart';
+import 'package:provider/provider.dart';
+import 'package:moviles/viewmodels/visit_viewmodel.dart';
 
 class RestaurantHomePage extends StatelessWidget {
   final String restaurantId;
@@ -134,7 +136,6 @@ class RestaurantHomePage extends StatelessWidget {
                                           color: Colors.white),
                                     ),
                                     const SizedBox(width: 8),
-                                   
                                     FutureBuilder<DocumentSnapshot>(
                                       future: FirebaseFirestore.instance
                                           .collection('Users')
@@ -201,12 +202,55 @@ class RestaurantHomePage extends StatelessWidget {
     );
   }
 
-  // --- Extraí el Menu Tab a un método privado para que no quede tan largo ---
+  // --- Sección de menú del restaurante ---
   Widget _buildMenuTab(Restaurant restaurant, BuildContext context) {
     return SingleChildScrollView(
       child: Column(
         children: [
-          // Card restaurante
+          // 🏆 Banner: restaurante más visitado de la semana
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: FutureBuilder<Map<String, int>>(
+              future: context.read<VisitViewModel>().getWeeklyVisitCounts(),
+              builder: (context, snapshot) {
+                if (!snapshot.hasData) return const SizedBox();
+                final visitCounts = snapshot.data!;
+                if (visitCounts.isEmpty) return const SizedBox();
+
+                final mostVisited = visitCounts.entries.reduce(
+                  (a, b) => a.value > b.value ? a : b,
+                );
+
+                if (mostVisited.key != restaurant.id) return const SizedBox();
+
+                return Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.amber.shade100,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.orange.shade300),
+                  ),
+                  child: Row(
+                    children: [
+                      
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          "🏆 ¡Your restaurant was the most visited this week!",
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+
+          // 🍽️ Card del restaurante
           Padding(
             padding: const EdgeInsets.all(16),
             child: Card(
@@ -257,7 +301,7 @@ class RestaurantHomePage extends StatelessWidget {
             ),
           ),
 
-          // Botón business hours
+          // ⏰ Botón de horario de atención
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: SizedBox(
@@ -286,7 +330,7 @@ class RestaurantHomePage extends StatelessWidget {
             ),
           ),
 
-          // Platos
+          // 🍛 Lista de platos
           StreamBuilder<List<Dish>>(
             stream: DishRepository().getDishesByRestaurant(restaurant.id),
             builder: (context, snapshot) {
@@ -350,6 +394,7 @@ class RestaurantHomePage extends StatelessWidget {
             },
           ),
 
+          // 🍽️ Botón de agregar nuevo plato
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Center(

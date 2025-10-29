@@ -16,25 +16,24 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:geocoding/geocoding.dart';
 
-
 class UserRestaurantDetailPage extends StatefulWidget {
   final Restaurant restaurant;
   const UserRestaurantDetailPage({super.key, required this.restaurant});
 
   @override
-  State<UserRestaurantDetailPage> createState() => _UserRestaurantDetailPageState();
+  State<UserRestaurantDetailPage> createState() =>
+      _UserRestaurantDetailPageState();
 }
 
 class _UserRestaurantDetailPageState extends State<UserRestaurantDetailPage> {
   LatLng? _restaurantLocation; // 📍 ubicación del restaurante
 
-
   @override
   void initState() {
     super.initState();
     _loadRestaurantLocation();
-    
   }
+
   // 🔹 Geocodifica la dirección del restaurante actual
   Future<void> _loadRestaurantLocation() async {
     try {
@@ -102,6 +101,7 @@ class _UserRestaurantDetailPageState extends State<UserRestaurantDetailPage> {
                 closingTime: data['closingTime'] ?? 0,
                 email: data['email'] ?? '',
               );
+
               return DefaultTabController(
                 length: 3,
                 child: Scaffold(
@@ -258,6 +258,50 @@ class _UserRestaurantDetailPageState extends State<UserRestaurantDetailPage> {
                                 ],
                               ),
                             ),
+
+                            // 🟢 Banner del restaurante más visitado (NUEVO)
+                            FutureBuilder<Map<String, int>>(
+                              future: visitVM.getWeeklyVisitCounts(),
+                              builder: (context, snapshot) {
+                                if (!snapshot.hasData) return const SizedBox();
+                                final visitCounts = snapshot.data!;
+                                if (visitCounts.isEmpty) return const SizedBox();
+
+                                final mostVisited = visitCounts.entries.reduce(
+                                  (a, b) => a.value > b.value ? a : b,
+                                );
+
+                                if (mostVisited.key == restaurant.id) {
+                                  return Container(
+                                    margin: const EdgeInsets.symmetric(
+                                        horizontal: 16, vertical: 8),
+                                    padding: const EdgeInsets.all(12),
+                                    decoration: BoxDecoration(
+                                      color: Colors.amber.shade100,
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Row(
+                                      children: const [
+                                        
+                                        SizedBox(width: 8),
+                                        Expanded(
+                                          child: Text(
+                                            " 🏆 This is the most visited restaurant this week!",
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.black87,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                }
+                                return const SizedBox();
+                              },
+                            ),
+
+                            // ✅ Mapa
                             Container(
                               height: 200,
                               margin: const EdgeInsets.all(16),
@@ -267,36 +311,43 @@ class _UserRestaurantDetailPageState extends State<UserRestaurantDetailPage> {
                               ),
                               child: ClipRRect(
                                 borderRadius: BorderRadius.circular(12),
-                                child: FlutterMap(
-                                  options: MapOptions(
-                                    initialCenter: _restaurantLocation!, // Bogotá por defecto
-                                    maxZoom: 13.0,
-                                  ),
-                                  children: [
-                                    TileLayer(
-                                      urlTemplate:
-                                          "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-                                      userAgentPackageName:
-                                          'com.example.moviles',
-                                    ),
-                                                                           MarkerLayer(
+                                child: _restaurantLocation == null
+                                    ? const Center(
+                                        child: CircularProgressIndicator(),
+                                      )
+                                    : FlutterMap(
+                                        options: MapOptions(
+                                          initialCenter: _restaurantLocation!,
+                                          maxZoom: 13.0,
+                                        ),
+                                        children: [
+                                          TileLayer(
+                                            urlTemplate:
+                                                "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+                                            userAgentPackageName:
+                                                'com.example.moviles',
+                                          ),
+                                          MarkerLayer(
                                             markers: [
                                               Marker(
                                                 point: _restaurantLocation!,
                                                 width: 60,
                                                 height: 60,
                                                 child: const Icon(
-                  Icons.location_pin,
-                  color: Color.fromARGB(255, 170, 98, 153),
-                  size: 40,
-                ),
+                                                  Icons.location_pin,
+                                                  color: Color.fromARGB(
+                                                      255, 170, 98, 153),
+                                                  size: 40,
+                                                ),
                                               ),
                                             ],
                                           ),
-                                  ],
-                                ),
+                                        ],
+                                      ),
                               ),
                             ),
+
+                            // ✅ Menú
                             StreamBuilder<List<Dish>>(
                               stream: DishRepository()
                                   .getDishesByRestaurant(fullRestaurant.id),
@@ -489,7 +540,8 @@ class _UserRestaurantDetailPageState extends State<UserRestaurantDetailPage> {
                     padding: const EdgeInsets.all(16.0),
                     child: Container(
                       decoration: BoxDecoration(
-                        color: const Color.fromARGB(255, 121, 39, 101),
+                        color:
+                            const Color.fromARGB(255, 121, 39, 101),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: TextButton.icon(

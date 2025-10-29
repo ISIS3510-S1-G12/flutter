@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../repositories/visits_repository.dart';
@@ -74,4 +75,40 @@ class VisitViewModel extends ChangeNotifier {
       notifyListeners();
     }
   }
+
+
+    /// 🔹 Obtiene la cantidad de visitas de cada restaurante en la última semana.
+  Future<Map<String, int>> getWeeklyVisitCounts() async {
+    try {
+      final now = DateTime.now();
+      final oneWeekAgo = now.subtract(const Duration(days: 7));
+
+      final snapshot = await FirebaseFirestore.instance
+          .collection("Visits")
+          .where("visitedAt", isGreaterThanOrEqualTo: oneWeekAgo)
+          .get();
+
+      final Map<String, int> visitCounts = {};
+
+      for (final doc in snapshot.docs) {
+        final data = doc.data();
+        final restaurantId = data["restaurantId"];
+        if (restaurantId != null) {
+          visitCounts[restaurantId] = (visitCounts[restaurantId] ?? 0) + 1;
+        }
+      }
+
+      return visitCounts;
+    } catch (e) {
+      print("❌ Error al obtener visitas semanales: $e");
+      return {};
+    }
+  }
+
+
+
+
+
+
+
 }

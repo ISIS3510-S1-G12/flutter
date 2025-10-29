@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
@@ -265,7 +266,65 @@ _tabController.addListener(() {
                       ),
                     ),
 
-                    
+                    // 🔹 Banner del restaurante más visitado de la semana
+Padding(
+  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+  child: FutureBuilder<Map<String, int>>(
+    future: context.read<VisitViewModel>().getWeeklyVisitCounts(),
+    builder: (context, snapshot) {
+      if (!snapshot.hasData) return const SizedBox();
+      final visitCounts = snapshot.data!;
+      if (visitCounts.isEmpty) return const SizedBox();
+
+      // Encuentra el restaurante con más visitas
+      final mostVisited = visitCounts.entries.reduce(
+        (a, b) => a.value > b.value ? a : b,
+      );
+
+      final topRestaurantId = mostVisited.key;
+
+      return FutureBuilder<DocumentSnapshot>(
+        future: FirebaseFirestore.instance
+            .collection("Restaurants")
+            .doc(topRestaurantId)
+            .get(),
+        builder: (context, restaurantSnap) {
+          if (!restaurantSnap.hasData || !restaurantSnap.data!.exists) {
+            return const SizedBox();
+          }
+
+          final restaurantData =
+              restaurantSnap.data!.data() as Map<String, dynamic>;
+
+          return Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.amber.shade100,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.orange.shade200),
+            ),
+            child: Row(
+              children: [
+                
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    "🏆 ${restaurantData['name']} is the restaurant most visited this week.",
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      );
+    },
+  ),
+),
+
                     Container(
                       height: 200,
                       margin: const EdgeInsets.symmetric(
