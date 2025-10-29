@@ -302,6 +302,7 @@ class _UserRestaurantDetailPageState extends State<UserRestaurantDetailPage> {
                             ),
 
                             // ✅ Mapa
+                            // ✅ Mapa corregido: se muestra sólo cuando _restaurantLocation no es null
                             Container(
                               height: 200,
                               margin: const EdgeInsets.all(16),
@@ -552,8 +553,8 @@ class _UserRestaurantDetailPageState extends State<UserRestaurantDetailPage> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) =>
-                                  WriteReviewPage(restaurantId: fullRestaurant.id),
+                              builder: (_) => WriteReviewPage(
+                                  restaurantId: fullRestaurant.id),
                             ),
                           );
                         },

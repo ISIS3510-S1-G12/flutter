@@ -1,10 +1,13 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_in_app_messaging/firebase_in_app_messaging.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:geocoding/geocoding.dart';
 
 import 'package:moviles/viewmodels/restaurant_viewmodel.dart';
 import 'package:moviles/views/widget/restaurant_card.dart';
@@ -15,6 +18,7 @@ import 'package:moviles/views/pages/user/user_review_history.dart';
 import 'package:moviles/viewmodels/visit_viewmodel.dart';
 import 'package:moviles/views/pages/user/user_loyalty_ranking_page.dart'; // ✅ nueva importación
 import 'package:geocoding/geocoding.dart';
+import 'package:moviles/models/restaurant.dart';
 
 class UserHomePage extends StatefulWidget {
   const UserHomePage({super.key});
@@ -35,13 +39,13 @@ class _UserHomePageState extends State<UserHomePage>
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
 
+
+    _tabController = TabController(length: 4, vsync: this);
     _tabController.addListener(() {
       if (!_tabController.indexIsChanging) {
-        final currentIndex = _tabController.index;
         analytics.logEvent(name: "tab_changed", parameters: {
-          "index": currentIndex,
+          "index": _tabController.index,
         });
-        print("Tab changed to index: $currentIndex");
       }
     });
 
@@ -79,12 +83,44 @@ class _UserHomePageState extends State<UserHomePage>
     });
 
     // 🔹 Mostrar AlertDialog a los 10 segundos
+    fiam.setMessagesSuppressed(false);
+    _triggerMealEvent();
+
+    Future.microtask(() async {
+      final vm = context.read<RestaurantViewModel>();
+
+      try {
+        //  Leer desde caché local
+        final prefs = await SharedPreferences.getInstance();
+        final cachedData = prefs.getString('cached_restaurants');
+
+        if (cachedData != null) {
+          final decoded = json.decode(cachedData) as List;
+          final cachedRestaurants = decoded.map((r) => Restaurant.fromMap(r)).toList();
+          vm.restaurants = cachedRestaurants;
+          vm.filteredRestaurants = cachedRestaurants;
+          vm.notifyListeners();
+          print("Mostrando restaurantes cacheados.");
+        }
+
+        //  Cargar desde la red y actualizar caché
+        await vm.fetchRestaurants();
+        final encoded = json.encode(vm.restaurants.map((r) => r.toMap()).toList());
+        await prefs.setString('cached_restaurants', encoded);
+        print("Restaurantes actualizados en caché.");
+
+        //  Cargar coordenadas
+        await _loadRestaurantLocations(vm);
+      } catch (e) {
+        print(" Error en Cache then Network: $e");
+      }
+    });
+
+    // Mostrar AlertDialog a los 10 segundos
     Future.delayed(const Duration(seconds: 10), () async {
       if (!mounted) return;
-
       final visitVM = context.read<VisitViewModel>();
       await visitVM.loadDaysSinceLastVisitGlobal();
-
       if (!mounted) return;
 
       int? days = visitVM.daysSinceLastVisitGlobal;
@@ -116,11 +152,29 @@ class _UserHomePageState extends State<UserHomePage>
     });
   }
 
+  Future<void> _loadRestaurantLocations(RestaurantViewModel vm) async {
+    final List<LatLng> coords = [];
+
+    for (final r in vm.filteredRestaurants) {
+      try {
+        final locations = await locationFromAddress(r.address);
+        if (locations.isNotEmpty) {
+          final loc = locations.first;
+          coords.add(LatLng(loc.latitude, loc.longitude));
+        }
+      } catch (e) {
+        print("Error al geocodificar ${r.address}: $e");
+      }
+    }
+
+    setState(() {
+      restaurantLocations = coords;
+    });
+  }
+
   void _triggerMealEvent() {
     final now = DateTime.now();
     final hour = now.hour;
-
-    print("Hora actual: ${now.hour}:${now.minute}");
 
     if (hour >= 5 && hour < 12) {
       fiam.triggerEvent('breakfast_time');
@@ -128,8 +182,6 @@ class _UserHomePageState extends State<UserHomePage>
       fiam.triggerEvent('lunch_time');
     } else if (hour >= 18 && hour < 22) {
       fiam.triggerEvent('dinner_time');
-    } else {
-      print("ℹ No se disparó ningún evento (${now.hour}:${now.minute})");
     }
   }
 
@@ -160,6 +212,10 @@ class _UserHomePageState extends State<UserHomePage>
                 backgroundColor: Color.fromARGB(255, 214, 145, 104),
                 child: Icon(Icons.person, color: Colors.white),
               ),
+            const CircleAvatar(
+              radius: 28,
+              backgroundColor: Color.fromARGB(255, 214, 145, 104),
+              child: Icon(Icons.person, color: Colors.white),
             ),
           ],
         ),
@@ -197,6 +253,9 @@ class _UserHomePageState extends State<UserHomePage>
               if (vm.errorMessage != null) {
                 return Center(child: Text("Error: ${vm.errorMessage}"));
               }
+              if (vm.isLoading && vm.restaurants.isEmpty) {
+                return const Center(child: CircularProgressIndicator());
+              }
 
               final restaurants = vm.filteredRestaurants;
 
@@ -227,6 +286,9 @@ class _UserHomePageState extends State<UserHomePage>
                   Padding(
                     padding:
                         const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  // 🔹 Buscador y filtros
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     child: Row(
                       children: [
                         Expanded(
@@ -239,6 +301,9 @@ class _UserHomePageState extends State<UserHomePage>
                               filled: true,
                               fillColor:
                                   const Color.fromARGB(255, 214, 145, 104),
+                              prefixIcon: const Icon(Icons.search, color: Colors.white),
+                              filled: true,
+                              fillColor: const Color.fromARGB(255, 214, 145, 104),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(30),
                                 borderSide: BorderSide.none,
@@ -358,6 +423,74 @@ class _UserHomePageState extends State<UserHomePage>
                     ),
                   ),
 
+                            icon: const Icon(Icons.filter_list, color: Colors.white),
+                            onPressed: () => _showFilterOptions(context, vm),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // 🔹 Mapa
+                      Container(
+                      height: 200,
+                      margin: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 8),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.grey.shade300),
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: FlutterMap(
+                        options: MapOptions(
+                          initialCenter: LatLng(4.65, -74.08), // Bogotá por defecto
+                          initialZoom: 12.0,
+                          maxZoom: 18.0,
+                          onTap: (tapPosition, latLng) {
+                            print("Tapped at: $latLng");
+                            print("Direcciones de restaurants: ${vm.filteredRestaurants.map((r) => r.address).join(' otro ')}");
+                            print("Coordenadas de restaurants: $restaurantLocations");
+                          },
+                        ),
+                        children: [
+                          TileLayer(
+                            urlTemplate: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+                            userAgentPackageName: 'com.example.moviles',
+                          ),
+                          MarkerLayer(
+                            markers: [
+                              for (int i = 0; i < vm.filteredRestaurants.length; i++)
+                                if (i < restaurantLocations.length)
+                                  Marker(
+                                    width: 40,
+                                    height: 40,
+                                    point: restaurantLocations[i],
+                                    child: GestureDetector(
+                                      onTap: () {
+                                        final restaurant = vm.filteredRestaurants[i];
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) =>
+                                                UserRestaurantDetailPage(restaurant: restaurant),
+                                          ),
+                                        );
+                                      },
+                                      child: const Icon(
+                                        Icons.location_pin,
+                                        color: Color.fromARGB(255, 170, 98, 153),
+                                        size: 40,
+                                      ),
+                                    ),
+                                  ),
+                            ],
+                          ),
+
+                        ],
+                      ),
+                      ),
+                    ),
                   // 🔹 Lista de restaurantes
                   Expanded(
                     child: ListView.builder(
@@ -372,6 +505,7 @@ class _UserHomePageState extends State<UserHomePage>
                               MaterialPageRoute(
                                 builder: (context) => UserRestaurantDetailPage(
                                     restaurant: restaurant),
+                                builder: (context) => UserRestaurantDetailPage(restaurant: restaurant),
                               ),
                             );
                           },
