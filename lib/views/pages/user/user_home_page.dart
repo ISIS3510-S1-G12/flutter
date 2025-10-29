@@ -16,8 +16,7 @@ import 'package:moviles/views/pages/user/user_restaurant_detail_page.dart';
 import 'package:moviles/views/pages/user/user_ofertas_page.dart';
 import 'package:moviles/views/pages/user/user_review_history.dart';
 import 'package:moviles/viewmodels/visit_viewmodel.dart';
-import 'package:moviles/views/pages/user/user_loyalty_ranking_page.dart'; // ✅ nueva importación
-import 'package:geocoding/geocoding.dart';
+import 'package:moviles/views/pages/user/user_loyalty_ranking_page.dart';
 import 'package:moviles/models/restaurant.dart';
 
 class UserHomePage extends StatefulWidget {
@@ -38,9 +37,6 @@ class _UserHomePageState extends State<UserHomePage>
   void initState() {
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
-
-
-    _tabController = TabController(length: 4, vsync: this);
     _tabController.addListener(() {
       if (!_tabController.indexIsChanging) {
         analytics.logEvent(name: "tab_changed", parameters: {
@@ -57,9 +53,8 @@ class _UserHomePageState extends State<UserHomePage>
 
       for (final r in vm.filteredRestaurants) {
         try {
-          print("Dirección del restaurante: ${r.address}");
-          if (r.address != null && r.address!.isNotEmpty) {
-            final locations = await locationFromAddress(r.address!);
+          if (r.address.isNotEmpty) {
+            final locations = await locationFromAddress(r.address);
             if (locations.isNotEmpty) {
               final loc = locations.first;
               coords.add(LatLng(loc.latitude, loc.longitude));
@@ -82,15 +77,10 @@ class _UserHomePageState extends State<UserHomePage>
       await _loadRestaurantLocations(vm);
     });
 
-    // 🔹 Mostrar AlertDialog a los 10 segundos
-    fiam.setMessagesSuppressed(false);
-    _triggerMealEvent();
-
+    // 🔹 Leer y actualizar caché
     Future.microtask(() async {
       final vm = context.read<RestaurantViewModel>();
-
       try {
-        //  Leer desde caché local
         final prefs = await SharedPreferences.getInstance();
         final cachedData = prefs.getString('cached_restaurants');
 
@@ -100,23 +90,19 @@ class _UserHomePageState extends State<UserHomePage>
           vm.restaurants = cachedRestaurants;
           vm.filteredRestaurants = cachedRestaurants;
           vm.notifyListeners();
-          print("Mostrando restaurantes cacheados.");
         }
 
-        //  Cargar desde la red y actualizar caché
         await vm.fetchRestaurants();
         final encoded = json.encode(vm.restaurants.map((r) => r.toMap()).toList());
         await prefs.setString('cached_restaurants', encoded);
-        print("Restaurantes actualizados en caché.");
 
-        //  Cargar coordenadas
         await _loadRestaurantLocations(vm);
       } catch (e) {
-        print(" Error en Cache then Network: $e");
+        print("Error en Cache then Network: $e");
       }
     });
 
-    // Mostrar AlertDialog a los 10 segundos
+    // 🔹 AlertDialog últimos 10s
     Future.delayed(const Duration(seconds: 10), () async {
       if (!mounted) return;
       final visitVM = context.read<VisitViewModel>();
@@ -149,26 +135,6 @@ class _UserHomePageState extends State<UserHomePage>
           ],
         ),
       );
-    });
-  }
-
-  Future<void> _loadRestaurantLocations(RestaurantViewModel vm) async {
-    final List<LatLng> coords = [];
-
-    for (final r in vm.filteredRestaurants) {
-      try {
-        final locations = await locationFromAddress(r.address);
-        if (locations.isNotEmpty) {
-          final loc = locations.first;
-          coords.add(LatLng(loc.latitude, loc.longitude));
-        }
-      } catch (e) {
-        print("Error al geocodificar ${r.address}: $e");
-      }
-    }
-
-    setState(() {
-      restaurantLocations = coords;
     });
   }
 
@@ -212,10 +178,6 @@ class _UserHomePageState extends State<UserHomePage>
                 backgroundColor: Color.fromARGB(255, 214, 145, 104),
                 child: Icon(Icons.person, color: Colors.white),
               ),
-            const CircleAvatar(
-              radius: 28,
-              backgroundColor: Color.fromARGB(255, 214, 145, 104),
-              child: Icon(Icons.person, color: Colors.white),
             ),
           ],
         ),
@@ -245,6 +207,7 @@ class _UserHomePageState extends State<UserHomePage>
       body: TabBarView(
         controller: _tabController,
         children: [
+          // 🔹 Home Tab
           Consumer<RestaurantViewModel>(
             builder: (context, vm, child) {
               if (vm.isLoading) {
@@ -253,15 +216,12 @@ class _UserHomePageState extends State<UserHomePage>
               if (vm.errorMessage != null) {
                 return Center(child: Text("Error: ${vm.errorMessage}"));
               }
-              if (vm.isLoading && vm.restaurants.isEmpty) {
-                return const Center(child: CircularProgressIndicator());
-              }
 
               final restaurants = vm.filteredRestaurants;
 
               return Column(
                 children: [
-                  // 🔹 Botón nuevo para ver el ranking por lealtad
+                  // 🔹 Botón ranking semanal
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     child: ElevatedButton.icon(
@@ -282,11 +242,7 @@ class _UserHomePageState extends State<UserHomePage>
                     ),
                   ),
 
-                  // 🔹 Search + filtros (todo igual)
-                  Padding(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  // 🔹 Buscador y filtros
+                  // 🔹 Buscador + filtros
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     child: Row(
@@ -296,11 +252,6 @@ class _UserHomePageState extends State<UserHomePage>
                             decoration: InputDecoration(
                               hintText: "Search here...",
                               hintStyle: const TextStyle(color: Colors.white),
-                              prefixIcon:
-                                  const Icon(Icons.search, color: Colors.white),
-                              filled: true,
-                              fillColor:
-                                  const Color.fromARGB(255, 214, 145, 104),
                               prefixIcon: const Icon(Icons.search, color: Colors.white),
                               filled: true,
                               fillColor: const Color.fromARGB(255, 214, 145, 104),
@@ -325,18 +276,15 @@ class _UserHomePageState extends State<UserHomePage>
                             borderRadius: BorderRadius.circular(30),
                           ),
                           child: IconButton(
-                            icon: const Icon(Icons.filter_list,
-                                color: Colors.white),
-                            onPressed: () {
-                              _showFilterOptions(context, vm);
-                            },
+                            icon: const Icon(Icons.filter_list, color: Colors.white),
+                            onPressed: () => _showFilterOptions(context, vm),
                           ),
                         ),
                       ],
                     ),
                   ),
 
-                  // 🔹 Banner del restaurante más visitado
+                  // 🔹 Banner restaurante más visitado
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     child: FutureBuilder<Map<String, int>>(
@@ -349,7 +297,6 @@ class _UserHomePageState extends State<UserHomePage>
                         final mostVisited = visitCounts.entries.reduce(
                           (a, b) => a.value > b.value ? a : b,
                         );
-
                         final topRestaurantId = mostVisited.key;
 
                         return FutureBuilder<DocumentSnapshot>(
@@ -359,20 +306,17 @@ class _UserHomePageState extends State<UserHomePage>
                               .get(),
                           builder: (context, restaurantSnap) {
                             if (!restaurantSnap.hasData ||
-                                !restaurantSnap.data!.exists) {
-                              return const SizedBox();
-                            }
+                                !restaurantSnap.data!.exists) return const SizedBox();
 
-                            final restaurantData = restaurantSnap.data!.data()
-                                as Map<String, dynamic>;
+                            final restaurantData =
+                                restaurantSnap.data!.data() as Map<String, dynamic>;
 
                             return Container(
                               padding: const EdgeInsets.all(12),
                               decoration: BoxDecoration(
                                 color: Colors.amber.shade100,
                                 borderRadius: BorderRadius.circular(12),
-                                border:
-                                    Border.all(color: Colors.orange.shade200),
+                                border: Border.all(color: Colors.orange.shade200),
                               ),
                               child: Row(
                                 children: [
@@ -398,8 +342,7 @@ class _UserHomePageState extends State<UserHomePage>
                   // 🔹 Mapa
                   Container(
                     height: 200,
-                    margin:
-                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: Colors.grey.shade300),
@@ -407,91 +350,22 @@ class _UserHomePageState extends State<UserHomePage>
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(12),
                       child: FlutterMap(
-                        options: const MapOptions(
+                        options: MapOptions(
                           initialCenter: LatLng(4.65, -74.08),
                           initialZoom: 12.0,
                           maxZoom: 18.0,
                         ),
                         children: [
                           TileLayer(
-                            urlTemplate:
-                                "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-                            userAgentPackageName: 'com.example.moviles',
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                            icon: const Icon(Icons.filter_list, color: Colors.white),
-                            onPressed: () => _showFilterOptions(context, vm),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  // 🔹 Mapa
-                      Container(
-                      height: 200,
-                      margin: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 8),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.grey.shade300),
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
-                        child: FlutterMap(
-                        options: MapOptions(
-                          initialCenter: LatLng(4.65, -74.08), // Bogotá por defecto
-                          initialZoom: 12.0,
-                          maxZoom: 18.0,
-                          onTap: (tapPosition, latLng) {
-                            print("Tapped at: $latLng");
-                            print("Direcciones de restaurants: ${vm.filteredRestaurants.map((r) => r.address).join(' otro ')}");
-                            print("Coordenadas de restaurants: $restaurantLocations");
-                          },
-                        ),
-                        children: [
-                          TileLayer(
                             urlTemplate: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
                             userAgentPackageName: 'com.example.moviles',
                           ),
-                          MarkerLayer(
-                            markers: [
-                              for (int i = 0; i < vm.filteredRestaurants.length; i++)
-                                if (i < restaurantLocations.length)
-                                  Marker(
-                                    width: 40,
-                                    height: 40,
-                                    point: restaurantLocations[i],
-                                    child: GestureDetector(
-                                      onTap: () {
-                                        final restaurant = vm.filteredRestaurants[i];
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (context) =>
-                                                UserRestaurantDetailPage(restaurant: restaurant),
-                                          ),
-                                        );
-                                      },
-                                      child: const Icon(
-                                        Icons.location_pin,
-                                        color: Color.fromARGB(255, 170, 98, 153),
-                                        size: 40,
-                                      ),
-                                    ),
-                                  ),
-                            ],
-                          ),
-
                         ],
                       ),
-                      ),
                     ),
-                  // 🔹 Lista de restaurantes
+                  ),
+
+                  // 🔹 Lista restaurantes
                   Expanded(
                     child: ListView.builder(
                       padding: const EdgeInsets.all(16),
@@ -503,9 +377,8 @@ class _UserHomePageState extends State<UserHomePage>
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => UserRestaurantDetailPage(
-                                    restaurant: restaurant),
-                                builder: (context) => UserRestaurantDetailPage(restaurant: restaurant),
+                                builder: (context) =>
+                                    UserRestaurantDetailPage(restaurant: restaurant),
                               ),
                             );
                           },
@@ -518,9 +391,11 @@ class _UserHomePageState extends State<UserHomePage>
               );
             },
           ),
-          const UserFavoritesPage(),
-          const UserOfertasPage(),
-          const UserReviewHistoryPage(),
+
+          // 🔹 Tabs restantes
+          UserFavoritesPage(),
+          UserOfertasPage(),
+          UserReviewHistoryPage(),
         ],
       ),
     );
