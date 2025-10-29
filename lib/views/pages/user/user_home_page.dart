@@ -1,4 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -16,8 +15,6 @@ import 'package:moviles/views/pages/user/user_restaurant_detail_page.dart';
 import 'package:moviles/views/pages/user/user_ofertas_page.dart';
 import 'package:moviles/views/pages/user/user_review_history.dart';
 import 'package:moviles/viewmodels/visit_viewmodel.dart';
-import 'package:moviles/views/pages/user/user_loyalty_ranking_page.dart'; // ✅ nueva importación
-import 'package:geocoding/geocoding.dart';
 import 'package:moviles/models/restaurant.dart';
 
 class UserHomePage extends StatefulWidget {
@@ -27,8 +24,7 @@ class UserHomePage extends StatefulWidget {
   State<UserHomePage> createState() => _UserHomePageState();
 }
 
-class _UserHomePageState extends State<UserHomePage>
-    with SingleTickerProviderStateMixin {
+class _UserHomePageState extends State<UserHomePage> with SingleTickerProviderStateMixin {
   final FirebaseInAppMessaging fiam = FirebaseInAppMessaging.instance;
   List<LatLng> restaurantLocations = [];
   late TabController _tabController;
@@ -37,8 +33,6 @@ class _UserHomePageState extends State<UserHomePage>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
-
 
     _tabController = TabController(length: 4, vsync: this);
     _tabController.addListener(() {
@@ -48,41 +42,6 @@ class _UserHomePageState extends State<UserHomePage>
         });
       }
     });
-
-    fiam.setMessagesSuppressed(false);
-    _triggerMealEvent();
-
-    Future<void> _loadRestaurantLocations(RestaurantViewModel vm) async {
-      final List<LatLng> coords = [];
-
-      for (final r in vm.filteredRestaurants) {
-        try {
-          print("Dirección del restaurante: ${r.address}");
-          if (r.address != null && r.address!.isNotEmpty) {
-            final locations = await locationFromAddress(r.address!);
-            if (locations.isNotEmpty) {
-              final loc = locations.first;
-              coords.add(LatLng(loc.latitude, loc.longitude));
-            }
-          }
-        } catch (e) {
-          print("Error al geocodificar ${r.address}: $e");
-        }
-      }
-
-      setState(() {
-        restaurantLocations = coords;
-      });
-    }
-
-    // 🔹 Cargar restaurantes
-    Future.microtask(() async {
-      final vm = context.read<RestaurantViewModel>();
-      await vm.fetchRestaurants();
-      await _loadRestaurantLocations(vm);
-    });
-
-    // 🔹 Mostrar AlertDialog a los 10 segundos
     fiam.setMessagesSuppressed(false);
     _triggerMealEvent();
 
@@ -205,13 +164,6 @@ class _UserHomePageState extends State<UserHomePage>
               "images/483891256-e6bd4888-8904-4028-911f-dff62cc98965.png",
               height: MediaQuery.of(context).size.height * 0.08,
             ),
-            InkWell(
-              onTap: () {},
-              child: const CircleAvatar(
-                radius: 28,
-                backgroundColor: Color.fromARGB(255, 214, 145, 104),
-                child: Icon(Icons.person, color: Colors.white),
-              ),
             const CircleAvatar(
               radius: 28,
               backgroundColor: Color.fromARGB(255, 214, 145, 104),
@@ -226,8 +178,6 @@ class _UserHomePageState extends State<UserHomePage>
               const Divider(color: Colors.black, thickness: 1),
               TabBar(
                 controller: _tabController,
-                tabAlignment: TabAlignment.fill,
-                isScrollable: false,
                 labelColor: Colors.black,
                 indicatorColor: const Color.fromARGB(255, 214, 145, 104),
                 tabs: const [
@@ -247,12 +197,6 @@ class _UserHomePageState extends State<UserHomePage>
         children: [
           Consumer<RestaurantViewModel>(
             builder: (context, vm, child) {
-              if (vm.isLoading) {
-                return const Center(child: CircularProgressIndicator());
-              }
-              if (vm.errorMessage != null) {
-                return Center(child: Text("Error: ${vm.errorMessage}"));
-              }
               if (vm.isLoading && vm.restaurants.isEmpty) {
                 return const Center(child: CircularProgressIndicator());
               }
@@ -261,31 +205,6 @@ class _UserHomePageState extends State<UserHomePage>
 
               return Column(
                 children: [
-                  // 🔹 Botón nuevo para ver el ranking por lealtad
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    child: ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color.fromARGB(255, 214, 145, 104),
-                        foregroundColor: Colors.white,
-                      ),
-                      icon: const Icon(Icons.leaderboard),
-                      label: const Text("View Weekly Loyalty Ranking"),
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const UserLoyaltyRankingPage(),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-
-                  // 🔹 Search + filtros (todo igual)
-                  Padding(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   // 🔹 Buscador y filtros
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -296,11 +215,6 @@ class _UserHomePageState extends State<UserHomePage>
                             decoration: InputDecoration(
                               hintText: "Search here...",
                               hintStyle: const TextStyle(color: Colors.white),
-                              prefixIcon:
-                                  const Icon(Icons.search, color: Colors.white),
-                              filled: true,
-                              fillColor:
-                                  const Color.fromARGB(255, 214, 145, 104),
                               prefixIcon: const Icon(Icons.search, color: Colors.white),
                               filled: true,
                               fillColor: const Color.fromARGB(255, 214, 145, 104),
@@ -325,104 +239,6 @@ class _UserHomePageState extends State<UserHomePage>
                             borderRadius: BorderRadius.circular(30),
                           ),
                           child: IconButton(
-                            icon: const Icon(Icons.filter_list,
-                                color: Colors.white),
-                            onPressed: () {
-                              _showFilterOptions(context, vm);
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  // 🔹 Banner del restaurante más visitado
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    child: FutureBuilder<Map<String, int>>(
-                      future: context.read<VisitViewModel>().getWeeklyVisitCounts(),
-                      builder: (context, snapshot) {
-                        if (!snapshot.hasData) return const SizedBox();
-                        final visitCounts = snapshot.data!;
-                        if (visitCounts.isEmpty) return const SizedBox();
-
-                        final mostVisited = visitCounts.entries.reduce(
-                          (a, b) => a.value > b.value ? a : b,
-                        );
-
-                        final topRestaurantId = mostVisited.key;
-
-                        return FutureBuilder<DocumentSnapshot>(
-                          future: FirebaseFirestore.instance
-                              .collection("Restaurants")
-                              .doc(topRestaurantId)
-                              .get(),
-                          builder: (context, restaurantSnap) {
-                            if (!restaurantSnap.hasData ||
-                                !restaurantSnap.data!.exists) {
-                              return const SizedBox();
-                            }
-
-                            final restaurantData = restaurantSnap.data!.data()
-                                as Map<String, dynamic>;
-
-                            return Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: Colors.amber.shade100,
-                                borderRadius: BorderRadius.circular(12),
-                                border:
-                                    Border.all(color: Colors.orange.shade200),
-                              ),
-                              child: Row(
-                                children: [
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: Text(
-                                      "🏆 ${restaurantData['name']} is the restaurant most visited this week.",
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.black87,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            );
-                          },
-                        );
-                      },
-                    ),
-                  ),
-
-                  // 🔹 Mapa
-                  Container(
-                    height: 200,
-                    margin:
-                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.grey.shade300),
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: FlutterMap(
-                        options: const MapOptions(
-                          initialCenter: LatLng(4.65, -74.08),
-                          initialZoom: 12.0,
-                          maxZoom: 18.0,
-                        ),
-                        children: [
-                          TileLayer(
-                            urlTemplate:
-                                "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-                            userAgentPackageName: 'com.example.moviles',
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-
                             icon: const Icon(Icons.filter_list, color: Colors.white),
                             onPressed: () => _showFilterOptions(context, vm),
                           ),
@@ -503,8 +319,6 @@ class _UserHomePageState extends State<UserHomePage>
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => UserRestaurantDetailPage(
-                                    restaurant: restaurant),
                                 builder: (context) => UserRestaurantDetailPage(restaurant: restaurant),
                               ),
                             );
