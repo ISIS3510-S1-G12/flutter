@@ -8,7 +8,6 @@ import 'package:firebase_in_app_messaging/firebase_in_app_messaging.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:geocoding/geocoding.dart';
-
 import 'package:moviles/viewmodels/restaurant_viewmodel.dart';
 import 'package:moviles/views/widget/restaurant_card.dart';
 import 'package:moviles/views/pages/user/user_favorites_page.dart';

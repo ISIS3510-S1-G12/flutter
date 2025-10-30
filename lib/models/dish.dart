@@ -76,4 +76,20 @@ class Dish {
       dishType: dishType ?? this.dishType,
     );
   }
+
+    Map<String, dynamic> toJson() => toMap();
+
+  factory Dish.fromJson(Map<String, dynamic> json) {
+    return Dish(
+      id: json['id'] ?? '',
+      name: json['name'] ?? '',
+      price: (json['price'] ?? 0).toDouble(),
+      rating: (json['rating'] ?? 0).toInt(),
+      description: json['description'] ?? '',
+      imageUrl: json['imageUrl'] ?? '',
+      restaurantId: json['restaurantId'] ?? '',
+      dishesTags: List<String>.from(json['dishesTags'] ?? []),
+      dishType: json['dishType'] ?? '',
+    );
+  }
 }
