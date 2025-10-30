@@ -141,9 +141,8 @@ class RestaurantHomePage extends StatelessWidget {
                 ),
                 child: const Row(
                   children: [
-                   
                     SizedBox(width: 8),
-                    Expanded( 
+                    Expanded(
                       child: Text(
                         "🏆 You are the most visited restaurant this week!",
                         style: TextStyle(
@@ -301,6 +300,29 @@ class RestaurantHomePage extends StatelessWidget {
               );
             },
           ),
+
+          /// ✅ Botón para crear platos
+          const SizedBox(height: 16),
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color.fromARGB(255, 214, 145, 104),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            ),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => EditMenuPage(restaurantId: restaurant.id),
+                ),
+              );
+            },
+            icon: const Icon(Icons.add, color: Colors.white),
+            label: const Text("Create Dish",
+                style: TextStyle(color: Colors.white, fontSize: 16)),
+          ),
+          const SizedBox(height: 24),
         ],
       ),
     );
