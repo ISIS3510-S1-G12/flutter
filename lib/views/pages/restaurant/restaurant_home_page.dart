@@ -10,7 +10,7 @@ import 'package:moviles/repositories/dish_repository.dart';
 import 'restaurant_offers_page.dart';
 import 'package:provider/provider.dart';
 import 'package:moviles/viewmodels/visit_viewmodel.dart';
-import 'package:connectivity_plus/connectivity_plus.dart'; // ✅ nuevo import
+import 'package:connectivity_plus/connectivity_plus.dart'; //  nuevo import
 
 class RestaurantHomePage extends StatelessWidget {
   final String restaurantId;
@@ -21,14 +21,14 @@ class RestaurantHomePage extends StatelessWidget {
   Widget build(BuildContext context) {
     final dishRepository = DishRepository();
 
-    // ✅ Detectar cuando vuelva la conexión y sincronizar platos locales
+    //  Detectar cuando vuelva la conexión y sincronizar platos locales
     Connectivity().onConnectivityChanged.listen((status) async {
       if (status != ConnectivityResult.none) {
         await dishRepository.syncLocalDishes();
         // Opcional: mostrar mensaje visual
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("☁️ Local dishes synced to Firestore")),
+            const SnackBar(content: Text("Local dishes synced to Firestore")),
           );
         }
       }
@@ -133,7 +133,7 @@ class RestaurantHomePage extends StatelessWidget {
         children: [
           const SizedBox(height: 12),
 
-          /// 🔹 Banner del restaurante más visitado
+          ///  Banner del restaurante más visitado
           FutureBuilder<Map<String, int>>(
             future: visitVM.getWeeklyVisitCounts(),
             builder: (context, snapshot) {
@@ -172,7 +172,7 @@ class RestaurantHomePage extends StatelessWidget {
             },
           ),
 
-          /// 🔹 Loyalty Rate
+          ///  Loyalty Rate
           FutureBuilder<Map<String, double>>(
             future: visitVM.getWeeklyLoyaltyRates(),
             builder: (context, snapshot) {
@@ -318,7 +318,7 @@ class RestaurantHomePage extends StatelessWidget {
             },
           ),
 
-          /// ✅ Botón para crear platos
+          ///  Botón para crear platos
           const SizedBox(height: 16),
           ElevatedButton.icon(
             style: ElevatedButton.styleFrom(
