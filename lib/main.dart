@@ -7,6 +7,8 @@ import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_analytics/observer.dart';
 import 'package:firebase_in_app_messaging/firebase_in_app_messaging.dart';
 
+import 'package:hive_flutter/hive_flutter.dart'; // ✅ Para BD Llave/Valor
+
 import 'services/analytics_service.dart';
 import 'services/location_permission_service.dart';
 
@@ -28,21 +30,28 @@ final FirebaseInAppMessaging fiam = FirebaseInAppMessaging.instance;
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // 1. Inicializar Firebase
+  //  Inicializar Firebase
   final app = await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
   print('Firebase initialized: ${app.name}');
 
-  // 2. Inicializar AnalyticsService
+  // Inicializar Hive (BD llave/valor)
+  await Hive.initFlutter();
+  await Hive.openBox('review_cache'); // 🔹 Caja donde guardamos stats de reseñas
+
+  print("Hive initialized and box 'review_cache' opened");
+
+  //  Inicializar AnalyticsService
   final analyticsService = AnalyticsService();
   await analyticsService.init();
 
-  // 3. Pedir permiso de ubicación y loguear en Analytics
+  // 
+  // Pedir permiso de ubicación y loguear en Analytics
   final locationService = LocationPermissionService();
   await locationService.requestAndLogPermission();
 
-  // 4. Lanzar la app
+  //  Lanzar la app
   runApp(Sumaq(analyticsService: analyticsService));
 }
 
