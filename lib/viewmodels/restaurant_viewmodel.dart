@@ -67,26 +67,22 @@ class RestaurantViewModel extends ChangeNotifier {
 
   final FilterContext _filterContext = FilterContext();
 
+  // 🔹 Listas principales
   List<Restaurant> restaurants = [];
   List<Restaurant> filteredRestaurants = [];
   List<Restaurant> favorites = [];
   List<Restaurant> todaysDiscounts = [];
+
+  // 🔹 Variables para estadísticas del isolate
+  int totalFavorites = 0;
+  int favoritesWithOffers = 0;
+  double percentageWithOffers = 0.0;
 
   bool isLoading = false;
   bool isLoadingFavorites = false;
   String? errorMessage;
 
   StreamSubscription<List<Restaurant>>? _favoritesSubscription;
-
-  /// --- GETTERS ---
-  int get totalFavorites => favorites.length;
-  int get favoritesWithOffers => todaysDiscounts.length;
-
-  String get percentageWithOffers {
-    if (favorites.isEmpty) return "0";
-    final value = (todaysDiscounts.length / favorites.length) * 100;
-    return value.toStringAsFixed(1);
-  }
 
   /// --- CARGAR RESTAURANTES ---
   Future<void> fetchRestaurants() async {
@@ -151,7 +147,7 @@ class RestaurantViewModel extends ChangeNotifier {
     }
   }
 
-  /// --- CARGAR FAVORITOS CON FUTURE ---
+  /// --- CARGAR FAVORITOS ---
   Future<void> fetchFavorites() async {
     try {
       isLoadingFavorites = true;
@@ -192,7 +188,7 @@ class RestaurantViewModel extends ChangeNotifier {
     }
   }
 
-  /// --- ESCUCHAR FAVORITOS EN TIEMPO REAL (STREAM) ---
+  /// --- ESCUCHAR FAVORITOS EN TIEMPO REAL ---
   Future<void> listenToFavoritesStream() async {
     final userAuth = FirebaseAuth.instance.currentUser;
     if (userAuth == null) return;
@@ -200,7 +196,6 @@ class RestaurantViewModel extends ChangeNotifier {
     final app_user.User? userData = await _userRepo.getUser(userAuth.uid);
     if (userData == null || userData.favoriteRestaurants.isEmpty) return;
 
-    // Cancelar suscripción anterior si existe
     await _favoritesSubscription?.cancel();
 
     _favoritesSubscription = _restaurantRepo
@@ -217,7 +212,7 @@ class RestaurantViewModel extends ChangeNotifier {
     });
   }
 
-  /// --- Cancelar el Stream cuando ya no se use ---
+  /// --- Cancelar el Stream ---
   void cancelFavoritesListener() {
     _favoritesSubscription?.cancel();
     _favoritesSubscription = null;

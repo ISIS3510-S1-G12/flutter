@@ -33,6 +33,9 @@ class _UserHomePageState extends State<UserHomePage>
   late TabController _tabController;
   final FirebaseAnalytics analytics = FirebaseAnalytics.instance;
 
+  // variable para el último restaurante
+  Restaurant? lastVisitedRestaurant;
+
   @override
   void initState() {
     super.initState();
@@ -48,61 +51,69 @@ class _UserHomePageState extends State<UserHomePage>
     fiam.setMessagesSuppressed(false);
     _triggerMealEvent();
 
+    // función local para geocodificar la lista actual de restaurantes
     Future<void> _loadRestaurantLocations(RestaurantViewModel vm) async {
       final List<LatLng> coords = [];
 
       for (final r in vm.filteredRestaurants) {
         try {
-          if (r.address.isNotEmpty) {
-            final locations = await locationFromAddress(r.address);
+          if (r.address != null && r.address!.isNotEmpty) {
+            final locations = await locationFromAddress(r.address!);
             if (locations.isNotEmpty) {
               final loc = locations.first;
               coords.add(LatLng(loc.latitude, loc.longitude));
             }
           }
         } catch (e) {
-          print("Error al geocodificar ${r.address}: $e");
+          // no bloquear UI por errores de geocoding
+          debugPrint("Error al geocodificar ${r.address}: $e");
         }
       }
 
-      setState(() {
-        restaurantLocations = coords;
-      });
+      if (mounted) {
+        setState(() {
+          restaurantLocations = coords;
+        });
+      }
     }
 
-    // 🔹 Cargar restaurantes
+    // Cargar restaurantes y posiciones (cache then network)
     Future.microtask(() async {
       final vm = context.read<RestaurantViewModel>();
-      await vm.fetchRestaurants();
-      await _loadRestaurantLocations(vm);
-    });
 
-    // 🔹 Leer y actualizar caché
-    Future.microtask(() async {
-      final vm = context.read<RestaurantViewModel>();
+      // 1) intentar cargar cache local (SharedPreferences) primero
       try {
         final prefs = await SharedPreferences.getInstance();
         final cachedData = prefs.getString('cached_restaurants');
-
         if (cachedData != null) {
           final decoded = json.decode(cachedData) as List;
-          final cachedRestaurants = decoded.map((r) => Restaurant.fromMap(r)).toList();
+          final cachedRestaurants =
+              decoded.map((r) => Restaurant.fromMap(r)).toList();
           vm.restaurants = cachedRestaurants;
           vm.filteredRestaurants = cachedRestaurants;
           vm.notifyListeners();
         }
-
-        await vm.fetchRestaurants();
-        final encoded = json.encode(vm.restaurants.map((r) => r.toMap()).toList());
-        await prefs.setString('cached_restaurants', encoded);
-
-        await _loadRestaurantLocations(vm);
       } catch (e) {
-        print("Error en Cache then Network: $e");
+        debugPrint("No cache available or failed to read cache: $e");
       }
+
+      // 2) fetch from network and update cache + locations
+      try {
+        await vm.fetchRestaurants();
+        final prefs = await SharedPreferences.getInstance();
+        final encoded =
+            json.encode(vm.restaurants.map((r) => r.toMap()).toList());
+        await prefs.setString('cached_restaurants', encoded);
+      } catch (e) {
+        debugPrint("Error fetching restaurants from network: $e");
+      }
+
+      // 3) load geocoded locations and last visited
+      await _loadRestaurantLocations(vm);
+      await _loadLastVisitedRestaurant();
     });
 
-    // 🔹 AlertDialog últimos 10s
+    // AlertDialog con info de últimos días desde la vista de visitas (10s)
     Future.delayed(const Duration(seconds: 10), () async {
       if (!mounted) return;
       final visitVM = context.read<VisitViewModel>();
@@ -122,20 +133,64 @@ class _UserHomePageState extends State<UserHomePage>
         message = "It’s been $days days since your last restaurant visit.";
       }
 
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text("Last visit"),
-          content: Text(message),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text("OK"),
-            ),
-          ],
-        ),
-      );
+      if (mounted) {
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text("Last visit"),
+            content: Text(message),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text("OK"),
+              ),
+            ],
+          ),
+        );
+      }
     });
+  }
+
+  // cargar último restaurante desde SharedPreferences
+  Future<void> _loadLastVisitedRestaurant() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final id = prefs.getString('last_restaurant_id');
+      final name = prefs.getString('last_restaurant_name');
+      if (id != null && name != null) {
+        setState(() {
+          lastVisitedRestaurant = Restaurant(
+            id: id,
+            name: name,
+            email: '',
+            address: '',
+            typeOfFood: '',
+            offer: false,
+            imageUrl: '',
+            openingTime: 9,
+            closingTime: 22,
+            busiestHours: {},
+            rating: 0.0,
+          );
+        });
+      }
+    } catch (e) {
+      debugPrint("Failed to load last visited restaurant: $e");
+    }
+  }
+
+  // guardar restaurante cuando el usuario entra a su detalle
+  Future<void> _saveLastVisited(Restaurant restaurant) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('last_restaurant_id', restaurant.id);
+      await prefs.setString('last_restaurant_name', restaurant.name);
+      setState(() {
+        lastVisitedRestaurant = restaurant;
+      });
+    } catch (e) {
+      debugPrint("Failed to save last visited: $e");
+    }
   }
 
   void _triggerMealEvent() {
@@ -157,8 +212,72 @@ class _UserHomePageState extends State<UserHomePage>
     super.dispose();
   }
 
+  Widget _buildMap(ThemeData theme, RestaurantViewModel vm) {
+    // fallback center si no hay ubicaciones geocodificadas
+    final LatLng center =
+        restaurantLocations.isNotEmpty ? restaurantLocations.first : LatLng(4.65, -74.08);
+
+    return Container(
+      height: 200,
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade300),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: FlutterMap(
+          options: MapOptions(
+            initialCenter: center,
+            initialZoom: 12.0,
+            maxZoom: 18.0,
+            onTap: (tapPosition, latLng) {
+              debugPrint("Tapped at: $latLng");
+            },
+          ),
+          children: [
+            TileLayer(
+              urlTemplate: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+              userAgentPackageName: 'com.example.moviles',
+            ),
+            MarkerLayer(
+              markers: [
+                for (int i = 0; i < vm.filteredRestaurants.length; i++)
+                  if (i < restaurantLocations.length)
+                    Marker(
+                      width: 40,
+                      height: 40,
+                      point: restaurantLocations[i],
+                      child: GestureDetector(
+                        onTap: () {
+                          final restaurant = vm.filteredRestaurants[i];
+                          _saveLastVisited(restaurant); // guardo al abrir detalle
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  UserRestaurantDetailPage(restaurant: restaurant),
+                            ),
+                          );
+                        },
+                        child: const Icon(
+                          Icons.location_pin,
+                          color: Color.fromARGB(255, 170, 98, 153),
+                          size: 40,
+                        ),
+                      ),
+                    ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -207,7 +326,7 @@ class _UserHomePageState extends State<UserHomePage>
       body: TabBarView(
         controller: _tabController,
         children: [
-          // 🔹 Home Tab
+          // Home Tab
           Consumer<RestaurantViewModel>(
             builder: (context, vm, child) {
               if (vm.isLoading) {
@@ -221,9 +340,34 @@ class _UserHomePageState extends State<UserHomePage>
 
               return Column(
                 children: [
-                  // 🔹 Botón ranking semanal
+                  // mostrar último restaurante si existe
+                  if (lastVisitedRestaurant != null)
+                    Card(
+                      color: const Color.fromARGB(255, 240, 222, 214),
+                      margin: const EdgeInsets.all(12),
+                      child: ListTile(
+                        leading: const Icon(Icons.history, color: Colors.teal),
+                        title: Text(
+                          "Last visited: ${lastVisitedRestaurant!.name}",
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        trailing: const Icon(Icons.arrow_forward_ios),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) =>
+                                  UserRestaurantDetailPage(restaurant: lastVisitedRestaurant!),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+
+                  // Botón ranking semanal
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     child: ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color.fromARGB(255, 214, 145, 104),
@@ -242,9 +386,10 @@ class _UserHomePageState extends State<UserHomePage>
                     ),
                   ),
 
-                  // 🔹 Buscador + filtros
+                  // Buscador + filtros
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     child: Row(
                       children: [
                         Expanded(
@@ -252,7 +397,8 @@ class _UserHomePageState extends State<UserHomePage>
                             decoration: InputDecoration(
                               hintText: "Search here...",
                               hintStyle: const TextStyle(color: Colors.white),
-                              prefixIcon: const Icon(Icons.search, color: Colors.white),
+                              prefixIcon:
+                                  const Icon(Icons.search, color: Colors.white),
                               filled: true,
                               fillColor: const Color.fromARGB(255, 214, 145, 104),
                               border: OutlineInputBorder(
@@ -284,9 +430,10 @@ class _UserHomePageState extends State<UserHomePage>
                     ),
                   ),
 
-                  // 🔹 Banner restaurante más visitado
+                  // Banner restaurante más visitado
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     child: FutureBuilder<Map<String, int>>(
                       future: context.read<VisitViewModel>().getWeeklyVisitCounts(),
                       builder: (context, snapshot) {
@@ -339,33 +486,10 @@ class _UserHomePageState extends State<UserHomePage>
                     ),
                   ),
 
-                  // 🔹 Mapa
-                  Container(
-                    height: 200,
-                    margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.grey.shade300),
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: FlutterMap(
-                        options: MapOptions(
-                          initialCenter: LatLng(4.65, -74.08),
-                          initialZoom: 12.0,
-                          maxZoom: 18.0,
-                        ),
-                        children: [
-                          TileLayer(
-                            urlTemplate: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-                            userAgentPackageName: 'com.example.moviles',
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
+                  // Mapa (open source tiles)
+                  _buildMap(theme, vm),
 
-                  // 🔹 Lista restaurantes
+                  // Lista restaurantes
                   Expanded(
                     child: ListView.builder(
                       padding: const EdgeInsets.all(16),
@@ -373,7 +497,8 @@ class _UserHomePageState extends State<UserHomePage>
                       itemBuilder: (context, index) {
                         final restaurant = restaurants[index];
                         return InkWell(
-                          onTap: () {
+                          onTap: () async {
+                            await _saveLastVisited(restaurant); // guardar último visitado
                             Navigator.push(
                               context,
                               MaterialPageRoute(
@@ -392,10 +517,10 @@ class _UserHomePageState extends State<UserHomePage>
             },
           ),
 
-          // 🔹 Tabs restantes
-          UserFavoritesPage(),
-          UserOfertasPage(),
-          UserReviewHistoryPage(),
+          // Tabs restantes
+          const UserFavoritesPage(),
+          const UserOfertasPage(),
+          const UserReviewHistoryPage(),
         ],
       ),
     );

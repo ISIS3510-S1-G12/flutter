@@ -1,8 +1,29 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart'; // 👈 Necesario para compute()
 import 'package:provider/provider.dart';
 import '/viewmodels/restaurant_viewmodel.dart';
 import '/models/restaurant.dart';
 import '/views/pages/user/user_restaurant_detail_page.dart';
+
+//  Función que corre en un isolate
+Map<String, dynamic> calculateFavoriteStats(List<Restaurant> favorites) {
+  print(" [Isolate] Calculando estadísticas de favoritos...");
+  final withOffers =
+      favorites.where((r) => r.offer == true).toList(); // restaurantes con oferta
+  final percentage = favorites.isEmpty
+      ? 0
+      : ((withOffers.length / favorites.length) * 100).round();
+
+  print(" [Isolate] Cálculo completado: "
+      "${favorites.length} favoritos, ${withOffers.length} con oferta.");
+
+  return {
+    'totalFavorites': favorites.length,
+    'favoritesWithOffers': withOffers.length,
+    'percentageWithOffers': percentage,
+    'todaysDiscounts': withOffers,
+  };
+}
 
 class UserFavoritesPage extends StatefulWidget {
   const UserFavoritesPage({super.key});
@@ -17,16 +38,42 @@ class _UserFavoritesPageState extends State<UserFavoritesPage> {
     super.initState();
 
     Future.microtask(() async {
+      print("Iniciando carga de favoritos...");
+
       final vm = Provider.of<RestaurantViewModel>(context, listen: false);
 
-      // 🔹 Activar el stream de favoritos en tiempo real
+      //  Activar el stream
+      print(" Escuchando stream de favoritos...");
       vm.listenToFavoritesStream();
 
-      // 🔹 Mostrar el AlertDialog una vez cargados los favoritos
+      //  Cargar favoritos
       await vm.fetchFavorites();
+      print(" Favoritos cargados: ${vm.favorites.length}");
 
-      if (vm.totalFavorites > 0) {
+      if (vm.favorites.isEmpty) {
+        print(" No hay favoritos, no se mostrará el diálogo.");
+        return;
+      }
+
+      //  Ejecutar el cálculo pesado en un isolate
+      print(" Ejecutando compute() para procesar favoritos...");
+      final stats = await compute(calculateFavoriteStats, vm.favorites);
+
+      print("Resultados del isolate: $stats");
+
+      //  Actualizar valores del ViewModel
+      vm.todaysDiscounts = List<Restaurant>.from(stats['todaysDiscounts']);
+      final total = stats['totalFavorites'];
+      final withOffers = stats['favoritesWithOffers'];
+      final percent = stats['percentageWithOffers'];
+
+      print("Estadísticas actualizadas: "
+          "$total favoritos, $withOffers con oferta, $percent%.");
+
+      //  Mostrar AlertDialog si hay favoritos
+      if (total > 0) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
+          print(" Mostrando AlertDialog...");
           showDialog(
             context: context,
             builder: (context) => AlertDialog(
@@ -35,23 +82,16 @@ class _UserFavoritesPageState extends State<UserFavoritesPage> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    "Total favorites: ${vm.totalFavorites}",
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  Text(
-                    "With active offers: ${vm.favoritesWithOffers}",
-                    style: const TextStyle(color: Colors.green),
-                  ),
-                  Text(
-                    "Percentage with offers: ${vm.percentageWithOffers}%",
-                    style: const TextStyle(color: Colors.blue),
-                  ),
+                  Text("Total favorites: $total",
+                      style:
+                          const TextStyle(fontWeight: FontWeight.bold)),
+                  Text("With active offers: $withOffers",
+                      style: const TextStyle(color: Colors.green)),
+                  Text("Percentage with offers: $percent%",
+                      style: const TextStyle(color: Colors.blue)),
                   const SizedBox(height: 12),
-                  const Text(
-                    "Restaurants with offers today:",
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
+                  const Text("Restaurants with offers today:",
+                      style: TextStyle(fontWeight: FontWeight.bold)),
                   ...vm.todaysDiscounts.map((r) => ListTile(
                         dense: true,
                         leading: CircleAvatar(
@@ -71,13 +111,15 @@ class _UserFavoritesPageState extends State<UserFavoritesPage> {
             ),
           );
         });
+      } else {
+        print(" No hay favoritos con oferta, no se muestra el diálogo.");
       }
     });
   }
 
   @override
   void dispose() {
-    // 🔹 Detener la escucha del stream cuando se sale de la pantalla
+    print("Cerrando stream de favoritos...");
     Provider.of<RestaurantViewModel>(context, listen: false)
         .cancelFavoritesListener();
     super.dispose();
@@ -92,20 +134,23 @@ class _UserFavoritesPageState extends State<UserFavoritesPage> {
         }
 
         if (vm.errorMessage != null) {
+          print(" Error en favoritos: ${vm.errorMessage}");
           return Center(child: Text("Error: ${vm.errorMessage}"));
         }
 
         if (vm.favorites.isEmpty) {
+          print(" No favorites yet");
           return const Center(child: Text("No favorites yet"));
         }
 
+        print("📋 Mostrando lista de favoritos...");
         return ListView.builder(
           padding: const EdgeInsets.all(16),
           itemCount: vm.favorites.length,
           itemBuilder: (context, index) {
             final Restaurant restaurant = vm.favorites[index];
-            final bool hasActiveOffer = vm.todaysDiscounts
-                .any((r) => r.id == restaurant.id); // 🔹 check real offers
+            final bool hasActiveOffer =
+                vm.todaysDiscounts.any((r) => r.id == restaurant.id);
 
             return InkWell(
               onTap: () {

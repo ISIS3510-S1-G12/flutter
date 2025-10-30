@@ -3,20 +3,42 @@ import 'package:provider/provider.dart';
 import 'package:moviles/viewmodels/offer_viewmodel.dart';
 import 'package:moviles/views/pages/restaurant/offer_form_page.dart';
 import 'package:moviles/models/offer.dart';
+import 'package:moviles/repositories/offer_repository.dart';
 
-class RestaurantOffersPage extends StatelessWidget {
+class RestaurantOffersPage extends StatefulWidget {
   final String restaurantId;
 
   const RestaurantOffersPage({super.key, required this.restaurantId});
+
+  @override
+  State<RestaurantOffersPage> createState() => _RestaurantOffersPageState();
+}
+
+class _RestaurantOffersPageState extends State<RestaurantOffersPage> {
+  final OfferRepository _offerRepo = OfferRepository();
+
+  @override
+  void initState() {
+    super.initState();
+    _syncLocalOffers();
+  }
+
+  Future<void> _syncLocalOffers() async {
+    try {
+      await _offerRepo.syncOffers();
+      print("✅ Ofertas locales sincronizadas automáticamente");
+    } catch (e) {
+      print("⚠️ Error al sincronizar ofertas: $e");
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final offerVM = Provider.of<OfferViewModel>(context);
 
     return Scaffold(
- 
       body: StreamBuilder<List<Offer>>(
-        stream: offerVM.getOffers(restaurantId),
+        stream: offerVM.getOffers(widget.restaurantId),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
@@ -64,7 +86,7 @@ class RestaurantOffersPage extends StatelessWidget {
           final result = await Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (_) => OfferFormPage(restaurantId: restaurantId),
+              builder: (_) => OfferFormPage(restaurantId: widget.restaurantId),
             ),
           );
           if (result == true) {

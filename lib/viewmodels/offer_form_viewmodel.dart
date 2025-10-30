@@ -5,7 +5,7 @@ import 'package:moviles/models/offer.dart';
 import 'package:moviles/repositories/offer_repository.dart';
 
 class OfferFormViewModel extends ChangeNotifier {
-  final String restaurant_id; // 👈 snake_case
+  final String restaurant_id;
   final formKey = GlobalKey<FormState>();
   final OfferRepository _repository = OfferRepository();
 
@@ -13,7 +13,7 @@ class OfferFormViewModel extends ChangeNotifier {
   final titleController = TextEditingController();
   final descriptionController = TextEditingController();
   final discountController = TextEditingController();
-  final priceController = TextEditingController(); 
+  final priceController = TextEditingController();
   final tagsController = TextEditingController();
 
   // Imagen
@@ -31,14 +31,15 @@ class OfferFormViewModel extends ChangeNotifier {
       titleController.text = offer.title;
       descriptionController.text = offer.description;
       discountController.text = offer.discount_percentage.toString();
-      priceController.text = offer.price.toString(); 
-      tagsController.text = offer.tags?.join(", ") ?? ""; 
+      priceController.text = offer.price.toString();
+      tagsController.text = offer.tags?.join(", ") ?? "";
       imageUrl = offer.image;
       valid_from = offer.valid_from;
       valid_to = offer.valid_to;
     }
   }
 
+  // 📸 Elegir imagen
   Future<void> pickImage() async {
     final picker = ImagePicker();
     final picked = await picker.pickImage(source: ImageSource.gallery);
@@ -48,6 +49,7 @@ class OfferFormViewModel extends ChangeNotifier {
     }
   }
 
+  // 📅 Elegir fechas
   Future<void> pickDate(BuildContext context, {required bool isFrom}) async {
     final picked = await showDatePicker(
       context: context,
@@ -66,6 +68,7 @@ class OfferFormViewModel extends ChangeNotifier {
     }
   }
 
+  // 💾 Guardar oferta (offline u online)
   Future<void> saveOffer(BuildContext context, {Offer? editingOffer}) async {
     if (!formKey.currentState!.validate()) return;
 
@@ -74,15 +77,16 @@ class OfferFormViewModel extends ChangeNotifier {
 
     try {
       final discount = double.tryParse(discountController.text.trim()) ?? 0.0;
-      final price = double.tryParse(priceController.text.trim()) ?? 0.0; 
+      final price = double.tryParse(priceController.text.trim()) ?? 0.0;
       final tags = tagsController.text
           .split(',')
           .map((e) => e.trim())
           .where((e) => e.isNotEmpty)
           .toList();
 
+      // 🔹 Construir la oferta
       final offer = Offer(
-        id: editingOffer?.id ?? '',
+        id: editingOffer?.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
         restaurant_id: restaurant_id,
         title: titleController.text.trim(),
         description: descriptionController.text.trim(),
@@ -93,19 +97,30 @@ class OfferFormViewModel extends ChangeNotifier {
         valid_from: valid_from,
         valid_to: valid_to,
         createdAt: editingOffer?.createdAt ?? DateTime.now(),
+        synced: false, // 👈 muy importante para diferenciar offline
       );
 
+      // 🔸 Crear o actualizar según el caso
       if (editingOffer == null) {
         await _repository.createOffer(offer, image: imageFile);
       } else {
         await _repository.updateOffer(offer, image: imageFile);
       }
 
-      Navigator.pop(context, true);
+      // ✅ Volver atrás y mostrar éxito
+      if (context.mounted) {
+        Navigator.pop(context, true);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Offer saved successfully")),
+        );
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error saving offer: $e")),
-      );
+      debugPrint("Error saving offer: $e");
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error saving offer: $e")),
+        );
+      }
     } finally {
       isSubmitting = false;
       notifyListeners();
@@ -117,7 +132,7 @@ class OfferFormViewModel extends ChangeNotifier {
     titleController.dispose();
     descriptionController.dispose();
     discountController.dispose();
-    priceController.dispose(); 
+    priceController.dispose();
     tagsController.dispose();
     super.dispose();
   }
