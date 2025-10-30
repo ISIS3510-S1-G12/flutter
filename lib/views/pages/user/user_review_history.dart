@@ -1,12 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:moviles/services/review_cache.dart';
 import 'package:provider/provider.dart';
 import '/viewmodels/review_viewmodel.dart';
 import '/repositories/review_repository.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import '/models/review.dart';
+ // Asegúrate de que ReviewCache está aquí
 
-class UserReviewHistoryPage extends StatelessWidget {
+class UserReviewHistoryPage extends StatefulWidget {
   const UserReviewHistoryPage({super.key});
+
+  @override
+  State<UserReviewHistoryPage> createState() => _UserReviewHistoryPageState();
+}
+
+class _UserReviewHistoryPageState extends State<UserReviewHistoryPage> {
+  // 🔹 Instancia LRU cache
+  final _reviewCache = ReviewCache(capacity: 50);
 
   @override
   Widget build(BuildContext context) {
@@ -22,6 +34,62 @@ class UserReviewHistoryPage extends StatelessWidget {
 
           return Column(
             children: [
+              // 🔸 Banner: último restaurante reseñado
+              if (vm.reviews.isNotEmpty)
+                FutureBuilder<DocumentSnapshot>(
+                  future: FirebaseFirestore.instance
+                      .collection("Restaurants")
+                      .doc(vm.reviews.last.restaurantId)
+                      .get(),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Padding(
+                        padding: EdgeInsets.all(16),
+                        child: LinearProgressIndicator(),
+                      );
+                    }
+
+                    if (!snapshot.hasData || !snapshot.data!.exists) {
+                      return const SizedBox();
+                    }
+
+                    final data =
+                        snapshot.data!.data() as Map<String, dynamic>? ?? {};
+                    final name = data['name'] ?? 'Unknown Restaurant';
+
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 12),
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: const Color.fromARGB(255, 240, 222, 214),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                              color: const Color.fromARGB(255, 214, 145, 104)),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.rate_review,
+                                color: Color.fromARGB(255, 214, 145, 104)),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                "📝 Your last review was for: $name",
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black87,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+
+              // 🔹 Campo de búsqueda
               Padding(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -37,10 +105,11 @@ class UserReviewHistoryPage extends StatelessWidget {
                       borderSide: BorderSide.none,
                     ),
                   ),
-                  onChanged: (query) {
-                  },
+                  onChanged: (query) {},
                 ),
               ),
+
+              // 🔹 Lista de reseñas
               Expanded(
                 child: vm.isLoading
                     ? const Center(child: CircularProgressIndicator())
@@ -50,7 +119,21 @@ class UserReviewHistoryPage extends StatelessWidget {
                             padding: const EdgeInsets.all(16),
                             itemCount: vm.reviews.length,
                             itemBuilder: (context, index) {
-                              final review = vm.reviews[index];
+                              final originalReview = vm.reviews[index];
+
+                              // 🔹 Intentar obtener la review de LRU
+                              Review review =
+                                  _reviewCache.get(originalReview.id) ??
+                                      originalReview;
+
+                              // 🔹 Guardar en cache si no estaba
+                              _reviewCache.put(originalReview.id, originalReview);
+
+                              // 🔹 Debug prints
+                              print(
+                                  "Review ID: ${originalReview.id}, In cache? ${_reviewCache.get(originalReview.id) != null}");
+                              print("Cache size: ${_reviewCache.size}");
+
                               return FutureBuilder<DocumentSnapshot>(
                                 future: FirebaseFirestore.instance
                                     .collection("Users")
@@ -62,16 +145,16 @@ class UserReviewHistoryPage extends StatelessWidget {
                                     return const SizedBox();
                                   }
 
-                                  final userData =
-                                      userSnapshot.data?.data() as Map<
-                                          String, dynamic>?;
+                                  final userData = userSnapshot.data?.data()
+                                      as Map<String, dynamic>?;
 
                                   final userName =
                                       userData?['name'] ?? "Unknown User";
                                   final userPic = userData?['profile_picture'];
 
                                   return Card(
-                                    margin: const EdgeInsets.only(bottom: 16),
+                                    margin:
+                                        const EdgeInsets.only(bottom: 16),
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(12),
                                     ),
@@ -131,35 +214,30 @@ class UserReviewHistoryPage extends StatelessWidget {
                                                   ],
                                                 ),
                                                 const SizedBox(height: 4),
-                                                FutureBuilder<
-                                                    DocumentSnapshot>(
+                                                FutureBuilder<DocumentSnapshot>(
                                                   future: FirebaseFirestore
                                                       .instance
-                                                      .collection("Restaurants")
+                                                      .collection(
+                                                          "Restaurants")
                                                       .doc(review.restaurantId)
                                                       .get(),
                                                   builder: (context, snapshot) {
-                                                    if (snapshot
-                                                            .connectionState ==
-                                                        ConnectionState
-                                                            .waiting) {
+                                                    if (snapshot.connectionState ==
+                                                        ConnectionState.waiting) {
                                                       return const Text(
                                                         "Loading...",
                                                         style: TextStyle(
                                                             fontWeight:
-                                                                FontWeight
-                                                                    .w500),
+                                                                FontWeight.w500),
                                                       );
                                                     }
                                                     if (!snapshot.hasData ||
-                                                        !snapshot.data!
-                                                            .exists) {
+                                                        !snapshot.data!.exists) {
                                                       return Text(
                                                         review.restaurantId,
                                                         style: const TextStyle(
                                                             fontWeight:
-                                                                FontWeight
-                                                                    .w500),
+                                                                FontWeight.w500),
                                                       );
                                                     }
                                                     final data = snapshot.data!
@@ -192,18 +270,27 @@ class UserReviewHistoryPage extends StatelessWidget {
                                                 if (review.imageUrl != null &&
                                                     review.imageUrl!.isNotEmpty)
                                                   Padding(
-                                                    padding:
-                                                        const EdgeInsets.only(
-                                                            top: 8.0),
+                                                    padding: const EdgeInsets.only(
+                                                        top: 8.0),
                                                     child: ClipRRect(
                                                       borderRadius:
                                                           BorderRadius.circular(
                                                               8),
-                                                      child: Image.network(
-                                                        review.imageUrl!,
+                                                      child: CachedNetworkImage(
+                                                        imageUrl:
+                                                            review.imageUrl!,
                                                         height: 140,
                                                         width: double.infinity,
                                                         fit: BoxFit.cover,
+                                                        placeholder: (context,
+                                                                url) =>
+                                                            const Center(
+                                                                child:
+                                                                    CircularProgressIndicator()),
+                                                        errorWidget: (context,
+                                                                url, error) =>
+                                                            const Icon(
+                                                                Icons.error),
                                                       ),
                                                     ),
                                                   ),

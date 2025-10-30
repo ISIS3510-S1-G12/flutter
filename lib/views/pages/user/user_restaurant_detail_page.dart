@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+
 import 'package:provider/provider.dart';
 import '/models/restaurant.dart';
 import '/models/dish.dart';
@@ -64,7 +65,8 @@ class _UserRestaurantDetailPageState extends State<UserRestaurantDetailPage> {
         ),
         ChangeNotifierProvider(
           create: (_) =>
-              ReviewViewModel(ReviewRepository())..loadReviews(restaurant.id),
+              ReviewViewModel( ReviewRepository(),
+              )..loadReviews(restaurant.id),
         ),
         ChangeNotifierProvider(
           create: (_) => VisitViewModel(VisitsRepository()),

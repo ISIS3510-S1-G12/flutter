@@ -21,7 +21,6 @@ class LoginWidget extends StatefulWidget {
 
 class _LoginWidgetState extends State<LoginWidget> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
@@ -34,127 +33,162 @@ class _LoginWidgetState extends State<LoginWidget> {
 
   @override
   Widget build(BuildContext context) {
-    return Form(
-      key: _formKey,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: <Widget>[
-          SizedBox(
-            height: 70,
-            width: 200,
-            child: TextFormField(
-              controller: _emailController,
-              style: const TextStyle(fontSize: 15),
-              textAlign: TextAlign.center,
-              decoration: InputDecoration(
-                hintText: 'Email',
-                border: const OutlineInputBorder(
-                  borderRadius: BorderRadius.all(Radius.circular(18.0)),
-                  borderSide: BorderSide(color: Colors.grey),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: widget.accentColor, width: 2.0),
-                  borderRadius: const BorderRadius.all(Radius.circular(18.0)),
-                ),
-                errorStyle: const TextStyle(fontSize: 12, height: 0.8),
-              ),
-              validator: (String? value) {
-                if (value == null || value.isEmpty) {
-                  return 'Enter your email';
-                }
-                return null;
-              },
-            ),
-          ),
-          const Padding(padding: EdgeInsets.symmetric(vertical: 10.0)),
-          SizedBox(
-            height: 70,
-            width: 200,
-            child: TextFormField(
-              controller: _passwordController,
-              style: const TextStyle(fontSize: 15),
-              textAlign: TextAlign.center,
-              obscureText: true,
-              decoration: InputDecoration(
-                hintText: 'Password',
-                border: const OutlineInputBorder(
-                  borderRadius: BorderRadius.all(Radius.circular(18.0)),
-                  borderSide: BorderSide(color: Colors.grey),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: widget.accentColor, width: 2.0),
-                  borderRadius: const BorderRadius.all(Radius.circular(18.0)),
-                ),
-                errorStyle: const TextStyle(fontSize: 12, height: 0.8),
-              ),
-              validator: (String? value) {
-                if (value == null || value.isEmpty) {
-                  return 'Enter your password';
-                }
-                return null;
-              },
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 16.0),
-            child: ElevatedButton(
-              onPressed: () async {
-                if (_formKey.currentState!.validate()) {
-                  try {
-                    final authVM =
-                        Provider.of<AuthViewModel>(context, listen: false);
-                    await authVM.login(
-                      widget.who,
-                      _emailController.text.trim(),
-                      _passwordController.text.trim(),
-                    );
-
-                    if (authVM.error == null) {
-                      if (widget.who == "restaurant") {
-                        final uid = FirebaseAuth.instance.currentUser?.uid;
-                        if (uid != null) {
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) =>
-                                  RestaurantHomePage(restaurantId: uid),
-                            ),
-                          );
-                        }
-                      } else if (widget.who == "user") {
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const UserHomePage(),
-                          ),
-                        );
-                      }
-                    } else {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text("Login failed: ${authVM.error}"),
+    return Consumer<AuthViewModel>(
+      builder: (context, authVM, _) {
+        return Stack(
+          children: [
+            Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: <Widget>[
+                  SizedBox(
+                    height: 70,
+                    width: 200,
+                    child: TextFormField(
+                      controller: _emailController,
+                      style: const TextStyle(fontSize: 15),
+                      textAlign: TextAlign.center,
+                      decoration: InputDecoration(
+                        hintText: 'Email',
+                        border: const OutlineInputBorder(
+                          borderRadius: BorderRadius.all(Radius.circular(18.0)),
+                          borderSide: BorderSide(color: Colors.grey),
                         ),
-                      );
-                    }
-                  } catch (e) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text("Error: $e")),
-                    );
-                  }
-                }
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: widget.accentColor,
-                minimumSize: const Size(200, 50),
-              ),
-              child: const Text(
-                "Log In",
-                style: TextStyle(color: Colors.white, fontSize: 20),
+                        focusedBorder: OutlineInputBorder(
+                          borderSide: BorderSide(color: widget.accentColor, width: 2.0),
+                          borderRadius: const BorderRadius.all(Radius.circular(18.0)),
+                        ),
+                        errorStyle: const TextStyle(fontSize: 12, height: 0.8),
+                      ),
+                      validator: (String? value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Enter your email';
+                        }
+                        return null;
+                      },
+                    ),
+                  ),
+                  const Padding(padding: EdgeInsets.symmetric(vertical: 10.0)),
+                  SizedBox(
+                    height: 70,
+                    width: 200,
+                    child: TextFormField(
+                      controller: _passwordController,
+                      style: const TextStyle(fontSize: 15),
+                      textAlign: TextAlign.center,
+                      obscureText: true,
+                      decoration: InputDecoration(
+                        hintText: 'Password',
+                        border: const OutlineInputBorder(
+                          borderRadius: BorderRadius.all(Radius.circular(18.0)),
+                          borderSide: BorderSide(color: Colors.grey),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderSide: BorderSide(color: widget.accentColor, width: 2.0),
+                          borderRadius: const BorderRadius.all(Radius.circular(18.0)),
+                        ),
+                        errorStyle: const TextStyle(fontSize: 12, height: 0.8),
+                      ),
+                      validator: (String? value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Enter your password';
+                        }
+                        return null;
+                      },
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 16.0),
+                    child: ElevatedButton(
+                      onPressed: () async {
+                        if (_formKey.currentState!.validate()) {
+                          // Verificar conectividad antes de login
+                          if (!authVM.isOnline) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text("No internet connection. Try again later."),
+                              ),
+                            );
+                            return;
+                          }
+
+                          try {
+                            await authVM.login(
+                              widget.who,
+                              _emailController.text.trim(),
+                              _passwordController.text.trim(),
+                            );
+
+                            if (authVM.error == null) {
+                              if (widget.who == "restaurant") {
+                                final uid = FirebaseAuth.instance.currentUser?.uid;
+                                if (uid != null) {
+                                  Navigator.pushReplacement(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) =>
+                                          RestaurantHomePage(restaurantId: uid),
+                                    ),
+                                  );
+                                }
+                              } else if (widget.who == "user") {
+                                Navigator.pushReplacement(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const UserHomePage(),
+                                  ),
+                                );
+                              }
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text("Login failed: ${authVM.error}"),
+                                ),
+                              );
+                            }
+                          } catch (e) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text("Error: $e")),
+                            );
+                          }
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: widget.accentColor,
+                        minimumSize: const Size(200, 50),
+                      ),
+                      child: const Text(
+                        "Log In",
+                        style: TextStyle(color: Colors.white, fontSize: 20),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
-          ),
-        ],
-      ),
+
+            // Banner offline
+            if (!authVM.isOnline)
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                child: Container(
+                  color: Colors.red,
+                  padding: const EdgeInsets.all(8),
+                  child: const SafeArea(
+                    child: Text(
+                      "Offline mode: Internet not available",
+                      style: TextStyle(color: Colors.white),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        );
+      },
     );
   }
 }
