@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:collection';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -18,6 +19,38 @@ import 'package:moviles/viewmodels/visit_viewmodel.dart';
 import 'package:moviles/views/pages/user/user_loyalty_ranking_page.dart';
 import 'package:moviles/models/restaurant.dart';
 
+/// --- NUEVO: Implementación simple de LRU Cache ---
+class LRURestaurantCache {
+  final int maxSize;
+  final _cache = LinkedHashMap<String, Restaurant>();
+
+  LRURestaurantCache({this.maxSize = 10});
+
+  void put(Restaurant restaurant) {
+    if (_cache.containsKey(restaurant.id)) {
+      // Mover al final (reciente)
+      _cache.remove(restaurant.id);
+    } else if (_cache.length >= maxSize) {
+      // Eliminar el menos usado
+      _cache.remove(_cache.keys.first);
+    }
+    _cache[restaurant.id] = restaurant;
+    debugPrint("✅ [LRU] Added: ${restaurant.name}");
+  }
+
+  Restaurant? get(String id) {
+    if (!_cache.containsKey(id)) return null;
+    final restaurant = _cache.remove(id)!;
+    _cache[id] = restaurant; // mover al final (reciente)
+    debugPrint("📦 [LRU] Accessed: ${restaurant.name}");
+    return restaurant;
+  }
+
+  List<Restaurant> getAll() => _cache.values.toList();
+
+  void clear() => _cache.clear();
+}
+
 class UserHomePage extends StatefulWidget {
   const UserHomePage({super.key});
 
@@ -34,6 +67,9 @@ class _UserHomePageState extends State<UserHomePage>
 
   // variable para el último restaurante
   Restaurant? lastVisitedRestaurant;
+
+  // --- NUEVO: instancia del cache LRU ---
+  final LRURestaurantCache _restaurantCache = LRURestaurantCache(maxSize: 10);
 
   @override
   void initState() {
@@ -64,7 +100,6 @@ class _UserHomePageState extends State<UserHomePage>
             }
           }
         } catch (e) {
-          // no bloquear UI por errores de geocoding
           debugPrint("Error al geocodificar ${r.address}: $e");
         }
       }
@@ -80,7 +115,6 @@ class _UserHomePageState extends State<UserHomePage>
     Future.microtask(() async {
       final vm = context.read<RestaurantViewModel>();
 
-      // 1) intentar cargar cache local (SharedPreferences) primero
       try {
         final prefs = await SharedPreferences.getInstance();
         final cachedData = prefs.getString('cached_restaurants');
@@ -96,7 +130,6 @@ class _UserHomePageState extends State<UserHomePage>
         debugPrint("No cache available or failed to read cache: $e");
       }
 
-      // 2) fetch from network and update cache + locations
       try {
         await vm.fetchRestaurants();
         final prefs = await SharedPreferences.getInstance();
@@ -107,12 +140,10 @@ class _UserHomePageState extends State<UserHomePage>
         debugPrint("Error fetching restaurants from network: $e");
       }
 
-      // 3) load geocoded locations and last visited
       await _loadRestaurantLocations(vm);
       await _loadLastVisitedRestaurant();
     });
 
-    // AlertDialog con info de últimos días desde la vista de visitas (10s)
     Future.delayed(const Duration(seconds: 10), () async {
       if (!mounted) return;
       final visitVM = context.read<VisitViewModel>();
@@ -150,7 +181,6 @@ class _UserHomePageState extends State<UserHomePage>
     });
   }
 
-  // cargar último restaurante desde SharedPreferences
   Future<void> _loadLastVisitedRestaurant() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -178,7 +208,7 @@ class _UserHomePageState extends State<UserHomePage>
     }
   }
 
-  // guardar restaurante cuando el usuario entra a su detalle
+  // --- MODIFICADO: ahora también guardamos en LRU cache ---
   Future<void> _saveLastVisited(Restaurant restaurant) async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -187,6 +217,10 @@ class _UserHomePageState extends State<UserHomePage>
       setState(() {
         lastVisitedRestaurant = restaurant;
       });
+
+      // Añadir al cache LRU
+      _restaurantCache.put(restaurant);
+      debugPrint("📚 LRU Cache Now: ${_restaurantCache.getAll().map((r) => r.name).toList()}");
     } catch (e) {
       debugPrint("Failed to save last visited: $e");
     }
@@ -212,7 +246,6 @@ class _UserHomePageState extends State<UserHomePage>
   }
 
   Widget _buildMap(ThemeData theme, RestaurantViewModel vm) {
-    // fallback center si no hay ubicaciones geocodificadas
     final LatLng center =
         restaurantLocations.isNotEmpty ? restaurantLocations.first : LatLng(4.65, -74.08);
 
@@ -250,7 +283,7 @@ class _UserHomePageState extends State<UserHomePage>
                       child: GestureDetector(
                         onTap: () {
                           final restaurant = vm.filteredRestaurants[i];
-                          _saveLastVisited(restaurant); // guardo al abrir detalle
+                          _saveLastVisited(restaurant);
                           Navigator.push(
                             context,
                             MaterialPageRoute(
