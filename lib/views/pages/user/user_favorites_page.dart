@@ -1,21 +1,17 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart'; // 👈 Necesario para compute()
+import 'package:flutter/foundation.dart'; // compute()
 import 'package:provider/provider.dart';
 import '/viewmodels/restaurant_viewmodel.dart';
 import '/models/restaurant.dart';
 import '/views/pages/user/user_restaurant_detail_page.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
-//  Función que corre en un isolate
+/// --- Cálculo de estadísticas en segundo plano (Isolate) ---
 Map<String, dynamic> calculateFavoriteStats(List<Restaurant> favorites) {
-  print(" [Isolate] Calculando estadísticas de favoritos...");
-  final withOffers =
-      favorites.where((r) => r.offer == true).toList(); // restaurantes con oferta
+  final withOffers = favorites.where((r) => r.offer == true).toList();
   final percentage = favorites.isEmpty
       ? 0
       : ((withOffers.length / favorites.length) * 100).round();
-
-  print(" [Isolate] Cálculo completado: "
-      "${favorites.length} favoritos, ${withOffers.length} con oferta.");
 
   return {
     'totalFavorites': favorites.length,
@@ -38,42 +34,28 @@ class _UserFavoritesPageState extends State<UserFavoritesPage> {
     super.initState();
 
     Future.microtask(() async {
-      print("Iniciando carga de favoritos...");
-
       final vm = Provider.of<RestaurantViewModel>(context, listen: false);
 
-      //  Activar el stream
-      print(" Escuchando stream de favoritos...");
-      vm.listenToFavoritesStream();
+      print("🐝 Intentando cargar favoritos (modo offline primero)...");
+      await vm.fetchFavorites(fromCache: true); // 🔹 1. Modo offline
 
-      //  Cargar favoritos
-      await vm.fetchFavorites();
-      print(" Favoritos cargados: ${vm.favorites.length}");
+      print("📡 Escuchando stream de favoritos...");
+      vm.listenToFavoritesStream(); // 🔹 2. Stream online
 
-      if (vm.favorites.isEmpty) {
-        print(" No hay favoritos, no se mostrará el diálogo.");
-        return;
-      }
+      print("🌐 Cargando favoritos desde red...");
+      await vm.fetchFavorites(); // 🔹 3. Cargar desde Firestore y actualizar Hive
 
-      //  Ejecutar el cálculo pesado en un isolate
-      print(" Ejecutando compute() para procesar favoritos...");
+      if (vm.favorites.isEmpty) return;
+
+      // 🔹 4. Calcular estadísticas con compute()
       final stats = await compute(calculateFavoriteStats, vm.favorites);
-
-      print("Resultados del isolate: $stats");
-
-      //  Actualizar valores del ViewModel
       vm.todaysDiscounts = List<Restaurant>.from(stats['todaysDiscounts']);
       final total = stats['totalFavorites'];
       final withOffers = stats['favoritesWithOffers'];
       final percent = stats['percentageWithOffers'];
 
-      print("Estadísticas actualizadas: "
-          "$total favoritos, $withOffers con oferta, $percent%.");
-
-      //  Mostrar AlertDialog si hay favoritos
-      if (total > 0) {
+      if (mounted && total > 0) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          print(" Mostrando AlertDialog...");
           showDialog(
             context: context,
             builder: (context) => AlertDialog(
@@ -83,8 +65,7 @@ class _UserFavoritesPageState extends State<UserFavoritesPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text("Total favorites: $total",
-                      style:
-                          const TextStyle(fontWeight: FontWeight.bold)),
+                      style: const TextStyle(fontWeight: FontWeight.bold)),
                   Text("With active offers: $withOffers",
                       style: const TextStyle(color: Colors.green)),
                   Text("Percentage with offers: $percent%",
@@ -111,15 +92,13 @@ class _UserFavoritesPageState extends State<UserFavoritesPage> {
             ),
           );
         });
-      } else {
-        print(" No hay favoritos con oferta, no se muestra el diálogo.");
       }
     });
   }
 
   @override
   void dispose() {
-    print("Cerrando stream de favoritos...");
+    print("🧹 Cerrando stream de favoritos...");
     Provider.of<RestaurantViewModel>(context, listen: false)
         .cancelFavoritesListener();
     super.dispose();
@@ -134,31 +113,35 @@ class _UserFavoritesPageState extends State<UserFavoritesPage> {
         }
 
         if (vm.errorMessage != null) {
-          print(" Error en favoritos: ${vm.errorMessage}");
           return Center(child: Text("Error: ${vm.errorMessage}"));
         }
 
         if (vm.favorites.isEmpty) {
-          print(" No favorites yet");
           return const Center(child: Text("No favorites yet"));
         }
 
-        print("📋 Mostrando lista de favoritos...");
         return ListView.builder(
           padding: const EdgeInsets.all(16),
           itemCount: vm.favorites.length,
           itemBuilder: (context, index) {
-            final Restaurant restaurant = vm.favorites[index];
-            final bool hasActiveOffer =
+            final restaurant = vm.favorites[index];
+            final hasActiveOffer =
                 vm.todaysDiscounts.any((r) => r.id == restaurant.id);
 
             return InkWell(
-              onTap: () {
+              onTap: () async {
+                final vm = Provider.of<RestaurantViewModel>(context, listen: false);
+
+                // 🧩 NUEVO: Cargar detalle del restaurante desde cache o Firestore
+                await vm.loadRestaurantDetail(restaurant.id);
+
+                final detail = vm.selectedRestaurant ?? restaurant;
+
                 Navigator.push(
                   context,
                   MaterialPageRoute(
                     builder: (context) =>
-                        UserRestaurantDetailPage(restaurant: restaurant),
+                        UserRestaurantDetailPage(restaurant: detail),
                   ),
                 );
               },
@@ -229,20 +212,23 @@ class _UserFavoritesPageState extends State<UserFavoritesPage> {
                       const SizedBox(width: 12),
                       ClipRRect(
                         borderRadius: BorderRadius.circular(12),
-                        child: Image.network(
-                          restaurant.imageUrl,
+                        child: CachedNetworkImage(
+                          imageUrl: restaurant.imageUrl,
                           width: 80,
                           height: 80,
                           fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
-                            return Image.asset(
-                              'images/default.png',
-                              width: 80,
-                              height: 80,
-                              fit: BoxFit.cover,
-                            );
-                          },
-                        ),
+                          placeholder: (context, url) => const SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                          errorWidget: (context, url, error) => Image.asset(
+                            'images/default.png',
+                            width: 80,
+                            height: 80,
+                            fit: BoxFit.cover,
+                          ),
+                        )
                       ),
                     ],
                   ),

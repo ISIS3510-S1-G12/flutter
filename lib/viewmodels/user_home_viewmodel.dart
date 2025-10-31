@@ -20,7 +20,7 @@ class UserHomeViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // 1️⃣ Leer desde caché local
+      //  Leer desde caché local
       final prefs = await SharedPreferences.getInstance();
       final cachedData = prefs.getString('cached_restaurants');
 
@@ -30,12 +30,12 @@ class UserHomeViewModel extends ChangeNotifier {
         notifyListeners(); // Se muestran los datos cacheados de inmediato
       }
 
-      // 2️⃣ Verificar conexión
+      //  Verificar conexión
       final connectivity = await Connectivity().checkConnectivity();
       final isOnline = connectivity != ConnectivityResult.none;
 
       if (isOnline) {
-        // 3️⃣ Obtener desde red y actualizar caché
+        //  Obtener desde red y actualizar caché
         final onlineRestaurants = await _restaurantRepo.getRestaurants();
         restaurants = onlineRestaurants;
 

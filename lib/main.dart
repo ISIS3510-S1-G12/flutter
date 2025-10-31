@@ -10,7 +10,7 @@ import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_analytics/observer.dart';
 import 'package:firebase_in_app_messaging/firebase_in_app_messaging.dart';
 
-import 'package:hive_flutter/hive_flutter.dart'; // ✅ Para BD Llave/Valor
+import 'package:hive_flutter/hive_flutter.dart';
 
 import 'services/analytics_service.dart';
 import 'services/location_permission_service.dart';
@@ -27,36 +27,30 @@ import 'package:moviles/viewmodels/restaurant_viewmodel.dart';
 import 'package:moviles/viewmodels/visit_viewmodel.dart';
 import 'package:moviles/views/pages/users_page.dart';
 
-// Instancia global de Firebase In-App Messaging
 final FirebaseInAppMessaging fiam = FirebaseInAppMessaging.instance;
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  //  Inicializar Firebase
   final app = await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
   print('Firebase initialized: ${app.name}');
 
-  // Inicializar Hive (BD llave/valor)
   await Hive.initFlutter();
   await Hive.openBox('review_cache'); // 🔹 Caja donde guardamos stats de reseñas
   await Hive.openBox('local_reviews'); // 🔹 Reseñas offline sin conexión
   await Hive.openBox('user_reviews_cache'); // 🔹 Historial de usuario cacheado
 
-  print("Hive initialized and box 'review_cache' opened");
+  await Hive.openBox('review_cache');   // para reseñas
+  await Hive.openBox('favoritesBox');   // para favoritos del usuario
 
-  //  Inicializar AnalyticsService
   final analyticsService = AnalyticsService();
   await analyticsService.init();
 
-  // 
-  // Pedir permiso de ubicación y loguear en Analytics
   final locationService = LocationPermissionService();
   await locationService.requestAndLogPermission();
 
-  //  Lanzar la app
   runApp(Sumaq(analyticsService: analyticsService));
 }
 
@@ -92,7 +86,7 @@ class Sumaq extends StatelessWidget {
         debugShowCheckedModeBanner: false,
         title: 'SUMAQ',
         theme: ThemeData(
-          primarySwatch: Colors.teal,
+          colorScheme: ColorScheme.fromSeed(seedColor: Colors.teal),
           useMaterial3: true,
         ),
         routes: {
