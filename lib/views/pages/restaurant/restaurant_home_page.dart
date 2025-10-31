@@ -10,36 +10,50 @@ import 'package:moviles/repositories/dish_repository.dart';
 import 'restaurant_offers_page.dart';
 import 'package:provider/provider.dart';
 import 'package:moviles/viewmodels/visit_viewmodel.dart';
-import 'package:connectivity_plus/connectivity_plus.dart'; //  nuevo import
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'dart:isolate';
 
-
-class RestaurantHomePage extends StatelessWidget {
+class RestaurantHomePage extends StatefulWidget {
   final String restaurantId;
 
   const RestaurantHomePage({super.key, required this.restaurantId});
 
   @override
-  Widget build(BuildContext context) {
+  State<RestaurantHomePage> createState() => _RestaurantHomePageState();
+}
+
+class _RestaurantHomePageState extends State<RestaurantHomePage> {
+  late final Stream<List<Dish>> _dishesStream;
+
+  @override
+  void initState() {
+    super.initState();
+
     final dishRepository = DishRepository();
 
-    //  Detectar cuando vuelva la conexión y sincronizar platos locales
+    // 🔸 Inicializamos el stream como broadcast
+    _dishesStream =
+        dishRepository.getDishesByRestaurant(widget.restaurantId).asBroadcastStream();
+
+    // 🔸 Detectar reconexión para sincronizar platos locales
     Connectivity().onConnectivityChanged.listen((status) async {
       if (status != ConnectivityResult.none) {
         await dishRepository.syncLocalDishes();
-        // Opcional: mostrar mensaje visual
-        if (context.mounted) {
+        if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text("Local dishes synced to Firestore")),
           );
         }
       }
     });
+  }
 
+  @override
+  Widget build(BuildContext context) {
     return StreamBuilder<DocumentSnapshot>(
       stream: FirebaseFirestore.instance
           .collection('Restaurants')
-          .doc(restaurantId)
+          .doc(widget.restaurantId)
           .snapshots(),
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
@@ -135,7 +149,7 @@ class RestaurantHomePage extends StatelessWidget {
         children: [
           const SizedBox(height: 12),
 
-          ///  Banner del restaurante más visitado
+          // 🏆 Banner del restaurante más visitado
           FutureBuilder<Map<String, int>>(
             future: visitVM.getWeeklyVisitCounts(),
             builder: (context, snapshot) {
@@ -150,8 +164,7 @@ class RestaurantHomePage extends StatelessWidget {
               if (mostVisited.key != restaurant.id) return const SizedBox();
 
               return Container(
-                margin:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: Colors.amber.shade100,
@@ -174,7 +187,7 @@ class RestaurantHomePage extends StatelessWidget {
             },
           ),
 
-          ///  Loyalty Rate
+          // 🔁 Loyalty Rate
           FutureBuilder<Map<String, double>>(
             future: visitVM.getWeeklyLoyaltyRates(),
             builder: (context, snapshot) {
@@ -186,8 +199,7 @@ class RestaurantHomePage extends StatelessWidget {
               final rate = loyaltyRates[restaurant.id] ?? 0.0;
 
               return Container(
-                margin:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: const Color.fromARGB(255, 214, 145, 104)
@@ -214,7 +226,7 @@ class RestaurantHomePage extends StatelessWidget {
             },
           ),
 
-          /// --- Info del restaurante ---
+          // --- Info del restaurante ---
           Padding(
             padding: const EdgeInsets.all(16),
             child: Card(
@@ -255,26 +267,26 @@ class RestaurantHomePage extends StatelessWidget {
             ),
           ),
 
-          /// --- Lista de platos ---
-              StreamBuilder<List<Dish>>(
-                stream: DishRepository().getDishesByRestaurant(restaurant.id),
-                builder: (context, snapshot) {
-                  if (!snapshot.hasData) {
-                    return const Padding(
-                      padding: EdgeInsets.all(16),
-                      child: Center(child: CircularProgressIndicator()),
-                    );
-                  }
+          // --- Lista de platos ---
+          StreamBuilder<List<Dish>>(
+            stream: _dishesStream,
+            builder: (context, snapshot) {
+              if (!snapshot.hasData) {
+                return const Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Center(child: CircularProgressIndicator()),
+                );
+              }
 
-                  final dishes = snapshot.data!;
-                  if (dishes.isEmpty) {
-                    return const Padding(
-                      padding: EdgeInsets.all(16),
-                      child: Text("No dishes yet."),
-                    );
-                  }
-                
-                  _processDishesInIsolate(dishes);
+              final dishes = snapshot.data!;
+              if (dishes.isEmpty) {
+                return const Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Text("No dishes yet."),
+                );
+              }
+
+              _processDishesInIsolate(dishes);
 
               return Padding(
                 padding:
@@ -322,7 +334,6 @@ class RestaurantHomePage extends StatelessWidget {
             },
           ),
 
-          ///  Botón para crear platos
           const SizedBox(height: 16),
           ElevatedButton.icon(
             style: ElevatedButton.styleFrom(
@@ -440,13 +451,15 @@ class RestaurantHomePage extends StatelessWidget {
       },
     );
   }
-    Future<void> _processDishesInIsolate(List<Dish> dishes) async {
+
+  Future<void> _processDishesInIsolate(List<Dish> dishes) async {
     final receivePort = ReceivePort();
     await Isolate.spawn(_heavyDishProcessing, [receivePort.sendPort, dishes]);
 
     await for (var message in receivePort) {
-      debugPrint("✅ Average dish price processed in isolate: \$${message.toStringAsFixed(2)}");
-      break; // Cerramos después de recibir un solo resultado
+      debugPrint(
+          "Average dish price processed in isolate: \$${message.toStringAsFixed(2)}");
+      break;
     }
   }
 
@@ -459,14 +472,15 @@ class RestaurantHomePage extends StatelessWidget {
       return;
     }
 
-    // Simular una tarea pesada (ej. cálculo del promedio de precios)
     double total = 0;
     for (var dish in dishes) {
       total += dish.price;
     }
     final avgPrice = total / dishes.length;
-
-    // Enviar el resultado al hilo principal
     sendPort.send(avgPrice);
   }
 }
+
+
+
+
