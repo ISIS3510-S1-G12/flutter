@@ -30,11 +30,12 @@ class AuthViewModel extends ChangeNotifier {
       // Si antes estaba offline y ahora volvió la conexión, sincronizar
       if (!prevOnline && _isOnline) {
         await syncPendingRegistrations();
+        await syncPendingLogins(); // 🔹 Nuevo
       }
     });
   }
 
-  /// Registrar usuario normalmente (solo online)
+  /// Verifica conexión a internet real
   Future<bool> _hasInternetConnection() async {
     try {
       final result = await InternetAddress.lookup('example.com');
@@ -44,6 +45,7 @@ class AuthViewModel extends ChangeNotifier {
     }
   }
 
+  /// Registrar usuario normalmente (solo online)
   Future<void> register(String who, String name, String email, String password) async {
     if (!_isOnline) {
       _error = "No internet connection. Try again later.";
@@ -132,6 +134,48 @@ class AuthViewModel extends ChangeNotifier {
         await box.deleteAt(i);
       } catch (e) {
         print("⚠️ Error al sincronizar ${data['email']}: $e");
+      }
+    }
+  }
+
+  /// Guardar login pendiente cuando no hay conexión 🔹 NUEVO
+  Future<void> savePendingLogin({
+    required String who,
+    required String email,
+    required String password,
+  }) async {
+    final box = await Hive.openBox('pendingLogins');
+    await box.add({
+      'who': who,
+      'email': email,
+      'password': password,
+      'timestamp': DateTime.now().toIso8601String(),
+    });
+  }
+
+  /// Sincronizar logins pendientes cuando vuelva la conexión 🔹 NUEVO
+  Future<void> syncPendingLogins() async {
+    if (!_isOnline) return;
+
+    final box = await Hive.openBox('pendingLogins');
+    if (box.isEmpty) return;
+
+    print("🔄 Intentando sincronizar ${box.length} logins pendientes...");
+
+    final List<dynamic> pending = List.from(box.values);
+
+    for (int i = 0; i < pending.length; i++) {
+      final data = pending[i];
+      try {
+        await _repo.login(
+          email: data['email'],
+          password: data['password'],
+          expectedRole: data['who'],
+        );
+        print("✅ Login sincronizado: ${data['email']}");
+        await box.deleteAt(i);
+      } catch (e) {
+        print("⚠️ Error al sincronizar login ${data['email']}: $e");
       }
     }
   }
