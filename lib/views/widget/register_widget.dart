@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-
 import '../../viewmodels/auth_viewmodel.dart';
 import '../pages/restaurant/restaurant_form_page.dart';
 import '../pages/user/user_form_page.dart';
@@ -48,8 +47,8 @@ class _RegisterWidgetState extends State<RegisterWidget> {
             Form(
               key: _formKey,
               child: Padding(
-              padding: EdgeInsets.only(
-      bottom: authVM.isOnline ? 0 : 50, // 👈 espacio cuando el banner aparece
+    padding: EdgeInsets.only(
+      bottom: authVM.isOnline ? 0 : 50, 
     ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
@@ -81,7 +80,6 @@ class _RegisterWidgetState extends State<RegisterWidget> {
                     ),
                   ),
                   const SizedBox(height: 10),
-
                   // Email
                   SizedBox(
                     height: 70,
@@ -109,7 +107,6 @@ class _RegisterWidgetState extends State<RegisterWidget> {
                     ),
                   ),
                   const SizedBox(height: 10),
-
                   // Password
                   SizedBox(
                     height: 70,
@@ -138,7 +135,6 @@ class _RegisterWidgetState extends State<RegisterWidget> {
                     ),
                   ),
                   const SizedBox(height: 10),
-
                   // Confirm Password
                   SizedBox(
                     height: 70,
@@ -170,7 +166,6 @@ class _RegisterWidgetState extends State<RegisterWidget> {
                     ),
                   ),
                   const SizedBox(height: 20),
-
                   // Register button
                   ElevatedButton(
                     onPressed: () async {
@@ -208,12 +203,11 @@ class _RegisterWidgetState extends State<RegisterWidget> {
                         try {
                           await authVM.register(widget.who, name, email, password);
 
-                  if (authVM.error == null) {
-                    final uid = FirebaseAuth.instance.currentUser?.uid;
+                          if (authVM.error == null) {
+                            final uid = FirebaseAuth.instance.currentUser?.uid;
 
                             if (uid != null) {
                               if (widget.who == "restaurant") {
-                        // Si es restaurante → form
                                 Navigator.pushReplacement(
                                   context,
                                   MaterialPageRoute(
@@ -264,23 +258,22 @@ class _RegisterWidgetState extends State<RegisterWidget> {
             ),
             // 🔻 Banner offline
             if (!authVM.isOnline)
-Positioned(
-  bottom: 0,
-  left: 0,
-  right: 0,
-  child: Container(
-    color: Colors.red,
-    padding: const EdgeInsets.all(8),
-    child: const SafeArea(
-      child: Text(
-        "Offline mode: Internet not available",
-        style: TextStyle(color: Colors.white),
-        textAlign: TextAlign.center,
-      ),
-    ),
-  ),
-),
-
+              Positioned(
+                bottom: 0,
+                left: 0,
+                right: 0,
+                child: Container(
+                  color: Colors.red,
+                  padding: const EdgeInsets.all(8),
+                  child: const SafeArea(
+                    child: Text(
+                      "Offline mode: Internet not available",
+                      style: TextStyle(color: Colors.white),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ),
+              ),
           ],
         );
       },

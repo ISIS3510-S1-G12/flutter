@@ -1,7 +1,8 @@
 // lib/viewmodels/auth_viewmodel.dart
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
-//import 'package:internet_connection_checker/internet_connection_checker.dart';
+import 'package:hive/hive.dart';
 import '../repositories/auth_repository.dart';
 
 class AuthViewModel extends ChangeNotifier {
@@ -18,15 +19,30 @@ class AuthViewModel extends ChangeNotifier {
   String? get error => _error;
   bool get isOnline => _isOnline;
 
-  // Inicializar listener de conectividad
+  /// Inicializa el listener de conectividad
   void _initConnectivity() {
     Connectivity().onConnectivityChanged.listen((_) async {
-      //_isOnline = await InternetConnectionChecker().hasConnection;
+      final prevOnline = _isOnline;
+      _isOnline = await _hasInternetConnection();
       notifyListeners();
+
+      // Si antes estaba offline y ahora volvió la conexión, sincronizar
+      if (!prevOnline && _isOnline) {
+        await syncPendingRegistrations();
+      }
     });
   }
 
-  // Registrar usuario (manteniendo tu versión original)
+  /// Registrar usuario normalmente (solo online)
+  Future<bool> _hasInternetConnection() async {
+    try {
+      final result = await InternetAddress.lookup('example.com');
+      return result.isNotEmpty && result[0].rawAddress.isNotEmpty;
+    } catch (_) {
+      return false;
+    }
+  }
+
   Future<void> register(String who, String name, String email, String password) async {
     if (!_isOnline) {
       _error = "No internet connection. Try again later.";
@@ -46,7 +62,7 @@ class AuthViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Registrar usuario y retornar UID (para restaurantes)
+  /// Registrar usuario y devolver UID (solo online)
   Future<String> registerAndGetUid(String who, String name, String email, String password) async {
     if (!_isOnline) {
       _error = "No internet connection. Try again later.";
@@ -64,17 +80,62 @@ class AuthViewModel extends ChangeNotifier {
         password: password,
       );
       _error = null;
-      return uid; //  Retornamos el UID
+      return uid;
     } catch (e) {
       _error = e.toString();
-      rethrow; //  Lanzamos la excepción para manejarla en UI
+      rethrow;
     } finally {
       _loading = false;
       notifyListeners();
     }
   }
 
-  // Login
+  /// Guardar registro pendiente cuando no hay conexión
+  Future<void> savePendingRegistration({
+    required String who,
+    required String name,
+    required String email,
+    required String password,
+  }) async {
+    final box = await Hive.openBox('pendingRegistrations');
+    await box.add({
+      'who': who,
+      'name': name,
+      'email': email,
+      'password': password,
+      'timestamp': DateTime.now().toIso8601String(),
+    });
+  }
+
+  /// Sincronizar los registros pendientes cuando haya conexión
+  Future<void> syncPendingRegistrations() async {
+    if (!_isOnline) return;
+
+    final box = await Hive.openBox('pendingRegistrations');
+    if (box.isEmpty) return;
+
+    print("🔄 Intentando sincronizar ${box.length} registros pendientes...");
+
+    final List<dynamic> pending = List.from(box.values);
+
+    for (int i = 0; i < pending.length; i++) {
+      final data = pending[i];
+      try {
+        await _repo.register(
+          who: data['who'],
+          name: data['name'],
+          email: data['email'],
+          password: data['password'],
+        );
+        print("✅ Registro sincronizado: ${data['email']}");
+        await box.deleteAt(i);
+      } catch (e) {
+        print("⚠️ Error al sincronizar ${data['email']}: $e");
+      }
+    }
+  }
+
+  /// Login
   Future<void> login(String who, String email, String password) async {
     if (!_isOnline) {
       _error = "No internet connection. Try again later.";
@@ -98,7 +159,7 @@ class AuthViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Logout
+  /// Logout
   Future<void> logout() async {
     await _repo.logout();
   }
