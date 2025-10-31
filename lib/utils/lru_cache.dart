@@ -1,32 +1,39 @@
-import 'dart:collection';
-
-/// Implementación genérica de una LRU Cache.
 class LruCache<K, V> {
-  final int maxSize;
-  final _cache = LinkedHashMap<K, V>();
+  final int capacity;
+  final Map<K, V> _cache = {};
+  final List<K> _usageOrder = [];
 
-  LruCache(this.maxSize);
+  LruCache({this.capacity = 10}); // capacidad por defecto
 
-  /// Obtiene un valor y lo marca como usado recientemente.
   V? get(K key) {
-    final value = _cache.remove(key);
-    if (value != null) {
-      _cache[key] = value; // Mover al final → más recientemente usado
-    }
-    return value;
+    if (!_cache.containsKey(key)) return null;
+
+    // Mover al final (más recientemente usado)
+    _usageOrder.remove(key);
+    _usageOrder.add(key);
+    return _cache[key];
   }
 
-  /// Inserta un nuevo valor, eliminando el más viejo si supera el tamaño.
   void put(K key, V value) {
-    if (_cache.length >= maxSize) {
-      _cache.remove(_cache.keys.first); // Eliminar el menos usado
+    if (_cache.containsKey(key)) {
+      // Si ya existe, solo actualizar orden
+      _usageOrder.remove(key);
+    } else if (_cache.length >= capacity) {
+      // Remover el menos usado
+      final oldestKey = _usageOrder.removeAt(0);
+      _cache.remove(oldestKey);
     }
+
     _cache[key] = value;
+    _usageOrder.add(key);
   }
 
-  /// Limpia toda la caché.
-  void clear() => _cache.clear();
+  bool contains(K key) => _cache.containsKey(key);
 
-  /// Devuelve todos los valores actuales.
-  List<V> get values => _cache.values.toList();
+  void clear() {
+    _cache.clear();
+    _usageOrder.clear();
+  }
+
+  int get length => _cache.length;
 }

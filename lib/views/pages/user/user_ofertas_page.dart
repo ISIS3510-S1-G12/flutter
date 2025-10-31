@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart' as fbAuth;
+import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../../models/offer.dart';
 import '../../../repositories/offer_repository.dart';
 import '../../../viewmodels/offer_viewmodel.dart';
 import '../../../viewmodels/user_viewmodel.dart';
+import 'offer_detail_page.dart'; // 👈 Importa el detail page
 
 class UserOfertasPage extends StatefulWidget {
   final String? restaurantId;
@@ -30,7 +32,6 @@ class _UserOfertasPageState extends State<UserOfertasPage> {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         context.read<UserViewModel>().loadUser(authUser.uid);
       });
-    } else {
     }
   }
 
@@ -48,6 +49,7 @@ class _UserOfertasPageState extends State<UserOfertasPage> {
             backgroundColor: Colors.white,
             body: Column(
               children: [
+                // 🔍 Search y filtro
                 Padding(
                   padding: const EdgeInsets.all(12.0),
                   child: Row(
@@ -92,6 +94,7 @@ class _UserOfertasPageState extends State<UserOfertasPage> {
                   ),
                 ),
 
+                // 📋 Lista de ofertas
                 Expanded(
                   child: StreamBuilder<List<Offer>>(
                     stream: stream,
@@ -105,7 +108,10 @@ class _UserOfertasPageState extends State<UserOfertasPage> {
                         return Center(
                             child: Text("Error: ${snapshot.error}"));
                       }
+
                       var offers = snapshot.data ?? [];
+
+                      // 🔍 Búsqueda
                       if (_searchQuery.isNotEmpty) {
                         offers = offers.where((o) {
                           final title = o.title.toLowerCase();
@@ -115,6 +121,7 @@ class _UserOfertasPageState extends State<UserOfertasPage> {
                         }).toList();
                       }
 
+                      // 📅 Filtro "Today"
                       if (_filter == "Today") {
                         final today = DateTime.now();
                         offers = offers.where((o) {
@@ -125,16 +132,17 @@ class _UserOfertasPageState extends State<UserOfertasPage> {
                         }).toList();
                       }
 
+                      // 💰 Mostrar porcentaje dentro del presupuesto (una vez)
                       final userVM =
                           Provider.of<UserViewModel>(context, listen: false);
                       final user = userVM.currentUser;
                       final budget = userVM.getBudget();
+
                       if (!_dialogShown &&
                           user != null &&
                           budget != null &&
                           offers.isNotEmpty) {
                         final today = DateTime.now();
-
                         final todayOffers = offers.where((o) {
                           return o.valid_from != null &&
                               o.valid_to != null &&
@@ -176,73 +184,96 @@ class _UserOfertasPageState extends State<UserOfertasPage> {
                               );
                             }
                           });
-                        } else {
                         }
                       }
 
+                      // ❌ Sin ofertas
                       if (offers.isEmpty) {
                         return const Center(
                           child: Text("There are no offers available."),
                         );
                       }
 
+                      // ✅ Lista de ofertas
                       return ListView.builder(
                         padding: const EdgeInsets.all(12),
                         itemCount: offers.length,
                         itemBuilder: (context, index) {
                           final offer = offers[index];
-                          return Card(
-                            margin: const EdgeInsets.only(bottom: 12),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            elevation: 3,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                if (offer.image != null &&
-                                    offer.image!.isNotEmpty)
-                                  ClipRRect(
-                                    borderRadius: const BorderRadius.vertical(
-                                        top: Radius.circular(12)),
-                                    child: Image.network(
-                                      offer.image!,
-                                      height: 160,
-                                      width: double.infinity,
-                                      fit: BoxFit.cover,
+                          return InkWell(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) =>
+                                      OfferDetailPage(offerId: offer.id!),
+                                ),
+                              );
+                            },
+                            child: Card(
+                              margin: const EdgeInsets.only(bottom: 12),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              elevation: 3,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  if (offer.image != null &&
+                                      offer.image!.isNotEmpty)
+                                    ClipRRect(
+                                      borderRadius:
+                                          const BorderRadius.vertical(
+                                              top: Radius.circular(12)),
+                                      child: CachedNetworkImage(
+                                        imageUrl: offer.image!,
+                                        height: 160,
+                                        width: double.infinity,
+                                        fit: BoxFit.cover,
+                                        placeholder: (context, url) =>
+                                            const Center(
+                                                child:
+                                                    CircularProgressIndicator()),
+                                        errorWidget: (context, url, error) =>
+                                            const Icon(Icons.broken_image,
+                                                size: 50, color: Colors.grey),
+                                      ),
+                                    ),
+                                  Padding(
+                                    padding: const EdgeInsets.all(12),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          offer.title,
+                                          style: const TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 6),
+                                        Text(offer.description),
+                                        const SizedBox(height: 8),
+                                        Text(
+                                          "Discount: ${offer.discount_percentage.toStringAsFixed(0)}%",
+                                          style: const TextStyle(
+                                              color: Colors.green,
+                                              fontWeight: FontWeight.bold),
+                                        ),
+                                        if (offer.valid_from != null &&
+                                            offer.valid_to != null)
+                                          Text(
+                                            "Valid: ${offer.valid_from!.toLocal().toString().split(' ')[0]} - ${offer.valid_to!.toLocal().toString().split(' ')[0]}",
+                                            style: const TextStyle(
+                                                fontSize: 12,
+                                                color: Colors.grey),
+                                          ),
+                                      ],
                                     ),
                                   ),
-                                Padding(
-                                  padding: const EdgeInsets.all(12),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(offer.title,
-                                          style: const TextStyle(
-                                              fontSize: 16,
-                                              fontWeight: FontWeight.bold)),
-                                      const SizedBox(height: 6),
-                                      Text(offer.description),
-                                      const SizedBox(height: 8),
-                                      Text(
-                                        "Discount: ${offer.discount_percentage.toStringAsFixed(0)}%",
-                                        style: const TextStyle(
-                                            color: Colors.green,
-                                            fontWeight: FontWeight.bold),
-                                      ),
-                                      if (offer.valid_from != null &&
-                                          offer.valid_to != null)
-                                        Text(
-                                          "Valid: ${offer.valid_from!.toLocal().toString().split(' ')[0]} - ${offer.valid_to!.toLocal().toString().split(' ')[0]}",
-                                          style: const TextStyle(
-                                              fontSize: 12,
-                                              color: Colors.grey),
-                                        ),
-                                    ],
-                                  ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
                           );
                         },
@@ -258,6 +289,7 @@ class _UserOfertasPageState extends State<UserOfertasPage> {
     );
   }
 
+  // ⚙️ Filtros (All / Today)
   void _showFilterOptions(BuildContext context) {
     showModalBottomSheet(
       context: context,

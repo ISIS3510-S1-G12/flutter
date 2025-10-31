@@ -11,9 +11,9 @@ class DishRepository {
       FirebaseFirestore.instance.collection('Dishes');
   final FirebaseStorage _storage = FirebaseStorage.instance;
 
-  // ===========================
+
   //     UTILIDADES LOCALES
-  // ===========================
+
 
   Future<File> _getLocalFile() async {
     final dir = await getApplicationDocumentsDirectory();
@@ -38,7 +38,7 @@ class DishRepository {
 
     dishes.add(dish.toMap());
     await file.writeAsString(jsonEncode(dishes));
-    print("💾 Plato guardado localmente (sin conexión)");
+    print("Plato guardado localmente (sin conexión)");
   }
 
   Future<List<Dish>> getLocalDishes() async {
@@ -58,9 +58,9 @@ class DishRepository {
     if (await file.exists()) await file.delete();
   }
 
-  // ===========================
+
   //         IMÁGENES
-  // ===========================
+
 
   Future<String> _uploadImage(File image, String dishId) async {
     final ref = _storage.ref().child("dishes/$dishId.jpg");
@@ -68,9 +68,9 @@ class DishRepository {
     return await ref.getDownloadURL();
   }
 
-  // ===========================
+
   //   CREAR / EDITAR / ELIMINAR
-  // ===========================
+
 
   Future<void> addDish(String restaurantId, Dish dish, {File? image}) async {
     final online = await _isOnline();
@@ -126,7 +126,7 @@ class DishRepository {
 
       final file = await _getLocalFile();
       await file.writeAsString(jsonEncode(updatedList.map((e) => e.toMap()).toList()));
-      print("💾 Plato actualizado localmente (sin conexión)");
+      print("Plato actualizado localmente (sin conexión)");
     }
   }
 
@@ -134,9 +134,9 @@ class DishRepository {
     await dishesCollection.doc(dishId).delete();
   }
 
-  // ===========================
+
   //     OBTENER PLATOS
-  // ===========================
+
 
   Stream<List<Dish>> getDishesByRestaurant(String restaurantId) async* {
     final online = await _isOnline();
@@ -153,9 +153,9 @@ class DishRepository {
     }
   }
 
-  // ===========================
+
   //     SINCRONIZAR LOCAL → FIRESTORE
-  // ===========================
+
 
   Future<void> syncLocalDishes() async {
     final online = await _isOnline();

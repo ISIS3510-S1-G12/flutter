@@ -1,6 +1,6 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'dart:collection';
+import 'dart:async';
 import 'dart:convert';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
@@ -9,6 +9,8 @@ import 'package:firebase_in_app_messaging/firebase_in_app_messaging.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:geocoding/geocoding.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
+
 import 'package:moviles/viewmodels/restaurant_viewmodel.dart';
 import 'package:moviles/views/widget/restaurant_card.dart';
 import 'package:moviles/views/pages/user/user_favorites_page.dart';
@@ -18,38 +20,6 @@ import 'package:moviles/views/pages/user/user_review_history.dart';
 import 'package:moviles/viewmodels/visit_viewmodel.dart';
 import 'package:moviles/views/pages/user/user_loyalty_ranking_page.dart';
 import 'package:moviles/models/restaurant.dart';
-
-/// --- NUEVO: Implementación simple de LRU Cache ---
-class LRURestaurantCache {
-  final int maxSize;
-  final _cache = LinkedHashMap<String, Restaurant>();
-
-  LRURestaurantCache({this.maxSize = 10});
-
-  void put(Restaurant restaurant) {
-    if (_cache.containsKey(restaurant.id)) {
-      // Mover al final (reciente)
-      _cache.remove(restaurant.id);
-    } else if (_cache.length >= maxSize) {
-      // Eliminar el menos usado
-      _cache.remove(_cache.keys.first);
-    }
-    _cache[restaurant.id] = restaurant;
-    debugPrint("✅ [LRU] Added: ${restaurant.name}");
-  }
-
-  Restaurant? get(String id) {
-    if (!_cache.containsKey(id)) return null;
-    final restaurant = _cache.remove(id)!;
-    _cache[id] = restaurant; // mover al final (reciente)
-    debugPrint("📦 [LRU] Accessed: ${restaurant.name}");
-    return restaurant;
-  }
-
-  List<Restaurant> getAll() => _cache.values.toList();
-
-  void clear() => _cache.clear();
-}
 
 class UserHomePage extends StatefulWidget {
   const UserHomePage({super.key});
@@ -61,19 +31,19 @@ class UserHomePage extends StatefulWidget {
 class _UserHomePageState extends State<UserHomePage>
     with SingleTickerProviderStateMixin {
   final FirebaseInAppMessaging fiam = FirebaseInAppMessaging.instance;
-  List<LatLng> restaurantLocations = [];
-  late TabController _tabController;
   final FirebaseAnalytics analytics = FirebaseAnalytics.instance;
 
-  // variable para el último restaurante
-  Restaurant? lastVisitedRestaurant;
+  List<LatLng> restaurantLocations = [];
+  late TabController _tabController;
 
-  // --- NUEVO: instancia del cache LRU ---
-  final LRURestaurantCache _restaurantCache = LRURestaurantCache(maxSize: 10);
+  // 🔌 Conectividad
+  late StreamSubscription<List<ConnectivityResult>> _connectivitySubscription;
+  bool _isConnected = true;
 
   @override
   void initState() {
     super.initState();
+
     _tabController = TabController(length: 4, vsync: this);
     _tabController.addListener(() {
       if (!_tabController.indexIsChanging) {
@@ -86,32 +56,36 @@ class _UserHomePageState extends State<UserHomePage>
     fiam.setMessagesSuppressed(false);
     _triggerMealEvent();
 
-    // función local para geocodificar la lista actual de restaurantes
-    Future<void> _loadRestaurantLocations(RestaurantViewModel vm) async {
-      final List<LatLng> coords = [];
+    // 🔌 Escucha de conectividad (versión 6.x)
+    _connectivitySubscription =
+        Connectivity().onConnectivityChanged.listen((List<ConnectivityResult> results) {
+      final result = results.isNotEmpty ? results.first : ConnectivityResult.none;
+      final connected = result != ConnectivityResult.none;
 
-      for (final r in vm.filteredRestaurants) {
-        try {
-          if (r.address != null && r.address!.isNotEmpty) {
-            final locations = await locationFromAddress(r.address!);
-            if (locations.isNotEmpty) {
-              final loc = locations.first;
-              coords.add(LatLng(loc.latitude, loc.longitude));
-            }
-          }
-        } catch (e) {
-          debugPrint("Error al geocodificar ${r.address}: $e");
+      if (connected != _isConnected) {
+        setState(() => _isConnected = connected);
+
+        if (!connected) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("No internet connection - Restarants cache"),
+              backgroundColor: Colors.redAccent,
+              duration: Duration(seconds: 4),
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Internet connection restored in home"),
+              backgroundColor: Colors.green,
+              duration: Duration(seconds: 3),
+            ),
+          );
         }
       }
+    });
 
-      if (mounted) {
-        setState(() {
-          restaurantLocations = coords;
-        });
-      }
-    }
-
-    // Cargar restaurantes y posiciones (cache then network)
+    // 🔹 Cargar restaurantes desde caché y luego red
     Future.microtask(() async {
       final vm = context.read<RestaurantViewModel>();
 
@@ -141,9 +115,9 @@ class _UserHomePageState extends State<UserHomePage>
       }
 
       await _loadRestaurantLocations(vm);
-      await _loadLastVisitedRestaurant();
     });
 
+    // 🔹 Mensaje de última visita
     Future.delayed(const Duration(seconds: 10), () async {
       if (!mounted) return;
       final visitVM = context.read<VisitViewModel>();
@@ -181,48 +155,27 @@ class _UserHomePageState extends State<UserHomePage>
     });
   }
 
-  Future<void> _loadLastVisitedRestaurant() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final id = prefs.getString('last_restaurant_id');
-      final name = prefs.getString('last_restaurant_name');
-      if (id != null && name != null) {
-        setState(() {
-          lastVisitedRestaurant = Restaurant(
-            id: id,
-            name: name,
-            email: '',
-            address: '',
-            typeOfFood: '',
-            offer: false,
-            imageUrl: '',
-            openingTime: 9,
-            closingTime: 22,
-            busiestHours: {},
-            rating: 0.0,
-          );
-        });
+  Future<void> _loadRestaurantLocations(RestaurantViewModel vm) async {
+    final List<LatLng> coords = [];
+
+    for (final r in vm.filteredRestaurants) {
+      try {
+        if (r.address != null && r.address!.isNotEmpty) {
+          final locations = await locationFromAddress(r.address!);
+          if (locations.isNotEmpty) {
+            final loc = locations.first;
+            coords.add(LatLng(loc.latitude, loc.longitude));
+          }
+        }
+      } catch (e) {
+        debugPrint("Error al geocodificar ${r.address}: $e");
       }
-    } catch (e) {
-      debugPrint("Failed to load last visited restaurant: $e");
     }
-  }
 
-  // --- MODIFICADO: ahora también guardamos en LRU cache ---
-  Future<void> _saveLastVisited(Restaurant restaurant) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('last_restaurant_id', restaurant.id);
-      await prefs.setString('last_restaurant_name', restaurant.name);
+    if (mounted) {
       setState(() {
-        lastVisitedRestaurant = restaurant;
+        restaurantLocations = coords;
       });
-
-      // Añadir al cache LRU
-      _restaurantCache.put(restaurant);
-      debugPrint("📚 LRU Cache Now: ${_restaurantCache.getAll().map((r) => r.name).toList()}");
-    } catch (e) {
-      debugPrint("Failed to save last visited: $e");
     }
   }
 
@@ -241,6 +194,7 @@ class _UserHomePageState extends State<UserHomePage>
 
   @override
   void dispose() {
+    _connectivitySubscription.cancel();
     _tabController.dispose();
     super.dispose();
   }
@@ -263,9 +217,6 @@ class _UserHomePageState extends State<UserHomePage>
             initialCenter: center,
             initialZoom: 12.0,
             maxZoom: 18.0,
-            onTap: (tapPosition, latLng) {
-              debugPrint("Tapped at: $latLng");
-            },
           ),
           children: [
             TileLayer(
@@ -283,7 +234,6 @@ class _UserHomePageState extends State<UserHomePage>
                       child: GestureDetector(
                         onTap: () {
                           final restaurant = vm.filteredRestaurants[i];
-                          _saveLastVisited(restaurant);
                           Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -303,257 +253,6 @@ class _UserHomePageState extends State<UserHomePage>
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        title: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Image.asset(
-              "images/483891256-e6bd4888-8904-4028-911f-dff62cc98965.png",
-              height: MediaQuery.of(context).size.height * 0.08,
-            ),
-            InkWell(
-              onTap: () {},
-              child: const CircleAvatar(
-                radius: 28,
-                backgroundColor: Color.fromARGB(255, 214, 145, 104),
-                child: Icon(Icons.person, color: Colors.white),
-              ),
-            ),
-          ],
-        ),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(70),
-          child: Column(
-            children: [
-              const Divider(color: Colors.black, thickness: 1),
-              TabBar(
-                controller: _tabController,
-                tabAlignment: TabAlignment.fill,
-                isScrollable: false,
-                labelColor: Colors.black,
-                indicatorColor: const Color.fromARGB(255, 214, 145, 104),
-                tabs: const [
-                  Tab(text: "Home"),
-                  Tab(text: "Favorites"),
-                  Tab(text: "Offers"),
-                  Tab(text: "History review"),
-                ],
-              ),
-              const Divider(color: Colors.black, thickness: 1),
-            ],
-          ),
-        ),
-      ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          // Home Tab
-          Consumer<RestaurantViewModel>(
-            builder: (context, vm, child) {
-              if (vm.isLoading) {
-                return const Center(child: CircularProgressIndicator());
-              }
-              if (vm.errorMessage != null) {
-                return Center(child: Text("Error: ${vm.errorMessage}"));
-              }
-
-              final restaurants = vm.filteredRestaurants;
-
-              return Column(
-                children: [
-                  // mostrar último restaurante si existe
-                  if (lastVisitedRestaurant != null)
-                    Card(
-                      color: const Color.fromARGB(255, 240, 222, 214),
-                      margin: const EdgeInsets.all(12),
-                      child: ListTile(
-                        leading: const Icon(Icons.history, color: Colors.teal),
-                        title: Text(
-                          "Last visited: ${lastVisitedRestaurant!.name}",
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        trailing: const Icon(Icons.arrow_forward_ios),
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) =>
-                                  UserRestaurantDetailPage(restaurant: lastVisitedRestaurant!),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-
-                  // Botón ranking semanal
-                  Padding(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    child: ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color.fromARGB(255, 214, 145, 104),
-                        foregroundColor: Colors.white,
-                      ),
-                      icon: const Icon(Icons.leaderboard),
-                      label: const Text("View Weekly Loyalty Ranking"),
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const UserLoyaltyRankingPage(),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-
-                  // Buscador + filtros
-                  Padding(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: TextField(
-                            decoration: InputDecoration(
-                              hintText: "Search here...",
-                              hintStyle: const TextStyle(color: Colors.white),
-                              prefixIcon:
-                                  const Icon(Icons.search, color: Colors.white),
-                              filled: true,
-                              fillColor: const Color.fromARGB(255, 214, 145, 104),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(30),
-                                borderSide: BorderSide.none,
-                              ),
-                            ),
-                            onChanged: (query) {
-                              if (query.isEmpty) {
-                                vm.clearFilter();
-                              } else {
-                                vm.applyFilter(FilterByType(query));
-                              }
-                            },
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Container(
-                          decoration: BoxDecoration(
-                            color: const Color.fromARGB(255, 214, 145, 104),
-                            borderRadius: BorderRadius.circular(30),
-                          ),
-                          child: IconButton(
-                            icon: const Icon(Icons.filter_list, color: Colors.white),
-                            onPressed: () => _showFilterOptions(context, vm),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  // Banner restaurante más visitado
-                  Padding(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    child: FutureBuilder<Map<String, int>>(
-                      future: context.read<VisitViewModel>().getWeeklyVisitCounts(),
-                      builder: (context, snapshot) {
-                        if (!snapshot.hasData) return const SizedBox();
-                        final visitCounts = snapshot.data!;
-                        if (visitCounts.isEmpty) return const SizedBox();
-
-                        final mostVisited = visitCounts.entries.reduce(
-                          (a, b) => a.value > b.value ? a : b,
-                        );
-                        final topRestaurantId = mostVisited.key;
-
-                        return FutureBuilder<DocumentSnapshot>(
-                          future: FirebaseFirestore.instance
-                              .collection("Restaurants")
-                              .doc(topRestaurantId)
-                              .get(),
-                          builder: (context, restaurantSnap) {
-                            if (!restaurantSnap.hasData ||
-                                !restaurantSnap.data!.exists) return const SizedBox();
-
-                            final restaurantData =
-                                restaurantSnap.data!.data() as Map<String, dynamic>;
-
-                            return Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: Colors.amber.shade100,
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: Colors.orange.shade200),
-                              ),
-                              child: Row(
-                                children: [
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: Text(
-                                      "🏆 ${restaurantData['name']} is the restaurant most visited this week.",
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.black87,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            );
-                          },
-                        );
-                      },
-                    ),
-                  ),
-
-                  // Mapa (open source tiles)
-                  _buildMap(theme, vm),
-
-                  // Lista restaurantes
-                  Expanded(
-                    child: ListView.builder(
-                      padding: const EdgeInsets.all(16),
-                      itemCount: restaurants.length,
-                      itemBuilder: (context, index) {
-                        final restaurant = restaurants[index];
-                        return InkWell(
-                          onTap: () async {
-                            await _saveLastVisited(restaurant); // guardar último visitado
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                    UserRestaurantDetailPage(restaurant: restaurant),
-                              ),
-                            );
-                          },
-                          child: RestaurantCard(restaurant: restaurant),
-                        );
-                      },
-                    ),
-                  ),
-                ],
-              );
-            },
-          ),
-
-          // Tabs restantes
-          const UserFavoritesPage(),
-          const UserOfertasPage(),
-          const UserReviewHistoryPage(),
-        ],
       ),
     );
   }
@@ -587,6 +286,163 @@ class _UserHomePageState extends State<UserHomePage>
               Navigator.pop(context);
             },
           ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Image.asset(
+              "images/483891256-e6bd4888-8904-4028-911f-dff62cc98965.png",
+              height: MediaQuery.of(context).size.height * 0.08,
+            ),
+            const CircleAvatar(
+              radius: 28,
+              backgroundColor: Color.fromARGB(255, 214, 145, 104),
+              child: Icon(Icons.person, color: Colors.white),
+            ),
+          ],
+        ),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(70),
+          child: Column(
+            children: [
+              const Divider(color: Colors.black, thickness: 1),
+              TabBar(
+                controller: _tabController,
+                labelColor: Colors.black,
+                indicatorColor: const Color.fromARGB(255, 214, 145, 104),
+                tabs: const [
+                  Tab(text: "Home"),
+                  Tab(text: "Favorites"),
+                  Tab(text: "Offers"),
+                  Tab(text: "History review"),
+                ],
+              ),
+              const Divider(color: Colors.black, thickness: 1),
+            ],
+          ),
+        ),
+      ),
+      body: TabBarView(
+        controller: _tabController,
+        children: [
+          // 🏠 Home Tab con mapa, ranking, buscador y lista
+          Consumer<RestaurantViewModel>(
+            builder: (context, vm, child) {
+              if (vm.isLoading) return const Center(child: CircularProgressIndicator());
+              if (vm.errorMessage != null) return Center(child: Text("Error: ${vm.errorMessage}"));
+
+              final restaurants = vm.filteredRestaurants;
+
+              return Column(
+                children: [
+                  // 🔸 Botón ranking
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color.fromARGB(255, 214, 145, 104),
+                        foregroundColor: Colors.white,
+                      ),
+                      icon: const Icon(Icons.leaderboard),
+                      label: const Text("View Weekly Loyalty Ranking"),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const UserLoyaltyRankingPage(),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+
+                  // 🔍 Buscador
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            decoration: InputDecoration(
+                              hintText: "Search here...",
+                              hintStyle: const TextStyle(color: Colors.white),
+                              prefixIcon: const Icon(Icons.search, color: Colors.white),
+                              filled: true,
+                              fillColor: const Color.fromARGB(255, 214, 145, 104),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(30),
+                                borderSide: BorderSide.none,
+                              ),
+                            ),
+                            onChanged: (query) {
+                              if (query.isEmpty) {
+                                vm.clearFilter();
+                              } else {
+                                vm.applyFilter(FilterByType(query));
+                              }
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Container(
+                          decoration: BoxDecoration(
+                            color: const Color.fromARGB(255, 214, 145, 104),
+                            borderRadius: BorderRadius.circular(30),
+                          ),
+                          child: IconButton(
+                            icon: const Icon(Icons.filter_list, color: Colors.white),
+                            onPressed: () => _showFilterOptions(context, vm),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // 🗺️ Mapa
+                  _buildMap(theme, vm),
+
+                  // 📋 Lista
+                  Expanded(
+                    child: ListView.builder(
+                      padding: const EdgeInsets.all(16),
+                      itemCount: restaurants.length,
+                      itemBuilder: (context, index) {
+                        final restaurant = restaurants[index];
+                        return InkWell(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    UserRestaurantDetailPage(restaurant: restaurant),
+                              ),
+                            );
+                          },
+                          child: RestaurantCard(restaurant: restaurant),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+
+          const UserFavoritesPage(),
+          const UserOfertasPage(),
+          const UserReviewHistoryPage(),
         ],
       ),
     );
