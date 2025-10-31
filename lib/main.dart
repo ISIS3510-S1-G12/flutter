@@ -40,7 +40,12 @@ Future<void> main() async {
   await Hive.initFlutter();
   await Hive.openBox('review_cache'); // 🔹 Caja donde guardamos stats de reseñas
 
-  print("Hive initialized and box 'review_cache' opened");
+  await Hive.openBox('review_cache');   // para reseñas
+  await Hive.openBox('favoritesBox');   // para favoritos del usuario
+
+  await Hive.openBox('pendingRegistrations'); // para registros pendientes
+  await Hive.openBox('reviewsDrafts'); // Caja para reseñas no enviadas
+
 
   //  Inicializar AnalyticsService
   final analyticsService = AnalyticsService();
