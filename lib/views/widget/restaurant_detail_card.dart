@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '/models/restaurant.dart';
 
 class RestaurantDetailCard extends StatelessWidget {
@@ -43,13 +44,15 @@ class RestaurantDetailCard extends StatelessWidget {
                           height: 100,
                           fit: BoxFit.cover,
                         )
-                      : Image.network(
-                          restaurant.imageUrl,
+                      : CachedNetworkImage(
+                          imageUrl: restaurant.imageUrl,
                           width: 100,
                           height: 100,
                           fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) =>
-                              Image.asset(
+                          placeholder: (context, url) => const Center(
+                            child: CircularProgressIndicator(),
+                          ),
+                          errorWidget: (context, url, error) => Image.asset(
                             'images/default.png',
                             width: 100,
                             height: 100,
