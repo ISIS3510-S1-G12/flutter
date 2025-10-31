@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:hive/hive.dart';
+
 import '../repositories/auth_repository.dart';
 
 class AuthViewModel extends ChangeNotifier {

@@ -39,7 +39,7 @@ class OfferFormViewModel extends ChangeNotifier {
     }
   }
 
-  // 📸 Elegir imagen
+  //  Elegir imagen
   Future<void> pickImage() async {
     final picker = ImagePicker();
     final picked = await picker.pickImage(source: ImageSource.gallery);
@@ -49,7 +49,7 @@ class OfferFormViewModel extends ChangeNotifier {
     }
   }
 
-  // 📅 Elegir fechas
+  //  Elegir fechas
   Future<void> pickDate(BuildContext context, {required bool isFrom}) async {
     final picked = await showDatePicker(
       context: context,
@@ -68,7 +68,7 @@ class OfferFormViewModel extends ChangeNotifier {
     }
   }
 
-  // 💾 Guardar oferta (offline u online)
+  //  Guardar oferta (offline u online)
   Future<void> saveOffer(BuildContext context, {Offer? editingOffer}) async {
     if (!formKey.currentState!.validate()) return;
 
@@ -84,7 +84,7 @@ class OfferFormViewModel extends ChangeNotifier {
           .where((e) => e.isNotEmpty)
           .toList();
 
-      // 🔹 Construir la oferta
+      //  Construir la oferta
       final offer = Offer(
         id: editingOffer?.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
         restaurant_id: restaurant_id,
@@ -97,17 +97,17 @@ class OfferFormViewModel extends ChangeNotifier {
         valid_from: valid_from,
         valid_to: valid_to,
         createdAt: editingOffer?.createdAt ?? DateTime.now(),
-        synced: false, // 👈 muy importante para diferenciar offline
+        synced: false, //  muy importante para diferenciar offline
       );
 
-      // 🔸 Crear o actualizar según el caso
+      //  Crear o actualizar según el caso
       if (editingOffer == null) {
         await _repository.createOffer(offer, image: imageFile);
       } else {
         await _repository.updateOffer(offer, image: imageFile);
       }
 
-      // ✅ Volver atrás y mostrar éxito
+      //  Volver atrás y mostrar éxito
       if (context.mounted) {
         Navigator.pop(context, true);
         ScaffoldMessenger.of(context).showSnackBar(

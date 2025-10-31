@@ -2,13 +2,16 @@ import 'dart:io';
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+
 import '../../models/restaurant.dart';
 import '../../models/user.dart' as app_user;
 import '../../repositories/restaurant_repository.dart';
 import '../../repositories/user_repository.dart';
 import '../../repositories/offer_repository.dart';
+import '../../repositories/hive_favorites_cache.dart'; // 🐝 Nuevo
+import '../../cache/restaurant_cache.dart'; //  NUEVO
 
-/// --- FILTROS (Strategy Pattern) ---
+///  FILTROS (Strategy Pattern) 
 
 abstract class RestaurantFilter {
   List<Restaurant> apply(List<Restaurant> restaurants);
@@ -57,34 +60,68 @@ class FilterContext {
   }
 }
 
-/// --- VIEWMODEL ---
+///  VIEWMODEL 
 class RestaurantViewModel extends ChangeNotifier {
   final RestaurantRepository _restaurantRepo;
   final UserRepository _userRepo;
   final OfferRepository _offerRepo;
+  final HiveFavoritesCache _favoritesCache = HiveFavoritesCache(); // 🐝
 
   RestaurantViewModel(this._restaurantRepo, this._userRepo, this._offerRepo);
 
   final FilterContext _filterContext = FilterContext();
 
-  // 🔹 Listas principales
+  // Listas principales
   List<Restaurant> restaurants = [];
   List<Restaurant> filteredRestaurants = [];
   List<Restaurant> favorites = [];
   List<Restaurant> todaysDiscounts = [];
 
-  // 🔹 Variables para estadísticas del isolate
-  int totalFavorites = 0;
-  int favoritesWithOffers = 0;
-  double percentageWithOffers = 0.0;
-
+  // Variables de estado
   bool isLoading = false;
   bool isLoadingFavorites = false;
   String? errorMessage;
 
   StreamSubscription<List<Restaurant>>? _favoritesSubscription;
 
-  /// --- CARGAR RESTAURANTES ---
+  //   Manejo del detalle de restaurante con cache LRU
+  Restaurant? _selectedRestaurant;
+  bool isLoadingDetail = false;
+
+  Restaurant? get selectedRestaurant => _selectedRestaurant;
+
+  Future<void> loadRestaurantDetail(String restaurantId) async {
+    isLoadingDetail = true;
+    notifyListeners();
+
+    //  Buscar primero en cache
+    final cached = RestaurantCache.get(restaurantId);
+    if (cached != null) {
+      print(" [LRU] Detalle obtenido desde cache: ${cached.name}");
+      _selectedRestaurant = cached;
+      isLoadingDetail = false;
+      notifyListeners();
+      return;
+    }
+
+    //  Si no está, buscar en Firestore y guardar en cache
+    final restaurant = await _restaurantRepo.getRestaurantById(restaurantId);
+    if (restaurant != null) {
+      RestaurantCache.put(restaurantId, restaurant);
+      print(" [Firestore] Detalle cacheado: ${restaurant.name}");
+      _selectedRestaurant = restaurant;
+    }
+
+    isLoadingDetail = false;
+    notifyListeners();
+  }
+
+  void clearSelectedRestaurant() {
+    _selectedRestaurant = null;
+    notifyListeners();
+  }
+
+  ///  CARGAR RESTAURANTES 
   Future<void> fetchRestaurants() async {
     try {
       isLoading = true;
@@ -102,7 +139,7 @@ class RestaurantViewModel extends ChangeNotifier {
     }
   }
 
-  /// --- GUARDAR RESTAURANTE ---
+  ///  GUARDAR RESTAURANTE 
   Future<void> saveRestaurantOwner({
     required String id,
     required String name,
@@ -147,8 +184,8 @@ class RestaurantViewModel extends ChangeNotifier {
     }
   }
 
-  /// --- CARGAR FAVORITOS ---
-  Future<void> fetchFavorites() async {
+  ///  CARGAR FAVORITOS 
+  Future<void> fetchFavorites({bool fromCache = false}) async {
     try {
       isLoadingFavorites = true;
       notifyListeners();
@@ -162,6 +199,14 @@ class RestaurantViewModel extends ChangeNotifier {
         return;
       }
 
+      // Si se solicita cargar desde caché (sin conexión)
+      if (fromCache) {
+        favorites = await _favoritesCache.getCachedFavorites();
+        isLoadingFavorites = false;
+        notifyListeners();
+        return;
+      }
+
       final app_user.User? userData = await _userRepo.getUser(userAuth.uid);
       if (userData == null || userData.favoriteRestaurants.isEmpty) {
         favorites = [];
@@ -170,8 +215,10 @@ class RestaurantViewModel extends ChangeNotifier {
         favorites = await _restaurantRepo
             .getFavoriteRestaurants(userData.favoriteRestaurants);
 
-        final activeOffers = await _offerRepo.getActiveOffers();
+        //  Guardar en caché local
+        await _favoritesCache.cacheFavorites(favorites);
 
+        final activeOffers = await _offerRepo.getActiveOffers();
         todaysDiscounts = favorites.where((restaurant) {
           return activeOffers.any((offer) => offer.restaurant_id == restaurant.id);
         }).toList();
@@ -182,13 +229,11 @@ class RestaurantViewModel extends ChangeNotifier {
     } catch (e) {
       isLoadingFavorites = false;
       errorMessage = e.toString();
-      favorites = [];
-      todaysDiscounts = [];
       notifyListeners();
     }
   }
 
-  /// --- ESCUCHAR FAVORITOS EN TIEMPO REAL ---
+  ///  ESCUCHAR FAVORITOS EN TIEMPO REAL 
   Future<void> listenToFavoritesStream() async {
     final userAuth = FirebaseAuth.instance.currentUser;
     if (userAuth == null) return;
@@ -203,6 +248,9 @@ class RestaurantViewModel extends ChangeNotifier {
         .listen((favList) async {
       favorites = favList;
 
+      //  Actualiza la caché cada vez que llega un nuevo stream
+      await _favoritesCache.cacheFavorites(favorites);
+
       final activeOffers = await _offerRepo.getActiveOffers();
       todaysDiscounts = favorites.where((r) {
         return activeOffers.any((o) => o.restaurant_id == r.id);
@@ -212,20 +260,20 @@ class RestaurantViewModel extends ChangeNotifier {
     });
   }
 
-  /// --- Cancelar el Stream ---
+  ///  CANCELAR EL STREAM 
   void cancelFavoritesListener() {
     _favoritesSubscription?.cancel();
     _favoritesSubscription = null;
   }
 
-  /// --- DESCUENTOS ---
+  ///  DESCUENTOS 
   Future<void> fetchTodaysDiscounts() async {
     await fetchFavorites();
     todaysDiscounts = favorites.where((r) => r.offer).toList();
     notifyListeners();
   }
 
-  /// --- FILTROS ---
+  ///  FILTROS 
   void applyFilter(RestaurantFilter filter) {
     _filterContext.setStrategy(filter);
     filteredRestaurants = _filterContext.execute(restaurants);

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+
 import 'package:provider/provider.dart';
 import '/models/restaurant.dart';
 import '/models/dish.dart';
@@ -15,6 +16,8 @@ import '/views/pages/user/user_ofertas_page.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:geocoding/geocoding.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
+
 
 class UserRestaurantDetailPage extends StatefulWidget {
   final Restaurant restaurant;
@@ -27,11 +30,21 @@ class UserRestaurantDetailPage extends StatefulWidget {
 
 class _UserRestaurantDetailPageState extends State<UserRestaurantDetailPage> {
   LatLng? _restaurantLocation; // 📍 ubicación del restaurante
+  final analytics = FirebaseAnalytics.instance;
 
   @override
   void initState() {
     super.initState();
     _loadRestaurantLocation();
+  }
+
+    @override
+  void dispose() {
+    FirebaseAnalytics.instance.logEvent(
+      name: 'screen_abandon',
+      parameters: {'restaurant_id': widget.restaurant.id},
+    );
+    super.dispose();
   }
 
   // 🔹 Geocodifica la dirección del restaurante actual
@@ -64,7 +77,8 @@ class _UserRestaurantDetailPageState extends State<UserRestaurantDetailPage> {
         ),
         ChangeNotifierProvider(
           create: (_) =>
-              ReviewViewModel(ReviewRepository())..loadReviews(restaurant.id),
+              ReviewViewModel( ReviewRepository(),
+              )..loadReviews(restaurant.id),
         ),
         ChangeNotifierProvider(
           create: (_) => VisitViewModel(VisitsRepository()),
@@ -175,6 +189,10 @@ class _UserRestaurantDetailPageState extends State<UserRestaurantDetailPage> {
                                       Expanded(
                                         child: ElevatedButton.icon(
                                           onPressed: () async {
+                                            await analytics.logEvent(
+                                              name: 'bluetooth_click',
+                                              parameters: {'restaurant_id': restaurant.id},
+                                            );
                                             int peopleCount =
                                                 await vm.scanNearbyDevices();
                                             if (context.mounted) {
@@ -220,6 +238,10 @@ class _UserRestaurantDetailPageState extends State<UserRestaurantDetailPage> {
                                     width: double.infinity,
                                     child: ElevatedButton.icon(
                                       onPressed: () async {
+                                       await analytics.logEvent(
+                                          name: 'visited_click',
+                                          parameters: {'restaurant_id': restaurant.id},
+                                        ); 
                                         await visitVM
                                             .registerVisit(restaurant.id);
                                         if (context.mounted) {
