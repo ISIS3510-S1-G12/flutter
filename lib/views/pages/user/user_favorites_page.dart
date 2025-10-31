@@ -1,12 +1,15 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart'; // compute()
 import 'package:provider/provider.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+
 import '/viewmodels/restaurant_viewmodel.dart';
 import '/models/restaurant.dart';
 import '/views/pages/user/user_restaurant_detail_page.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 
-/// --- Cálculo de estadísticas en segundo plano (Isolate) ---
+/// Cálculo de estadísticas en segundo plano (Isolate)
 Map<String, dynamic> calculateFavoriteStats(List<Restaurant> favorites) {
   final withOffers = favorites.where((r) => r.offer == true).toList();
   final percentage = favorites.isEmpty
@@ -29,25 +32,35 @@ class UserFavoritesPage extends StatefulWidget {
 }
 
 class _UserFavoritesPageState extends State<UserFavoritesPage> {
+  StreamSubscription<List<ConnectivityResult>>? _connectivitySubscription;
+  bool _isConnected = true;
+
   @override
   void initState() {
     super.initState();
 
+    // Escuchar cambios de conexión
+    _connectivitySubscription =
+        Connectivity().onConnectivityChanged.listen((List<ConnectivityResult> results) {
+      final result = results.isNotEmpty ? results.first : ConnectivityResult.none;
+      final connected = result != ConnectivityResult.none;
+
+      if (connected != _isConnected) {
+        setState(() => _isConnected = connected);
+        connected ? _showOnlineDialog() : _showOfflineDialog();
+      }
+    });
+
+    // Cargar favoritos
     Future.microtask(() async {
       final vm = Provider.of<RestaurantViewModel>(context, listen: false);
 
-      print("🐝 Intentando cargar favoritos (modo offline primero)...");
-      await vm.fetchFavorites(fromCache: true); // 🔹 1. Modo offline
-
-      print("📡 Escuchando stream de favoritos...");
-      vm.listenToFavoritesStream(); // 🔹 2. Stream online
-
-      print("🌐 Cargando favoritos desde red...");
-      await vm.fetchFavorites(); // 🔹 3. Cargar desde Firestore y actualizar Hive
+      await vm.fetchFavorites(fromCache: true); // modo offline
+      vm.listenToFavoritesStream(); // stream online
+      await vm.fetchFavorites(); // datos Firestore
 
       if (vm.favorites.isEmpty) return;
 
-      // 🔹 4. Calcular estadísticas con compute()
       final stats = await compute(calculateFavoriteStats, vm.favorites);
       vm.todaysDiscounts = List<Restaurant>.from(stats['todaysDiscounts']);
       final total = stats['totalFavorites'];
@@ -70,17 +83,6 @@ class _UserFavoritesPageState extends State<UserFavoritesPage> {
                       style: const TextStyle(color: Colors.green)),
                   Text("Percentage with offers: $percent%",
                       style: const TextStyle(color: Colors.blue)),
-                  const SizedBox(height: 12),
-                  const Text("Restaurants with offers today:",
-                      style: TextStyle(fontWeight: FontWeight.bold)),
-                  ...vm.todaysDiscounts.map((r) => ListTile(
-                        dense: true,
-                        leading: CircleAvatar(
-                          backgroundImage: NetworkImage(r.imageUrl),
-                          onBackgroundImageError: (_, __) {},
-                        ),
-                        title: Text(r.name),
-                      )),
                 ],
               ),
               actions: [
@@ -96,9 +98,51 @@ class _UserFavoritesPageState extends State<UserFavoritesPage> {
     });
   }
 
+  /// 🔸 Alerta sin conexión
+  void _showOfflineDialog() {
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text("Offline Mode"),
+        content: const Text(
+          "You’re currently offline.\nFavorites will still be shown using cached data.",
+          style: TextStyle(fontSize: 15),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("OK", style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 🔸 Alerta conexión restaurada
+  void _showOnlineDialog() {
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text("Back Online"),
+        content: const Text(
+          "Your connection has been restored.\nData will sync automatically.",
+          style: TextStyle(fontSize: 15),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("OK"),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   void dispose() {
-    print("🧹 Cerrando stream de favoritos...");
+    _connectivitySubscription?.cancel();
     Provider.of<RestaurantViewModel>(context, listen: false)
         .cancelFavoritesListener();
     super.dispose();
@@ -131,10 +175,7 @@ class _UserFavoritesPageState extends State<UserFavoritesPage> {
             return InkWell(
               onTap: () async {
                 final vm = Provider.of<RestaurantViewModel>(context, listen: false);
-
-                // 🧩 NUEVO: Cargar detalle del restaurante desde cache o Firestore
                 await vm.loadRestaurantDetail(restaurant.id);
-
                 final detail = vm.selectedRestaurant ?? restaurant;
 
                 Navigator.push(
@@ -228,7 +269,7 @@ class _UserFavoritesPageState extends State<UserFavoritesPage> {
                             height: 80,
                             fit: BoxFit.cover,
                           ),
-                        )
+                        ),
                       ),
                     ],
                   ),
