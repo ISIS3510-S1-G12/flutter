@@ -32,11 +32,18 @@ class _UserRestaurantDetailPageState extends State<UserRestaurantDetailPage> {
   final analytics = FirebaseAnalytics.instance;
   late OfflineSyncHelper _offlineHelper;
 
+  late final Stream<List<Dish>> _dishesStream;
+
   @override
   void initState() {
     super.initState();
-    _offlineHelper = OfflineSyncHelper()
-      ..addListener(_onConnectivityChange);
+    _offlineHelper = OfflineSyncHelper()..addListener(_onConnectivityChange);
+
+    // ✅ FIX: convertir en broadcast stream para evitar error al volver de Offers a Menu
+    _dishesStream = DishRepository()
+        .getDishesByRestaurant(widget.restaurant.id)
+        .asBroadcastStream();
+
     _loadRestaurantLocation();
   }
 
@@ -377,8 +384,7 @@ class _UserRestaurantDetailPageState extends State<UserRestaurantDetailPage> {
 
                             // --- PLATOS ---
                             StreamBuilder<List<Dish>>(
-                              stream: DishRepository()
-                                  .getDishesByRestaurant(fullRestaurant.id),
+                              stream: _dishesStream,
                               builder: (context, snapshot) {
                                 if (!snapshot.hasData) {
                                   return const Padding(
