@@ -2,7 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:moviles/models/review.dart';
 import 'package:moviles/repositories/review_repository.dart';
 
-// 🔹 Nuevos imports para las 4 estrategias
+//  Nuevos imports para las 4 estrategias
 import 'package:moviles/repositories/local_review_db.dart'; // SQLite
 import 'package:moviles/repositories/hive_review_cache.dart'; // Hive
 import 'package:moviles/repositories/local_image_storage.dart'; // Archivos locales
@@ -11,7 +11,7 @@ import 'package:moviles/repositories/restaurant_preferences.dart'; // SharedPref
 class ReviewViewModel extends ChangeNotifier {
   final ReviewRepository _repository;
 
-  // 🔹 Nuevos repos locales
+  //  Nuevos repos locales
   final LocalReviewDB _localDB = LocalReviewDB();
   final HiveReviewCache _hiveCache = HiveReviewCache();
   final LocalImageStorage _imageStorage = LocalImageStorage();
@@ -23,7 +23,7 @@ class ReviewViewModel extends ChangeNotifier {
 
   ReviewViewModel(this._repository);
 
-  /// 🔹 Cargar reseñas (usa cache local si falla el servidor)
+  ///  Cargar reseñas (usa cache local si falla el servidor)
   Future<void> loadReviews(String restaurantId) async {
     isLoading = true;
     notifyListeners();
@@ -71,7 +71,7 @@ class ReviewViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// 🔹 Tomar foto y guardarla localmente (además de subir a Storage si hay conexión)
+  ///  Tomar foto y guardarla localmente (además de subir a Storage si hay conexión)
   Future<void> pickImage(String reviewId) async {
     isLoading = true;
     notifyListeners();
@@ -86,7 +86,7 @@ class ReviewViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// 🔹 Crear reseña (y guardar última preferencia)
+  ///  Crear reseña (y guardar última preferencia)
   Future<void> addReview({
     required String comment,
     required int stars,
@@ -117,7 +117,7 @@ class ReviewViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// 🔹 Obtener el último restaurante visitado
+  ///  Obtener el último restaurante visitado
   Future<String?> getLastRestaurant() async {
     return await _prefs.getLastRestaurant();
   }

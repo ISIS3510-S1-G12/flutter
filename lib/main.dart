@@ -38,11 +38,9 @@ Future<void> main() async {
   print('Firebase initialized: ${app.name}');
 
   await Hive.initFlutter();
-  await Hive.openBox('review_cache'); // 🔹 Caja donde guardamos stats de reseñas
-  await Hive.openBox('local_reviews'); // 🔹 Reseñas offline sin conexión
-  await Hive.openBox('user_reviews_cache'); // 🔹 Historial de usuario cacheado
-
-  await Hive.openBox('review_cache');   // para reseñas
+  await Hive.openBox('review_cache'); //  Caja donde guardamos stats de reseñas
+  await Hive.openBox('local_reviews'); //  Reseñas offline sin conexión
+  await Hive.openBox('user_reviews_cache'); //  Historial de usuario cacheado
   await Hive.openBox('favoritesBox');   // para favoritos del usuario
 
   await Hive.openBox('pendingRegistrations'); // para registros pendientes

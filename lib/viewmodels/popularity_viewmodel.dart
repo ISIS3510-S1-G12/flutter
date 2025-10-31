@@ -1,6 +1,5 @@
 
 import 'package:flutter/foundation.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import '../repositories/visits_repository.dart';
 
 class PopularityViewModel extends ChangeNotifier {

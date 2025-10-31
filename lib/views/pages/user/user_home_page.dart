@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
@@ -36,7 +35,7 @@ class _UserHomePageState extends State<UserHomePage>
   List<LatLng> restaurantLocations = [];
   late TabController _tabController;
 
-  // 🔌 Conectividad
+  //  Conectividad
   late StreamSubscription<List<ConnectivityResult>> _connectivitySubscription;
   bool _isConnected = true;
 
@@ -66,26 +65,49 @@ class _UserHomePageState extends State<UserHomePage>
         setState(() => _isConnected = connected);
 
         if (!connected) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text("No internet connection - Restarants cache"),
-              backgroundColor: Colors.redAccent,
-              duration: Duration(seconds: 4),
-            ),
-          );
+          if (mounted) {
+            showDialog(
+              context: context,
+              barrierDismissible: false, // no se puede cerrar tocando fuera
+              builder: (context) => AlertDialog(
+                title: const Text("No Internet Connection"),
+                content: const Text(
+                  "You are now offline.\nCached restaurants will be displayed until the connection is restored.",
+                  style: TextStyle(fontSize: 16),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text("OK", style: TextStyle(color: Colors.red)),
+                  ),
+                ],
+              ),
+            );
+          }
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text("Internet connection restored in home"),
-              backgroundColor: Colors.green,
-              duration: Duration(seconds: 3),
-            ),
-          );
+          if (mounted) {
+            showDialog(
+              context: context,
+              builder: (context) => AlertDialog(
+                title: const Text("Connection Restored"),
+                content: const Text(
+                  "Internet connection is back.\nData will sync automatically.",
+                  style: TextStyle(fontSize: 16),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text("OK"),
+                  ),
+                ],
+              ),
+            );
+          }
         }
+
       }
     });
-
-    // 🔹 Cargar restaurantes desde caché y luego red
+    //  Cargar restaurantes desde caché y luego red
     Future.microtask(() async {
       final vm = context.read<RestaurantViewModel>();
 
@@ -117,7 +139,7 @@ class _UserHomePageState extends State<UserHomePage>
       await _loadRestaurantLocations(vm);
     });
 
-    // 🔹 Mensaje de última visita
+    //  Mensaje de última visita
     Future.delayed(const Duration(seconds: 10), () async {
       if (!mounted) return;
       final visitVM = context.read<VisitViewModel>();

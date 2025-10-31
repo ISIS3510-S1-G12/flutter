@@ -1,13 +1,15 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart' as fbAuth;
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 
 import '../../../models/offer.dart';
 import '../../../repositories/offer_repository.dart';
 import '../../../viewmodels/offer_viewmodel.dart';
 import '../../../viewmodels/user_viewmodel.dart';
-import 'offer_detail_page.dart'; // 👈 Importa el detail page
+import 'offer_detail_page.dart';
 
 class UserOfertasPage extends StatefulWidget {
   final String? restaurantId;
@@ -22,17 +24,85 @@ class _UserOfertasPageState extends State<UserOfertasPage> {
   String _filter = "All";
   String _searchQuery = "";
   bool _dialogShown = false;
+  bool _isConnected = true;
+  StreamSubscription<List<ConnectivityResult>>? _connectivitySubscription;
 
   @override
   void initState() {
     super.initState();
 
+    // --- Escuchar conectividad eventual ---
+    _connectivitySubscription =
+        Connectivity().onConnectivityChanged.listen((List<ConnectivityResult> results) {
+      final result = results.isNotEmpty ? results.first : ConnectivityResult.none;
+      final connected = result != ConnectivityResult.none;
+
+      if (connected != _isConnected) {
+        setState(() => _isConnected = connected);
+        if (!connected) {
+          _showOfflineDialog();
+        } else {
+          _showOnlineDialog();
+        }
+      }
+    });
+
+    // --- Cargar usuario ---
     final authUser = fbAuth.FirebaseAuth.instance.currentUser;
     if (authUser != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         context.read<UserViewModel>().loadUser(authUser.uid);
       });
     }
+  }
+
+  /// Mostrar alerta cuando no hay internet
+  void _showOfflineDialog() {
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => AlertDialog(
+        title: const Text("Offers Unavailable (Offline)"),
+        content: const Text(
+          "You are currently offline.\nOnly cached offers will be visible until the connection is restored.",
+          style: TextStyle(fontSize: 16),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("OK", style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Mostrar alerta cuando se recupera la conexión
+  void _showOnlineDialog() {
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text("Offers Synced"),
+        content: const Text(
+          "Your internet connection has been restored.\nNew offers will be updated automatically.",
+          style: TextStyle(fontSize: 16),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("OK"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _connectivitySubscription?.cancel();
+    super.dispose();
   }
 
   @override
@@ -132,7 +202,7 @@ class _UserOfertasPageState extends State<UserOfertasPage> {
                         }).toList();
                       }
 
-                      // 💰 Mostrar porcentaje dentro del presupuesto (una vez)
+                      // 💰 Mostrar porcentaje dentro del presupuesto
                       final userVM =
                           Provider.of<UserViewModel>(context, listen: false);
                       final user = userVM.currentUser;
@@ -168,9 +238,9 @@ class _UserOfertasPageState extends State<UserOfertasPage> {
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(12),
                                     ),
-                                    title: const Text("Budget Insight"),
+                                    title: const Text("Offers and Budget Insight"),
                                     content: Text(
-                                      "${percentage.toStringAsFixed(0)}% of today’s offers fit your budget",
+                                      "${percentage.toStringAsFixed(0)}% of today’s offers fit within your budget.",
                                     ),
                                     actions: [
                                       TextButton(
@@ -187,7 +257,6 @@ class _UserOfertasPageState extends State<UserOfertasPage> {
                         }
                       }
 
-                      // ❌ Sin ofertas
                       if (offers.isEmpty) {
                         return const Center(
                           child: Text("There are no offers available."),
