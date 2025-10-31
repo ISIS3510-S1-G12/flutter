@@ -46,6 +46,8 @@ Future<void> main() async {
   await Hive.openBox('favoritesBox');   // para favoritos del usuario
 
   await Hive.openBox('pendingRegistrations'); // para registros pendientes
+  await Hive.openBox('favorites_offline');
+  await Hive.openBox('visits_offline');
 
 
   final analyticsService = AnalyticsService();

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-
 import 'package:provider/provider.dart';
 import '/models/restaurant.dart';
 import '/models/dish.dart';
@@ -17,7 +16,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
-
+import '/utils/offline_sync_helper.dart'; // ✅ importa el helper
 
 class UserRestaurantDetailPage extends StatefulWidget {
   final Restaurant restaurant;
@@ -29,17 +28,21 @@ class UserRestaurantDetailPage extends StatefulWidget {
 }
 
 class _UserRestaurantDetailPageState extends State<UserRestaurantDetailPage> {
-  LatLng? _restaurantLocation; // 📍 ubicación del restaurante
+  LatLng? _restaurantLocation;
   final analytics = FirebaseAnalytics.instance;
+  late OfflineSyncHelper _offlineHelper;
 
   @override
   void initState() {
     super.initState();
+    _offlineHelper = OfflineSyncHelper()
+      ..addListener(_onConnectivityChange);
     _loadRestaurantLocation();
   }
 
-    @override
+  @override
   void dispose() {
+    _offlineHelper.removeListener(_onConnectivityChange);
     FirebaseAnalytics.instance.logEvent(
       name: 'screen_abandon',
       parameters: {'restaurant_id': widget.restaurant.id},
@@ -47,7 +50,14 @@ class _UserRestaurantDetailPageState extends State<UserRestaurantDetailPage> {
     super.dispose();
   }
 
-  // 🔹 Geocodifica la dirección del restaurante actual
+  void _onConnectivityChange() {
+    if (_offlineHelper.isOnline) {
+      _offlineHelper.showSyncedBanner(context);
+    } else {
+      _offlineHelper.showOfflineBanner(context);
+    }
+  }
+
   Future<void> _loadRestaurantLocation() async {
     try {
       final address = widget.restaurant.address;
@@ -76,9 +86,8 @@ class _UserRestaurantDetailPageState extends State<UserRestaurantDetailPage> {
               UserRestaurantDetailViewModel()..checkIfFavorite(restaurant),
         ),
         ChangeNotifierProvider(
-          create: (_) =>
-              ReviewViewModel( ReviewRepository(),
-              )..loadReviews(restaurant.id),
+          create: (_) => ReviewViewModel(ReviewRepository())
+            ..loadReviews(restaurant.id),
         ),
         ChangeNotifierProvider(
           create: (_) => VisitViewModel(VisitsRepository()),
@@ -100,7 +109,6 @@ class _UserRestaurantDetailPageState extends State<UserRestaurantDetailPage> {
               }
 
               final data = snapshot.data!.data() as Map<String, dynamic>;
-
               final fullRestaurant = Restaurant(
                 id: restaurant.id,
                 name: data['name'] ?? '',
@@ -149,22 +157,43 @@ class _UserRestaurantDetailPageState extends State<UserRestaurantDetailPage> {
                   ),
                   body: TabBarView(
                     children: [
+                      // -------------------- TAB MENU --------------------
                       SingleChildScrollView(
                         child: Column(
                           children: [
                             RestaurantDetailCard(restaurant: fullRestaurant),
+
                             Padding(
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 16, vertical: 8),
                               child: Column(
                                 children: [
+                                  // --- FAVORITE Y PEOPLE BUTTONS ---
                                   Row(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
+                                      // FAVORITE
                                       Expanded(
                                         child: ElevatedButton.icon(
-                                          onPressed: () =>
-                                              vm.toggleFavorite(fullRestaurant),
+                                          onPressed: () async {
+                                            await analytics.logEvent(
+                                              name: 'favorite_click',
+                                              parameters: {
+                                                'restaurant_id': restaurant.id
+                                              },
+                                            );
+
+                                            if (_offlineHelper.isOnline) {
+                                              await vm.toggleFavorite(
+                                                  fullRestaurant);
+                                            } else {
+                                              await _offlineHelper
+                                                  .saveFavoriteOffline(
+                                                      restaurant.id);
+                                              _offlineHelper
+                                                  .showOfflineBanner(context);
+                                            }
+                                          },
                                           icon: Icon(
                                             vm.isFavorite
                                                 ? Icons.favorite
@@ -186,12 +215,16 @@ class _UserRestaurantDetailPageState extends State<UserRestaurantDetailPage> {
                                         ),
                                       ),
                                       const SizedBox(width: 8),
+
+                                      // PEOPLE
                                       Expanded(
                                         child: ElevatedButton.icon(
                                           onPressed: () async {
                                             await analytics.logEvent(
                                               name: 'bluetooth_click',
-                                              parameters: {'restaurant_id': restaurant.id},
+                                              parameters: {
+                                                'restaurant_id': restaurant.id
+                                              },
                                             );
                                             int peopleCount =
                                                 await vm.scanNearbyDevices();
@@ -233,17 +266,31 @@ class _UserRestaurantDetailPageState extends State<UserRestaurantDetailPage> {
                                       ),
                                     ],
                                   ),
+
                                   const SizedBox(height: 8),
+
+                                  // --- VISITED BUTTON ---
                                   SizedBox(
                                     width: double.infinity,
                                     child: ElevatedButton.icon(
                                       onPressed: () async {
-                                       await analytics.logEvent(
+                                        await analytics.logEvent(
                                           name: 'visited_click',
-                                          parameters: {'restaurant_id': restaurant.id},
-                                        ); 
-                                        await visitVM
-                                            .registerVisit(restaurant.id);
+                                          parameters: {
+                                            'restaurant_id': restaurant.id
+                                          },
+                                        );
+
+                                        if (_offlineHelper.isOnline) {
+                                          await visitVM
+                                              .registerVisit(restaurant.id);
+                                        } else {
+                                          await _offlineHelper
+                                              .saveVisitOffline(restaurant.id);
+                                          _offlineHelper
+                                              .showOfflineBanner(context);
+                                        }
+
                                         if (context.mounted) {
                                           showDialog(
                                             context: context,
@@ -281,13 +328,14 @@ class _UserRestaurantDetailPageState extends State<UserRestaurantDetailPage> {
                               ),
                             ),
 
-                            // ✅ Mapa corregido: se muestra sólo cuando _restaurantLocation no es null
+                            // --- MAPA ---
                             Container(
                               height: 200,
                               margin: const EdgeInsets.all(16),
                               decoration: BoxDecoration(
                                 borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: Colors.grey.shade300),
+                                border:
+                                    Border.all(color: Colors.grey.shade300),
                               ),
                               child: ClipRRect(
                                 borderRadius: BorderRadius.circular(12),
@@ -327,6 +375,7 @@ class _UserRestaurantDetailPageState extends State<UserRestaurantDetailPage> {
                               ),
                             ),
 
+                            // --- PLATOS ---
                             StreamBuilder<List<Dish>>(
                               stream: DishRepository()
                                   .getDishesByRestaurant(fullRestaurant.id),
@@ -389,7 +438,11 @@ class _UserRestaurantDetailPageState extends State<UserRestaurantDetailPage> {
                           ],
                         ),
                       ),
+
+                      // -------------------- TAB OFFERS --------------------
                       UserOfertasPage(restaurantId: fullRestaurant.id),
+
+                      // -------------------- TAB REVIEWS --------------------
                       Consumer<ReviewViewModel>(
                         builder: (context, reviewVM, _) {
                           if (reviewVM.isLoading) {
@@ -418,7 +471,8 @@ class _UserRestaurantDetailPageState extends State<UserRestaurantDetailPage> {
                                       as Map<String, dynamic>?;
                                   final userName =
                                       userData?['name'] ?? "Unknown User";
-                                  final userPic = userData?['profile_picture'];
+                                  final userPic =
+                                      userData?['profile_picture'];
                                   return Card(
                                     margin: const EdgeInsets.only(bottom: 12),
                                     shape: RoundedRectangleBorder(
@@ -469,7 +523,10 @@ class _UserRestaurantDetailPageState extends State<UserRestaurantDetailPage> {
                                                                   .star_border,
                                                           color: const Color
                                                               .fromARGB(
-                                                              255, 170, 98, 153),
+                                                              255,
+                                                              170,
+                                                              98,
+                                                              153),
                                                           size: 18,
                                                         ),
                                                       ),
