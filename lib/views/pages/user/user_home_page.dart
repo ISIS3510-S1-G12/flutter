@@ -65,10 +65,10 @@ class _UserHomePageState extends State<UserHomePage>
         setState(() => _isConnected = connected);
 
         if (!connected) {
-          if (mounted) {
+          if (mounted && _tabController.index == 0) { // solo en Home
             showDialog(
               context: context,
-              barrierDismissible: false, // no se puede cerrar tocando fuera
+              barrierDismissible: false,
               builder: (context) => AlertDialog(
                 title: const Text("No Internet Connection"),
                 content: const Text(
@@ -85,7 +85,7 @@ class _UserHomePageState extends State<UserHomePage>
             );
           }
         } else {
-          if (mounted) {
+          if (mounted && _tabController.index == 0) { // solo en Home
             showDialog(
               context: context,
               builder: (context) => AlertDialog(
@@ -104,6 +104,7 @@ class _UserHomePageState extends State<UserHomePage>
             );
           }
         }
+
 
       }
     });
