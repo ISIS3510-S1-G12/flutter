@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+
+import 'package:moviles/repositories/review_repository.dart';
+import 'package:moviles/viewmodels/review_viewmodel.dart';
 import 'firebase_options.dart';
 
 import 'package:provider/provider.dart';
@@ -35,6 +38,9 @@ Future<void> main() async {
   print('Firebase initialized: ${app.name}');
 
   await Hive.initFlutter();
+  await Hive.openBox('review_cache'); // 🔹 Caja donde guardamos stats de reseñas
+  await Hive.openBox('local_reviews'); // 🔹 Reseñas offline sin conexión
+  await Hive.openBox('user_reviews_cache'); // 🔹 Historial de usuario cacheado
 
   await Hive.openBox('review_cache');   // para reseñas
   await Hive.openBox('favoritesBox');   // para favoritos del usuario
@@ -68,6 +74,13 @@ class Sumaq extends StatelessWidget {
           ),
         ),
         ChangeNotifierProvider(create: (_) => VisitViewModel(VisitsRepository())),
+        ChangeNotifierProvider(
+          create: (_) => ReviewViewModel(
+            ReviewRepository(),
+           
+          ),
+        ),
+        
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,

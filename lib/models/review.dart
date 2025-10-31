@@ -34,15 +34,33 @@ class Review {
     );
   }
 
+  /// ✅ Este ya lo tenías, solo ajustamos las llaves para mantener consistencia
   Map<String, dynamic> toJson() {
     return {
+      "id": id,
       "comment": comment,
       "stars": stars,
-      "user_id": userId,
-      "restaurant_id": restaurantId,
-      "dish_id": dishId,
+      "userId": userId,
+      "restaurantId": restaurantId,
+      "dishId": dishId,
       "imageUrl": imageUrl,
-      "createdAt": createdAt,
+      "createdAt": createdAt?.toIso8601String(),
     };
+  }
+
+  /// ✅ Agrega este para reconstruir desde Hive / JSON local
+  factory Review.fromJson(Map<String, dynamic> json) {
+    return Review(
+      id: json["id"] ?? "",
+      comment: json["comment"] ?? "",
+      stars: json["stars"] ?? 0,
+      userId: json["userId"] ?? "",
+      restaurantId: json["restaurantId"] ?? "",
+      dishId: json["dishId"],
+      imageUrl: json["imageUrl"],
+      createdAt: json["createdAt"] != null
+          ? DateTime.tryParse(json["createdAt"])
+          : null,
+    );
   }
 }
