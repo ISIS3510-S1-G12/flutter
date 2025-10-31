@@ -192,7 +192,7 @@ class _RegisterWidgetState extends State<RegisterWidget> {
 
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
-                              content: Text("Sin conexión: datos guardados localmente."),
+                              content: Text("No connection: data stored locally."),
                               backgroundColor: Colors.orange,
                             ),
                           );
