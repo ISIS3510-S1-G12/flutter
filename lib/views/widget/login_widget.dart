@@ -56,10 +56,13 @@ class _LoginWidgetState extends State<LoginWidget> {
                           borderSide: BorderSide(color: Colors.grey),
                         ),
                         focusedBorder: OutlineInputBorder(
-                          borderSide: BorderSide(color: widget.accentColor, width: 2.0),
-                          borderRadius: const BorderRadius.all(Radius.circular(18.0)),
+                          borderSide:
+                              BorderSide(color: widget.accentColor, width: 2.0),
+                          borderRadius:
+                              const BorderRadius.all(Radius.circular(18.0)),
                         ),
-                        errorStyle: const TextStyle(fontSize: 12, height: 0.8),
+                        errorStyle:
+                            const TextStyle(fontSize: 12, height: 0.8),
                       ),
                       validator: (String? value) {
                         if (value == null || value.isEmpty) {
@@ -85,10 +88,13 @@ class _LoginWidgetState extends State<LoginWidget> {
                           borderSide: BorderSide(color: Colors.grey),
                         ),
                         focusedBorder: OutlineInputBorder(
-                          borderSide: BorderSide(color: widget.accentColor, width: 2.0),
-                          borderRadius: const BorderRadius.all(Radius.circular(18.0)),
+                          borderSide:
+                              BorderSide(color: widget.accentColor, width: 2.0),
+                          borderRadius:
+                              const BorderRadius.all(Radius.circular(18.0)),
                         ),
-                        errorStyle: const TextStyle(fontSize: 12, height: 0.8),
+                        errorStyle:
+                            const TextStyle(fontSize: 12, height: 0.8),
                       ),
                       validator: (String? value) {
                         if (value == null || value.isEmpty) {
@@ -103,26 +109,37 @@ class _LoginWidgetState extends State<LoginWidget> {
                     child: ElevatedButton(
                       onPressed: () async {
                         if (_formKey.currentState!.validate()) {
-                          // Verificar conectividad antes de login
+                          final email = _emailController.text.trim();
+                          final password = _passwordController.text.trim();
+
+                          // 🔹 Si NO hay conexión → guardar login pendiente en Hive
                           if (!authVM.isOnline) {
+                            await authVM.savePendingLogin(
+                              who: widget.who,
+                              email: email,
+                              password: password,
+                            );
+
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
-                                content: Text("No internet connection. Try again later."),
+                                content: Text(
+                                  "No connection: login stored locally and will retry when online.",
+                                ),
+                                backgroundColor: Colors.orange,
                               ),
                             );
                             return;
                           }
 
+                          // 🔹 Si hay conexión → login normal
                           try {
                             await authVM.login(
-                              widget.who,
-                              _emailController.text.trim(),
-                              _passwordController.text.trim(),
-                            );
+                                widget.who, email, password);
 
                             if (authVM.error == null) {
                               if (widget.who == "restaurant") {
-                                final uid = FirebaseAuth.instance.currentUser?.uid;
+                                final uid =
+                                    FirebaseAuth.instance.currentUser?.uid;
                                 if (uid != null) {
                                   Navigator.pushReplacement(
                                     context,
@@ -143,13 +160,15 @@ class _LoginWidgetState extends State<LoginWidget> {
                             } else {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
-                                  content: Text("Login failed: ${authVM.error}"),
+                                  content: Text(
+                                      "Login failed: ${authVM.error}"),
                                 ),
                               );
                             }
                           } catch (e) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text("Error: $e")),
+                              SnackBar(
+                                  content: Text("Error: $e")),
                             );
                           }
                         }
@@ -167,25 +186,6 @@ class _LoginWidgetState extends State<LoginWidget> {
                 ],
               ),
             ),
-
-            // Banner offline
-            if (!authVM.isOnline)
-              Positioned(
-                top: 0,
-                left: 0,
-                right: 0,
-                child: Container(
-                  color: Colors.red,
-                  padding: const EdgeInsets.all(8),
-                  child: const SafeArea(
-                    child: Text(
-                      "Offline mode: Internet not available",
-                      style: TextStyle(color: Colors.white),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                ),
-              ),
           ],
         );
       },
