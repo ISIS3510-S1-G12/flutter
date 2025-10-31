@@ -45,6 +45,9 @@ Future<void> main() async {
   await Hive.openBox('review_cache');   // para reseñas
   await Hive.openBox('favoritesBox');   // para favoritos del usuario
 
+  await Hive.openBox('pendingRegistrations'); // para registros pendientes
+
+
   final analyticsService = AnalyticsService();
   await analyticsService.init();
 

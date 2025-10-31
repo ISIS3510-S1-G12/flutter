@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-
 import '../../viewmodels/auth_viewmodel.dart';
 import '../pages/restaurant/restaurant_form_page.dart';
 import '../pages/user/user_form_page.dart';
@@ -47,6 +46,10 @@ class _RegisterWidgetState extends State<RegisterWidget> {
           children: [
             Form(
               key: _formKey,
+              child: Padding(
+    padding: EdgeInsets.only(
+      bottom: authVM.isOnline ? 0 : 50, 
+    ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: <Widget>[
@@ -167,14 +170,9 @@ class _RegisterWidgetState extends State<RegisterWidget> {
                   ElevatedButton(
                     onPressed: () async {
                       if (_formKey.currentState!.validate()) {
-                        if (!authVM.isOnline) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text("No internet connection. Try again later."),
-                            ),
-                          );
-                          return;
-                        }
+                        final name = _nameController.text.trim();
+                        final email = _emailController.text.trim();
+                        final password = _passwordController.text.trim();
 
                         if (_passwordController.text != _confirmPasswordController.text) {
                           ScaffoldMessenger.of(context).showSnackBar(
@@ -183,13 +181,27 @@ class _RegisterWidgetState extends State<RegisterWidget> {
                           return;
                         }
 
-                        try {
-                          await authVM.register(
-                            widget.who,
-                            _nameController.text.trim(),
-                            _emailController.text.trim(),
-                            _passwordController.text.trim(),
+                        // 🔹 Si NO hay conexión → guardar en Hive
+                        if (!authVM.isOnline) {
+                          await authVM.savePendingRegistration(
+                            who: widget.who,
+                            name: name,
+                            email: email,
+                            password: password,
                           );
+
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text("Sin conexión: datos guardados localmente."),
+                              backgroundColor: Colors.orange,
+                            ),
+                          );
+                          return;
+                        }
+
+                        // 🔹 Si hay conexión → registrar en Firebase
+                        try {
+                          await authVM.register(widget.who, name, email, password);
 
                           if (authVM.error == null) {
                             final uid = FirebaseAuth.instance.currentUser?.uid;
@@ -201,8 +213,8 @@ class _RegisterWidgetState extends State<RegisterWidget> {
                                   MaterialPageRoute(
                                     builder: (_) => RestaurantFormPage(
                                       restaurantId: uid,
-                                      initialName: _nameController.text.trim(),
-                                      initialEmail: _emailController.text.trim(),
+                                      initialName: name,
+                                      initialEmail: email,
                                     ),
                                   ),
                                 );
@@ -212,8 +224,8 @@ class _RegisterWidgetState extends State<RegisterWidget> {
                                   MaterialPageRoute(
                                     builder: (_) => UserFormPage(
                                       userId: uid,
-                                      initialName: _nameController.text.trim(),
-                                      initialEmail: _emailController.text.trim(),
+                                      initialName: name,
+                                      initialEmail: email,
                                     ),
                                   ),
                                 );
@@ -243,10 +255,11 @@ class _RegisterWidgetState extends State<RegisterWidget> {
                 ],
               ),
             ),
-            // Banner offline
+            ),
+            // 🔻 Banner offline
             if (!authVM.isOnline)
               Positioned(
-                top: 0,
+                bottom: 0,
                 left: 0,
                 right: 0,
                 child: Container(
