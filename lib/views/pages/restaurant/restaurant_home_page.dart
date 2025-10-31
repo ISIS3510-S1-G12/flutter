@@ -11,6 +11,8 @@ import 'restaurant_offers_page.dart';
 import 'package:provider/provider.dart';
 import 'package:moviles/viewmodels/visit_viewmodel.dart';
 import 'package:connectivity_plus/connectivity_plus.dart'; //  nuevo import
+import 'dart:isolate';
+
 
 class RestaurantHomePage extends StatelessWidget {
   final String restaurantId;
@@ -254,23 +256,25 @@ class RestaurantHomePage extends StatelessWidget {
           ),
 
           /// --- Lista de platos ---
-          StreamBuilder<List<Dish>>(
-            stream: DishRepository().getDishesByRestaurant(restaurant.id),
-            builder: (context, snapshot) {
-              if (!snapshot.hasData) {
-                return const Padding(
-                  padding: EdgeInsets.all(16),
-                  child: Center(child: CircularProgressIndicator()),
-                );
-              }
+              StreamBuilder<List<Dish>>(
+                stream: DishRepository().getDishesByRestaurant(restaurant.id),
+                builder: (context, snapshot) {
+                  if (!snapshot.hasData) {
+                    return const Padding(
+                      padding: EdgeInsets.all(16),
+                      child: Center(child: CircularProgressIndicator()),
+                    );
+                  }
 
-              final dishes = snapshot.data!;
-              if (dishes.isEmpty) {
-                return const Padding(
-                  padding: EdgeInsets.all(16),
-                  child: Text("No dishes yet."),
-                );
-              }
+                  final dishes = snapshot.data!;
+                  if (dishes.isEmpty) {
+                    return const Padding(
+                      padding: EdgeInsets.all(16),
+                      child: Text("No dishes yet."),
+                    );
+                  }
+                
+                  _processDishesInIsolate(dishes);
 
               return Padding(
                 padding:
@@ -435,5 +439,34 @@ class RestaurantHomePage extends StatelessWidget {
         );
       },
     );
+  }
+    Future<void> _processDishesInIsolate(List<Dish> dishes) async {
+    final receivePort = ReceivePort();
+    await Isolate.spawn(_heavyDishProcessing, [receivePort.sendPort, dishes]);
+
+    await for (var message in receivePort) {
+      debugPrint("✅ Average dish price processed in isolate: \$${message.toStringAsFixed(2)}");
+      break; // Cerramos después de recibir un solo resultado
+    }
+  }
+
+  static void _heavyDishProcessing(List<dynamic> args) {
+    SendPort sendPort = args[0];
+    List<Dish> dishes = args[1];
+
+    if (dishes.isEmpty) {
+      sendPort.send(0.0);
+      return;
+    }
+
+    // Simular una tarea pesada (ej. cálculo del promedio de precios)
+    double total = 0;
+    for (var dish in dishes) {
+      total += dish.price;
+    }
+    final avgPrice = total / dishes.length;
+
+    // Enviar el resultado al hilo principal
+    sendPort.send(avgPrice);
   }
 }
