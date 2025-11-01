@@ -9,6 +9,7 @@ import '../../../models/offer.dart';
 import '../../../repositories/offer_repository.dart';
 import '../../../viewmodels/offer_viewmodel.dart';
 import '../../../viewmodels/user_viewmodel.dart';
+import '../../../viewmodels/visit_viewmodel.dart';
 import 'offer_detail_page.dart';
 
 class UserOfertasPage extends StatefulWidget {
@@ -129,11 +130,9 @@ class _UserOfertasPageState extends State<UserOfertasPage> {
                           decoration: InputDecoration(
                             hintText: "Buscar ofertas...",
                             hintStyle: const TextStyle(color: Colors.white),
-                            prefixIcon:
-                                const Icon(Icons.search, color: Colors.white),
+                            prefixIcon: const Icon(Icons.search, color: Colors.white),
                             filled: true,
-                            fillColor:
-                                const Color.fromARGB(255, 214, 145, 104),
+                            fillColor: const Color.fromARGB(255, 214, 145, 104),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(30),
                               borderSide: BorderSide.none,
@@ -153,8 +152,7 @@ class _UserOfertasPageState extends State<UserOfertasPage> {
                           borderRadius: BorderRadius.circular(30),
                         ),
                         child: IconButton(
-                          icon: const Icon(Icons.filter_list,
-                              color: Colors.white),
+                          icon: const Icon(Icons.filter_list, color: Colors.white),
                           onPressed: () {
                             _showFilterOptions(context);
                           },
@@ -169,14 +167,11 @@ class _UserOfertasPageState extends State<UserOfertasPage> {
                   child: StreamBuilder<List<Offer>>(
                     stream: stream,
                     builder: (context, snapshot) {
-                      if (snapshot.connectionState ==
-                          ConnectionState.waiting) {
-                        return const Center(
-                            child: CircularProgressIndicator());
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(child: CircularProgressIndicator());
                       }
                       if (snapshot.hasError) {
-                        return Center(
-                            child: Text("Error: ${snapshot.error}"));
+                        return Center(child: Text("Error: ${snapshot.error}"));
                       }
 
                       var offers = snapshot.data ?? [];
@@ -186,8 +181,7 @@ class _UserOfertasPageState extends State<UserOfertasPage> {
                         offers = offers.where((o) {
                           final title = o.title.toLowerCase();
                           final desc = o.description.toLowerCase();
-                          return title.contains(_searchQuery) ||
-                              desc.contains(_searchQuery);
+                          return title.contains(_searchQuery) || desc.contains(_searchQuery);
                         }).toList();
                       }
 
@@ -203,15 +197,11 @@ class _UserOfertasPageState extends State<UserOfertasPage> {
                       }
 
                       // 💰 Mostrar porcentaje dentro del presupuesto
-                      final userVM =
-                          Provider.of<UserViewModel>(context, listen: false);
+                      final userVM = Provider.of<UserViewModel>(context, listen: false);
                       final user = userVM.currentUser;
                       final budget = userVM.getBudget();
 
-                      if (!_dialogShown &&
-                          user != null &&
-                          budget != null &&
-                          offers.isNotEmpty) {
+                      if (!_dialogShown && user != null && budget != null && offers.isNotEmpty) {
                         final today = DateTime.now();
                         final todayOffers = offers.where((o) {
                           return o.valid_from != null &&
@@ -244,8 +234,7 @@ class _UserOfertasPageState extends State<UserOfertasPage> {
                                     ),
                                     actions: [
                                       TextButton(
-                                        onPressed: () =>
-                                            Navigator.pop(context),
+                                        onPressed: () => Navigator.pop(context),
                                         child: const Text("OK"),
                                       ),
                                     ],
@@ -274,8 +263,7 @@ class _UserOfertasPageState extends State<UserOfertasPage> {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (_) =>
-                                      OfferDetailPage(offerId: offer.id!),
+                                  builder: (_) => OfferDetailPage(offerId: offer.id!),
                                 ),
                               );
                             },
@@ -288,21 +276,17 @@ class _UserOfertasPageState extends State<UserOfertasPage> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  if (offer.image != null &&
-                                      offer.image!.isNotEmpty)
+                                  if (offer.image != null && offer.image!.isNotEmpty)
                                     ClipRRect(
                                       borderRadius:
-                                          const BorderRadius.vertical(
-                                              top: Radius.circular(12)),
+                                          const BorderRadius.vertical(top: Radius.circular(12)),
                                       child: CachedNetworkImage(
                                         imageUrl: offer.image!,
                                         height: 160,
                                         width: double.infinity,
                                         fit: BoxFit.cover,
                                         placeholder: (context, url) =>
-                                            const Center(
-                                                child:
-                                                    CircularProgressIndicator()),
+                                            const Center(child: CircularProgressIndicator()),
                                         errorWidget: (context, url, error) =>
                                             const Icon(Icons.broken_image,
                                                 size: 50, color: Colors.grey),
@@ -311,8 +295,7 @@ class _UserOfertasPageState extends State<UserOfertasPage> {
                                   Padding(
                                     padding: const EdgeInsets.all(12),
                                     child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
+                                      crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
                                         Text(
                                           offer.title,
@@ -330,13 +313,11 @@ class _UserOfertasPageState extends State<UserOfertasPage> {
                                               color: Colors.green,
                                               fontWeight: FontWeight.bold),
                                         ),
-                                        if (offer.valid_from != null &&
-                                            offer.valid_to != null)
+                                        if (offer.valid_from != null && offer.valid_to != null)
                                           Text(
                                             "Valid: ${offer.valid_from!.toLocal().toString().split(' ')[0]} - ${offer.valid_to!.toLocal().toString().split(' ')[0]}",
                                             style: const TextStyle(
-                                                fontSize: 12,
-                                                color: Colors.grey),
+                                                fontSize: 12, color: Colors.grey),
                                           ),
                                       ],
                                     ),
@@ -362,9 +343,8 @@ class _UserOfertasPageState extends State<UserOfertasPage> {
   void _showFilterOptions(BuildContext context) {
     showModalBottomSheet(
       context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
+      shape:
+          const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (context) {
         return Padding(
           padding: const EdgeInsets.all(20),

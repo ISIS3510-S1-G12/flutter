@@ -29,28 +29,35 @@ class _OfferDetailPageState extends State<OfferDetailPage> {
     });
   }
 
-  Future<void> _loadRestaurantName() async {
-    try {
+  Future<void> _loadRestaurantName() {
       final offer = context.read<OfferViewModel>().selectedOffer;
-      if (offer == null) return;
+      if (offer == null) return Future.value();
 
       final restaurantId = offer.restaurant_id.trim();
-      final restaurantDoc = await FirebaseFirestore.instance
+
+      return FirebaseFirestore.instance
           .collection('Restaurants')
           .doc(restaurantId)
-          .get();
-
-      setState(() {
-        restaurantName = restaurantDoc.data()?['name'] ?? 'Unknown';
-        _loadingRestaurant = false;
-      });
-    } catch (e) {
-      setState(() {
-        restaurantName = 'Error loading name';
-        _loadingRestaurant = false;
-      });
+          .get()
+          .then((restaurantDoc) {
+            // ✅ Handler de éxito
+            setState(() {
+              restaurantName = restaurantDoc.data()?['name'] ?? 'Unknown';
+            });
+          })
+          .catchError((e) {
+            // ⚠️ Handler de error
+            setState(() {
+              restaurantName = 'Error loading name';
+            });
+          })
+          .whenComplete(() {
+            // 🔚 Handler que se ejecuta siempre
+            setState(() {
+              _loadingRestaurant = false;
+            });
+          });
     }
-  }
 
   @override
   Widget build(BuildContext context) {

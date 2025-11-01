@@ -1,19 +1,78 @@
-// lib/views/pages/dish/dish_form_page.dart
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:moviles/models/dish.dart';
 import 'package:moviles/viewmodels/dish_form_viewmodel.dart';
 
-class DishFormPage extends StatelessWidget {
+class DishFormPage extends StatefulWidget {
   final String restaurantId;
   final Dish? dish;
 
   const DishFormPage({super.key, required this.restaurantId, this.dish});
 
   @override
+  State<DishFormPage> createState() => _DishFormPageState();
+}
+
+class _DishFormPageState extends State<DishFormPage> {
+  bool _isDialogShowing = false;
+
+  Future<bool> _checkConnectivity() async {
+    final result = await Connectivity().checkConnectivity();
+    return result != ConnectivityResult.none;
+  }
+
+  void _showOfflineDialog(BuildContext context, DishFormViewModel vm) {
+    if (_isDialogShowing) return; // evita duplicar el diálogo
+    _isDialogShowing = true;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false, // obliga a decidir
+      builder: (context) => AlertDialog(
+        title: const Text("Without connection"),
+        content: const Text(
+          "You dont have connection",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              _isDialogShowing = false;
+              await vm.save(context);
+            },
+            child: const Text("Guardar de todas formas"),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _isDialogShowing = false;
+            },
+            child: const Text("Cancelar"),
+          ),
+        ],
+      ),
+    ).then((_) {
+      _isDialogShowing = false;
+    });
+  }
+
+  Future<void> _handleSave(BuildContext context, DishFormViewModel vm) async {
+    final isOnline = await _checkConnectivity();
+
+    if (isOnline) {
+      await vm.save(context);
+    } else {
+      _showOfflineDialog(context, vm);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
-      create: (_) => DishFormViewModel(restaurantId: restaurantId, dish: dish),
+      create: (_) =>
+          DishFormViewModel(restaurantId: widget.restaurantId, dish: widget.dish),
       child: Consumer<DishFormViewModel>(
         builder: (context, vm, _) {
           return Scaffold(
@@ -41,10 +100,10 @@ class DishFormPage extends StatelessWidget {
                       initialValue: vm.price != 0.0 ? vm.price.toString() : '',
                       decoration: const InputDecoration(labelText: "Price"),
                       keyboardType: TextInputType.number,
-                      validator: (value) => value == null ||
-                              double.tryParse(value) == null
-                          ? "Enter a valid price"
-                          : null,
+                      validator: (value) =>
+                          value == null || double.tryParse(value) == null
+                              ? "Enter a valid price"
+                              : null,
                       onSaved: (value) => vm.price = double.parse(value!),
                     ),
 
@@ -72,7 +131,7 @@ class DishFormPage extends StatelessWidget {
 
                     // Dish Type
                     DropdownButtonFormField<String>(
-                      initialValue: vm.dishType,
+                      value: vm.dishType.isNotEmpty ? vm.dishType : null,
                       decoration: const InputDecoration(labelText: "Dish Type"),
                       items: const [
                         DropdownMenuItem(value: "main", child: Text("Main")),
@@ -97,11 +156,11 @@ class DishFormPage extends StatelessWidget {
 
                     const SizedBox(height: 16),
 
-                    // Imagen desde galería o URL
+                    // Imagen
                     Row(
                       children: [
                         ElevatedButton.icon(
-                          onPressed: () => vm.pickImage(),
+                          onPressed: vm.pickImage,
                           icon: const Icon(Icons.image),
                           label: const Text("Pick Image"),
                         ),
@@ -131,9 +190,10 @@ class DishFormPage extends StatelessWidget {
 
                     const SizedBox(height: 20),
 
+                    // Botón guardar
                     ElevatedButton(
+                      onPressed: () => _handleSave(context, vm),
                       child: const Text("Save"),
-                      onPressed: () => vm.save(context),
                     ),
                   ],
                 ),
