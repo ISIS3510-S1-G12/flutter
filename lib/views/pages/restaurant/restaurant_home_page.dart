@@ -1,4 +1,3 @@
-// lib/views/pages/restaurant/restaurant_home_page.dart
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:moviles/models/restaurant.dart';
@@ -24,6 +23,7 @@ class RestaurantHomePage extends StatefulWidget {
 
 class _RestaurantHomePageState extends State<RestaurantHomePage> {
   late final Stream<List<Dish>> _dishesStream;
+  bool _isOffline = false; // 🔹 Estado para conexión
 
   @override
   void initState() {
@@ -31,112 +31,155 @@ class _RestaurantHomePageState extends State<RestaurantHomePage> {
 
     final dishRepository = DishRepository();
 
-    // 🔸 Inicializamos el stream como broadcast
     _dishesStream =
         dishRepository.getDishesByRestaurant(widget.restaurantId).asBroadcastStream();
 
-    // 🔸 Detectar reconexión para sincronizar platos locales
+    // 🔹 Escuchar cambios de conectividad
     Connectivity().onConnectivityChanged.listen((status) async {
+      final offlineNow = status == ConnectivityResult.none;
+
+      if (mounted && offlineNow != _isOffline) {
+        setState(() {
+          _isOffline = offlineNow;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: offlineNow ? Colors.red : Colors.green,
+            content: Text(
+              offlineNow
+                  ? "Offline mode: No internet connection"
+                  : "Back online",
+            ),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+
+      // 🔹 Si vuelve la conexión, sincroniza los platos
       if (status != ConnectivityResult.none) {
         await dishRepository.syncLocalDishes();
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Local dishes synced to Firestore")),
-          );
-        }
       }
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<DocumentSnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('Restaurants')
-          .doc(widget.restaurantId)
-          .snapshots(),
-      builder: (context, snapshot) {
-        if (!snapshot.hasData) {
-          return const Scaffold(
-              body: Center(child: CircularProgressIndicator()));
-        }
+    return Stack(
+      children: [
+        StreamBuilder<DocumentSnapshot>(
+          stream: FirebaseFirestore.instance
+              .collection('Restaurants')
+              .doc(widget.restaurantId)
+              .snapshots(),
+          builder: (context, snapshot) {
+            if (!snapshot.hasData) {
+              return const Scaffold(
+                body: Center(child: CircularProgressIndicator()),
+              );
+            }
 
-        final data = snapshot.data!.data() as Map<String, dynamic>?;
+            final data = snapshot.data!.data() as Map<String, dynamic>?;
 
-        if (data == null) {
-          return const Scaffold(
-              body: Center(child: Text("Restaurant not found")));
-        }
+            if (data == null) {
+              return const Scaffold(
+                body: Center(child: Text("Restaurant not found")),
+              );
+            }
 
-        final restaurant = Restaurant(
-          id: snapshot.data!.id,
-          name: data['name'] ?? '',
-          typeOfFood: data['typeOfFood'] ?? '',
-          rating: (data['rating'] is num)
-              ? (data['rating'] as num).toDouble()
-              : 0.0,
-          offer: data['offer'] ?? false,
-          imageUrl: data['imageUrl'] ?? '',
-          address: data['address'] ?? '',
-          email: data['email'] ?? '',
-          openingTime:
-              int.tryParse(data['opening_time']?.toString() ?? '0') ?? 0,
-          closingTime:
-              int.tryParse(data['closing_time']?.toString() ?? '0') ?? 0,
-        );
+            final restaurant = Restaurant(
+              id: snapshot.data!.id,
+              name: data['name'] ?? '',
+              typeOfFood: data['typeOfFood'] ?? '',
+              rating: (data['rating'] is num)
+                  ? (data['rating'] as num).toDouble()
+                  : 0.0,
+              offer: data['offer'] ?? false,
+              imageUrl: data['imageUrl'] ?? '',
+              address: data['address'] ?? '',
+              email: data['email'] ?? '',
+              openingTime:
+                  int.tryParse(data['opening_time']?.toString() ?? '0') ?? 0,
+              closingTime:
+                  int.tryParse(data['closing_time']?.toString() ?? '0') ?? 0,
+            );
 
-        return DefaultTabController(
-          length: 3,
-          child: Scaffold(
-            backgroundColor: Colors.white,
-            appBar: AppBar(
-              backgroundColor: Colors.white,
-              elevation: 0,
-              title: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Image.asset(
-                    "images/483891256-e6bd4888-8904-4028-911f-dff62cc98965.png",
-                    height: MediaQuery.of(context).size.height * 0.08,
+            return DefaultTabController(
+              length: 3,
+              child: Scaffold(
+                backgroundColor: Colors.white,
+                appBar: AppBar(
+                  backgroundColor: Colors.white,
+                  elevation: 0,
+                  title: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Image.asset(
+                        "images/483891256-e6bd4888-8904-4028-911f-dff62cc98965.png",
+                        height: MediaQuery.of(context).size.height * 0.08,
+                      ),
+                      const CircleAvatar(
+                        radius: 28,
+                        backgroundColor: Color.fromARGB(255, 214, 145, 104),
+                        child: Icon(Icons.restaurant, color: Colors.white),
+                      ),
+                    ],
                   ),
-                  const CircleAvatar(
-                    radius: 28,
-                    backgroundColor: Color.fromARGB(255, 214, 145, 104),
-                    child: Icon(Icons.restaurant, color: Colors.white),
-                  ),
-                ],
-              ),
-              bottom: const PreferredSize(
-                preferredSize: Size.fromHeight(70),
-                child: Column(
-                  children: [
-                    Divider(thickness: 1, color: Colors.black, height: 1),
-                    TabBar(
-                      tabAlignment: TabAlignment.fill,
-                      isScrollable: false,
-                      labelColor: Colors.black,
-                      indicatorColor: Color.fromARGB(255, 214, 145, 104),
-                      tabs: [
-                        Tab(text: "Menu"),
-                        Tab(text: "Offers"),
-                        Tab(text: "Reviews"),
+                  bottom: const PreferredSize(
+                    preferredSize: Size.fromHeight(70),
+                    child: Column(
+                      children: [
+                        Divider(thickness: 1, color: Colors.black, height: 1),
+                        TabBar(
+                          tabAlignment: TabAlignment.fill,
+                          isScrollable: false,
+                          labelColor: Colors.black,
+                          indicatorColor: Color.fromARGB(255, 214, 145, 104),
+                          tabs: [
+                            Tab(text: "Menu"),
+                            Tab(text: "Offers"),
+                            Tab(text: "Reviews"),
+                          ],
+                        ),
+                        Divider(thickness: 1, color: Colors.black, height: 1),
                       ],
                     ),
-                    Divider(thickness: 1, color: Colors.black, height: 1),
+                  ),
+                ),
+                body: TabBarView(
+                  children: [
+                    _buildMenuTab(context, restaurant),
+                    RestaurantOffersPage(restaurantId: restaurant.id),
+                    _buildReviewsTab(restaurant),
                   ],
                 ),
               ),
-            ),
-            body: TabBarView(
-              children: [
-                _buildMenuTab(context, restaurant),
-                RestaurantOffersPage(restaurantId: restaurant.id),
-                _buildReviewsTab(restaurant),
-              ],
+            );
+          },
+        ),
+
+        // 🔹 Banner visible solo si está offline
+        if (_isOffline)
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: Container(
+              color: Colors.red,
+              padding: const EdgeInsets.all(8),
+              child: const SafeArea(
+                child: Text(
+                  "⚠️ Offline — No internet connection",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
             ),
           ),
-        );
-      },
+      ],
     );
   }
 
@@ -202,8 +245,7 @@ class _RestaurantHomePageState extends State<RestaurantHomePage> {
                 margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: const Color.fromARGB(255, 214, 145, 104)
-                      .withOpacity(0.1),
+                  color: const Color.fromARGB(255, 214, 145, 104).withOpacity(0.1),
                   borderRadius: BorderRadius.circular(12),
                   border:
                       Border.all(color: const Color.fromARGB(255, 214, 145, 104)),
@@ -337,19 +379,23 @@ class _RestaurantHomePageState extends State<RestaurantHomePage> {
           const SizedBox(height: 16),
           ElevatedButton.icon(
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color.fromARGB(255, 214, 145, 104),
+              backgroundColor: _isOffline
+                  ? Colors.grey
+                  : const Color.fromARGB(255, 214, 145, 104),
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12)),
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
             ),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => EditMenuPage(restaurantId: restaurant.id),
-                ),
-              );
-            },
+            onPressed: _isOffline
+                ? null
+                : () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => EditMenuPage(restaurantId: restaurant.id),
+                      ),
+                    );
+                  },
             icon: const Icon(Icons.add, color: Colors.white),
             label: const Text("Create Dish",
                 style: TextStyle(color: Colors.white, fontSize: 16)),
@@ -401,8 +447,8 @@ class _RestaurantHomePageState extends State<RestaurantHomePage> {
                             if (!userSnapshot.hasData) {
                               return const Text("Loading...");
                             }
-                            final userData = userSnapshot.data!.data()
-                                as Map<String, dynamic>?;
+                            final userData =
+                                userSnapshot.data!.data() as Map<String, dynamic>?;
                             final userName =
                                 userData?['name'] ?? "Unknown User";
                             return Text(
@@ -480,7 +526,3 @@ class _RestaurantHomePageState extends State<RestaurantHomePage> {
     sendPort.send(avgPrice);
   }
 }
-
-
-
-

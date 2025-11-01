@@ -3,24 +3,88 @@ import 'package:flutter/material.dart';
 import 'package:moviles/models/dish.dart';
 import 'package:moviles/repositories/dish_repository.dart';
 import 'package:moviles/views/pages/restaurant/dish_form_page.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 
-
-class EditMenuPage extends StatelessWidget {
+class EditMenuPage extends StatefulWidget {
   final String restaurantId;
 
   const EditMenuPage({super.key, required this.restaurantId});
 
   @override
-  Widget build(BuildContext context) {
-    final repository = DishRepository();
+  State<EditMenuPage> createState() => _EditMenuPageState();
+}
 
+class _EditMenuPageState extends State<EditMenuPage> {
+  final _repository = DishRepository();
+  late final Stream<List<Dish>> _dishesStream;
+  bool _isOffline = false;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _dishesStream =
+        _repository.getDishesByRestaurant(widget.restaurantId).asBroadcastStream();
+
+    // Escuchar cambios de conexión directamente desde Connectivity()
+    Connectivity().onConnectivityChanged.listen((result) {
+      final offline = result == ConnectivityResult.none;
+
+      if (offline && !_isOffline) {
+        _isOffline = true;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) _showOfflineDialog();
+        });
+      } else if (!offline && _isOffline) {
+        _isOffline = false;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) _showBackOnlineDialog();
+        });
+      }
+    });
+  }
+  void _showOfflineDialog() {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text("Sin conexión"),
+        content: const Text("Estás sin conexión a internet. "
+            "Puedes seguir viendo los platos en modo offline."),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("OK"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showBackOnlineDialog() {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text("De nuevo en línea"),
+        content: const Text("La conexión ha sido restablecida."),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("OK"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Edit Menu"),
         backgroundColor: const Color.fromARGB(255, 39, 111, 121),
       ),
       body: StreamBuilder<List<Dish>>(
-        stream: repository.getDishesByRestaurant(restaurantId),
+        stream: _dishesStream,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
@@ -73,7 +137,7 @@ class EditMenuPage extends StatelessWidget {
                             context,
                             MaterialPageRoute(
                               builder: (_) => DishFormPage(
-                                restaurantId: restaurantId,
+                                restaurantId: widget.restaurantId,
                                 dish: dish,
                               ),
                             ),
@@ -106,7 +170,7 @@ class EditMenuPage extends StatelessWidget {
                           );
 
                           if (confirm == true) {
-                            await repository.deleteDish(dish.id);
+                            await _repository.deleteDish(dish.id);
                           }
                         },
                       ),
@@ -124,7 +188,7 @@ class EditMenuPage extends StatelessWidget {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (_) => DishFormPage(restaurantId: restaurantId),
+              builder: (_) => DishFormPage(restaurantId: widget.restaurantId),
             ),
           );
         },

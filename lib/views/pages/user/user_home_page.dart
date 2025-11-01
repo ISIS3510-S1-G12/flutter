@@ -141,41 +141,43 @@ class _UserHomePageState extends State<UserHomePage>
     });
 
     //  Mensaje de última visita
-    Future.delayed(const Duration(seconds: 10), () async {
-      if (!mounted) return;
-      final visitVM = context.read<VisitViewModel>();
-      await visitVM.loadDaysSinceLastVisitGlobal();
-      if (!mounted) return;
+    Future.delayed(const Duration(seconds: 10), () {
+  if (!mounted) return;
+  final visitVM = context.read<VisitViewModel>();
 
-      int? days = visitVM.daysSinceLastVisitGlobal;
-      String message;
+  visitVM.loadDaysSinceLastVisitGlobal().then((_) {
+    if (!mounted) return;
 
-      if (days == null) {
-        message = "You have not visited any restaurant yet.";
-      } else if (days == 0) {
-        message = "You visited a restaurant today.";
-      } else if (days == 1) {
-        message = "It’s been 1 day since your last restaurant visit.";
-      } else {
-        message = "It’s been $days days since your last restaurant visit.";
-      }
+    int? days = visitVM.daysSinceLastVisitGlobal;
+    String message;
 
-      if (mounted) {
-        showDialog(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: const Text("Last visit"),
-            content: Text(message),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text("OK"),
-              ),
-            ],
-          ),
-        );
-      }
-    });
+    if (days == null) {
+      message = "You have not visited any restaurant yet.";
+    } else if (days == 0) {
+      message = "You visited a restaurant today.";
+    } else if (days == 1) {
+      message = "It’s been 1 day since your last restaurant visit.";
+    } else {
+      message = "It’s been $days days since your last restaurant visit.";
+    }
+
+    if (mounted) {
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text("Last visit"),
+          content: Text(message),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("OK"),
+            ),
+          ],
+        ),
+      );
+    }
+  });
+});
   }
 
   Future<void> _loadRestaurantLocations(RestaurantViewModel vm) async {
