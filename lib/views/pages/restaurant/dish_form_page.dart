@@ -20,50 +20,66 @@ class _DishFormPageState extends State<DishFormPage> {
 
   Future<bool> _checkConnectivity() async {
     final result = await Connectivity().checkConnectivity();
+    print('>>> Connectivity result: $result');
     return result != ConnectivityResult.none;
   }
 
   void _showOfflineDialog(BuildContext context, DishFormViewModel vm) {
-    if (_isDialogShowing) return; // evita duplicar el diálogo
+    print('>>> Intentando mostrar diálogo offline...');
+    if (_isDialogShowing) {
+      print('>>> Diálogo ya visible, se cancela');
+      return;
+    }
     _isDialogShowing = true;
 
     showDialog(
       context: context,
       barrierDismissible: false, // obliga a decidir
-      builder: (context) => AlertDialog(
-        title: const Text("Without connection"),
-        content: const Text(
-          "You dont have connection",
-        ),
-        actions: [
-          TextButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              _isDialogShowing = false;
-              await vm.save(context);
-            },
-            child: const Text("Guardar de todas formas"),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _isDialogShowing = false;
-            },
-            child: const Text("Cancelar"),
-          ),
-        ],
-      ),
+      builder: (dialogContext) {
+        print('>>> Mostrando diálogo offline en pantalla');
+        return AlertDialog(
+          title: const Text("Without connection"),
+          content: const Text("You don’t have connection."),
+          actions: [
+            TextButton(
+              onPressed: () async {
+                print('>>> Usuario eligió "Guardar de todas formas"');
+                Navigator.pop(dialogContext);
+                _isDialogShowing = false;
+
+                // Usa contexto raíz (no del diálogo)
+                final rootContext = Navigator.of(context, rootNavigator: true).context;
+                await vm.save(rootContext);
+              },
+              child: const Text("Guardar de todas formas"),
+            ),
+            TextButton(
+              onPressed: () {
+                print('>>> Usuario canceló el guardado offline');
+                Navigator.pop(dialogContext);
+                _isDialogShowing = false;
+              },
+              child: const Text("Cancelar"),
+            ),
+          ],
+        );
+      },
     ).then((_) {
+      print('>>> Diálogo cerrado');
       _isDialogShowing = false;
     });
   }
 
   Future<void> _handleSave(BuildContext context, DishFormViewModel vm) async {
+    print('>>> Presionó Save, verificando conectividad...');
     final isOnline = await _checkConnectivity();
+    print('>>> Resultado conectividad: ${isOnline ? "ONLINE" : "OFFLINE"}');
 
     if (isOnline) {
+      print('>>> Guardando en modo ONLINE...');
       await vm.save(context);
     } else {
+      print('>>> Guardando en modo OFFLINE, mostrando diálogo...');
       _showOfflineDialog(context, vm);
     }
   }

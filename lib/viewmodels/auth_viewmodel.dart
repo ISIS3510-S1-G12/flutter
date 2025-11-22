@@ -130,7 +130,7 @@ class AuthViewModel extends ChangeNotifier {
           email: data['email'],
           password: data['password'],
         );
-        print("✅ Registro sincronizado: ${data['email']}");
+        print(" Registro sincronizado: ${data['email']}");
         await box.deleteAt(i);
       } catch (e) {
         print("⚠️ Error al sincronizar ${data['email']}: $e");

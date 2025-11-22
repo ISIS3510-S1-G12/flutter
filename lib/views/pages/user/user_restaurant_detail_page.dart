@@ -16,7 +16,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
-import '/utils/offline_sync_helper.dart'; // ✅ importa el helper
+import '/utils/offline_sync_helper.dart'; //  importa el helper
 
 class UserRestaurantDetailPage extends StatefulWidget {
   final Restaurant restaurant;
@@ -39,7 +39,7 @@ class _UserRestaurantDetailPageState extends State<UserRestaurantDetailPage> {
     super.initState();
     _offlineHelper = OfflineSyncHelper()..addListener(_onConnectivityChange);
 
-    // ✅ FIX: convertir en broadcast stream para evitar error al volver de Offers a Menu
+    //  FIX: convertir en broadcast stream para evitar error al volver de Offers a Menu
     _dishesStream = DishRepository()
         .getDishesByRestaurant(widget.restaurant.id)
         .asBroadcastStream();
@@ -341,46 +341,54 @@ class _UserRestaurantDetailPageState extends State<UserRestaurantDetailPage> {
                               margin: const EdgeInsets.all(16),
                               decoration: BoxDecoration(
                                 borderRadius: BorderRadius.circular(12),
-                                border:
-                                    Border.all(color: Colors.grey.shade300),
+                                border: Border.all(color: Colors.grey.shade300),
                               ),
                               child: ClipRRect(
                                 borderRadius: BorderRadius.circular(12),
-                                child: _restaurantLocation == null
+                                child: !_offlineHelper.isOnline
                                     ? const Center(
-                                        child: CircularProgressIndicator(),
-                                      )
-                                    : FlutterMap(
-                                        options: MapOptions(
-                                          initialCenter: _restaurantLocation!,
-                                          maxZoom: 13.0,
-                                        ),
-                                        children: [
-                                          TileLayer(
-                                            urlTemplate:
-                                                "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-                                            userAgentPackageName:
-                                                'com.example.moviles',
+                                        child: Text(
+                                          "The map cannot be shown because there is no internet connection.",
+                                          textAlign: TextAlign.center,
+                                          style: TextStyle(
+                                            color: Colors.grey,
+                                            fontSize: 14,
+                                            fontStyle: FontStyle.italic,
                                           ),
-                                          MarkerLayer(
-                                            markers: [
-                                              Marker(
-                                                point: _restaurantLocation!,
-                                                width: 60,
-                                                height: 60,
-                                                child: const Icon(
-                                                  Icons.location_pin,
-                                                  color: Color.fromARGB(
-                                                      255, 170, 98, 153),
-                                                  size: 40,
-                                                ),
+                                        ),
+                                      )
+                                    : _restaurantLocation == null
+                                        ? const Center(child: CircularProgressIndicator())
+                                        : FlutterMap(
+                                            options: MapOptions(
+                                              initialCenter: _restaurantLocation!,
+                                              maxZoom: 13.0,
+                                            ),
+                                            children: [
+                                              TileLayer(
+                                                urlTemplate:
+                                                    "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+                                                userAgentPackageName: 'com.example.moviles',
+                                              ),
+                                              MarkerLayer(
+                                                markers: [
+                                                  Marker(
+                                                    point: _restaurantLocation!,
+                                                    width: 60,
+                                                    height: 60,
+                                                    child: const Icon(
+                                                      Icons.location_pin,
+                                                      color: Color.fromARGB(255, 170, 98, 153),
+                                                      size: 40,
+                                                    ),
+                                                  ),
+                                                ],
                                               ),
                                             ],
                                           ),
-                                        ],
-                                      ),
                               ),
                             ),
+
 
                             // --- PLATOS ---
                             StreamBuilder<List<Dish>>(

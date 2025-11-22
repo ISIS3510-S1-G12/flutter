@@ -14,6 +14,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 
 import 'services/analytics_service.dart';
 import 'services/location_permission_service.dart';
+import 'services/connectivity_service.dart'; 
 
 import 'package:moviles/repositories/auth_repository.dart';
 import 'package:moviles/repositories/user_repository.dart';
@@ -38,15 +39,13 @@ Future<void> main() async {
   print('Firebase initialized: ${app.name}');
 
   await Hive.initFlutter();
-  await Hive.openBox('review_cache'); //  Caja donde guardamos stats de reseñas
-  await Hive.openBox('local_reviews'); //  Reseñas offline sin conexión
-  await Hive.openBox('user_reviews_cache'); //  Historial de usuario cacheado
-  await Hive.openBox('favoritesBox');   // para favoritos del usuario
-
-  await Hive.openBox('pendingRegistrations'); // para registros pendientes
+  await Hive.openBox('review_cache'); 
+  await Hive.openBox('local_reviews'); 
+  await Hive.openBox('user_reviews_cache'); 
+  await Hive.openBox('favoritesBox');   
+  await Hive.openBox('pendingRegistrations'); 
   await Hive.openBox('favorites_offline');
   await Hive.openBox('visits_offline');
-
 
   final analyticsService = AnalyticsService();
   await analyticsService.init();
@@ -80,10 +79,11 @@ class Sumaq extends StatelessWidget {
         ChangeNotifierProvider(
           create: (_) => ReviewViewModel(
             ReviewRepository(),
-           
           ),
         ),
-        
+        ChangeNotifierProvider(
+          create: (_) => ConnectivityService(), // ✅ NUEVO PROVIDER GLOBAL
+        ),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,

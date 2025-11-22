@@ -85,7 +85,7 @@ class UserRestaurantDetailViewModel extends ChangeNotifier {
     if (user == null || restaurant.id == null) {
       isFavorite = false;
       notifyListeners();
-      return Future.value(); // se devuelve un Future vacío
+      return Future.value(); 
     }
 
     final userRef = FirebaseFirestore.instance.collection('Users').doc(user.uid);

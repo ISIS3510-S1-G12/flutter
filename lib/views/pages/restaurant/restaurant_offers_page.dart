@@ -19,12 +19,12 @@ class _RestaurantOffersPageState extends State<RestaurantOffersPage> {
   final OfferRepository _offerRepo = OfferRepository();
 
   bool _isOnline = true;
-  final Connectivity _connectivity = Connectivity(); // ✅ inicializado aquí
+  final Connectivity _connectivity = Connectivity(); //  inicializado aquí
 
   @override
   void initState() {
     super.initState();
-    _listenToConnectivity(); // ✅ empieza a escuchar
+    _listenToConnectivity(); //  empieza a escuchar
     _syncLocalOffers();
   }
 
@@ -59,7 +59,7 @@ class _RestaurantOffersPageState extends State<RestaurantOffersPage> {
   Future<void> _syncLocalOffers() async {
     try {
       await _offerRepo.syncOffers();
-      print("✅ Local offers synced automatically");
+      print(" Local offers synced automatically");
     } catch (e) {
       print("Error syncing offers: $e");
     }

@@ -47,8 +47,8 @@ class WriteReviewViewModel extends ChangeNotifier {
       }
 
       await FirebaseFirestore.instance.collection("Reviews").add({
-        "restaurant_id": restaurantId, // ✅ solo el id
-        "user_id": user.uid,           // ✅ solo el id
+        "restaurant_id": restaurantId, //  solo el id
+        "user_id": user.uid,           //  solo el id
         "stars": rating.toInt(),
         "comment": reviewController.text.trim(),
         "imageUrl": imageUrl,
