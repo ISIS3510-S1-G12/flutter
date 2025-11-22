@@ -141,7 +141,7 @@ class _UserHomePageState extends State<UserHomePage>
     });
 
     //  Mensaje de última visita
-    Future.delayed(const Duration(seconds: 10), () {
+  Future.delayed(const Duration(seconds: 10), () {
   if (!mounted) return;
   final visitVM = context.read<VisitViewModel>();
 
@@ -180,29 +180,38 @@ class _UserHomePageState extends State<UserHomePage>
 });
   }
 
-  Future<void> _loadRestaurantLocations(RestaurantViewModel vm) async {
+  Future<void> _loadRestaurantLocations(RestaurantViewModel vm) {
     final List<LatLng> coords = [];
 
-    for (final r in vm.filteredRestaurants) {
-      try {
-        if (r.address != null && r.address!.isNotEmpty) {
-          final locations = await locationFromAddress(r.address!);
-          if (locations.isNotEmpty) {
-            final loc = locations.first;
-            coords.add(LatLng(loc.latitude, loc.longitude));
+    // Handler principal
+    return Future(() async {
+      for (final r in vm.filteredRestaurants) {
+        try {
+          if (r.address != null && r.address!.isNotEmpty) {
+            // Aquí seguimos usando async/await dentro del handler
+            final locations = await locationFromAddress(r.address!);
+            if (locations.isNotEmpty) {
+              final loc = locations.first;
+              coords.add(LatLng(loc.latitude, loc.longitude));
+            }
           }
+        } catch (e) {
+          debugPrint("Error al geocodificar ${r.address}: $e");
         }
-      } catch (e) {
-        debugPrint("Error al geocodificar ${r.address}: $e");
       }
-    }
 
-    if (mounted) {
-      setState(() {
-        restaurantLocations = coords;
-      });
-    }
+      if (mounted) {
+        setState(() {
+          restaurantLocations = coords;
+        });
+      }
+    }).then((_) {
+      debugPrint("Carga de ubicaciones completada.");
+    }).catchError((error) {
+      debugPrint("Error en _loadRestaurantLocations: $error");
+    });
   }
+
 
   void _triggerMealEvent() {
     final now = DateTime.now();

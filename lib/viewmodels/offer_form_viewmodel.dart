@@ -1,8 +1,8 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:moviles/models/offer.dart';
-import 'package:moviles/repositories/offer_repository.dart';
+import '../models/offer.dart';
+import '../repositories/offer_repository.dart';
 
 class OfferFormViewModel extends ChangeNotifier {
   final String restaurant_id;
@@ -16,11 +16,9 @@ class OfferFormViewModel extends ChangeNotifier {
   final priceController = TextEditingController();
   final tagsController = TextEditingController();
 
-  // Imagen
   File? imageFile;
   String? imageUrl;
 
-  // Fechas
   DateTime? valid_from;
   DateTime? valid_to;
 
@@ -39,7 +37,6 @@ class OfferFormViewModel extends ChangeNotifier {
     }
   }
 
-  //  Elegir imagen
   Future<void> pickImage() async {
     final picker = ImagePicker();
     final picked = await picker.pickImage(source: ImageSource.gallery);
@@ -49,7 +46,6 @@ class OfferFormViewModel extends ChangeNotifier {
     }
   }
 
-  //  Elegir fechas
   Future<void> pickDate(BuildContext context, {required bool isFrom}) async {
     final picked = await showDatePicker(
       context: context,
@@ -68,7 +64,6 @@ class OfferFormViewModel extends ChangeNotifier {
     }
   }
 
-  //  Guardar oferta (offline u online)
   Future<void> saveOffer(BuildContext context, {Offer? editingOffer}) async {
     if (!formKey.currentState!.validate()) return;
 
@@ -84,7 +79,6 @@ class OfferFormViewModel extends ChangeNotifier {
           .where((e) => e.isNotEmpty)
           .toList();
 
-      //  Construir la oferta
       final offer = Offer(
         id: editingOffer?.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
         restaurant_id: restaurant_id,
@@ -97,17 +91,18 @@ class OfferFormViewModel extends ChangeNotifier {
         valid_from: valid_from,
         valid_to: valid_to,
         createdAt: editingOffer?.createdAt ?? DateTime.now(),
-        synced: false, //  muy importante para diferenciar offline
+        synced: false,
       );
 
-      //  Crear o actualizar según el caso
       if (editingOffer == null) {
-        await _repository.createOffer(offer, image: imageFile);
+        await _repository.createOffer(offer, image: imageFile)
+            .timeout(const Duration(seconds: 5), onTimeout: () {
+          throw Exception("Timeout al guardar la oferta");
+        });
       } else {
         await _repository.updateOffer(offer, image: imageFile);
       }
 
-      //  Volver atrás y mostrar éxito
       if (context.mounted) {
         Navigator.pop(context, true);
         ScaffoldMessenger.of(context).showSnackBar(
@@ -118,7 +113,7 @@ class OfferFormViewModel extends ChangeNotifier {
       debugPrint("Error saving offer: $e");
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Error saving offer: $e")),
+          SnackBar(content: Text("Offer saved locally, because there is no internet connection")),
         );
       }
     } finally {

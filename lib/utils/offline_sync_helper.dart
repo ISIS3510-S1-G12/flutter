@@ -62,9 +62,9 @@ class OfflineSyncHelper extends ChangeNotifier {
       try {
         await _firestore.collection('Favorites').doc(id).set({'isFavorite': true});
         await box.delete(id);
-        print("✅ Favorito sincronizado: $id");
+        print("Favorito sincronizado: $id");
       } catch (e) {
-        print("⚠️ Error al sincronizar favorito $id: $e");
+        print("Error al sincronizar favorito $id: $e");
       }
     }
   }
@@ -95,7 +95,7 @@ class OfflineSyncHelper extends ChangeNotifier {
           'timestamp': box.get(id),
         });
         await box.delete(id);
-        print("✅ Visita sincronizada: $id");
+        print(" Visita sincronizada: $id");
       } catch (e) {
         print("⚠️ Error al sincronizar visita $id: $e");
       }
@@ -110,7 +110,7 @@ class OfflineSyncHelper extends ChangeNotifier {
   Future<void> syncAll() async {
     if (!_isOnline) return;
 
-    print("🌐 Conexión restaurada, sincronizando datos pendientes...");
+    print("Conexión restaurada, sincronizando datos pendientes...");
     await syncFavorites();
     await syncVisits();
   }
@@ -133,7 +133,7 @@ class OfflineSyncHelper extends ChangeNotifier {
   void showSyncedBanner(BuildContext context) {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text("✅ Connection restored: pending data synced."),
+        content: Text(" Connection restored: pending data synced."),
         backgroundColor: Colors.green,
       ),
     );

@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart'; // compute()
+import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -9,7 +9,6 @@ import '/viewmodels/restaurant_viewmodel.dart';
 import '/models/restaurant.dart';
 import '/views/pages/user/user_restaurant_detail_page.dart';
 
-/// Cálculo de estadísticas en segundo plano (Isolate)
 Map<String, dynamic> calculateFavoriteStats(List<Restaurant> favorites) {
   final withOffers = favorites.where((r) => r.offer == true).toList();
   final percentage = favorites.isEmpty
@@ -39,25 +38,33 @@ class _UserFavoritesPageState extends State<UserFavoritesPage> {
   void initState() {
     super.initState();
 
-    // Escuchar cambios de conexión
-    _connectivitySubscription =
-        Connectivity().onConnectivityChanged.listen((List<ConnectivityResult> results) {
-      final result = results.isNotEmpty ? results.first : ConnectivityResult.none;
-      final connected = result != ConnectivityResult.none;
+  _connectivitySubscription =
+      Connectivity().onConnectivityChanged.listen((List<ConnectivityResult> results) {
+    final bool connected = !results.contains(ConnectivityResult.none);
 
-      if (connected != _isConnected) {
-        setState(() => _isConnected = connected);
-        connected ? _showOnlineDialog() : _showOfflineDialog();
+    if (connected != _isConnected) {
+      setState(() {
+        _isConnected = connected;
+      });
+
+      if (connected) {
+        debugPrint(" Connection restored on OfferFormPage");
+        _showOnlineDialog();
+      } else {
+        debugPrint("No connection on OfferFormPage");
+        _showOfflineDialog();
       }
-    });
+    }
+  });
 
-    // Cargar favoritos
+
+
     Future.microtask(() async {
       final vm = Provider.of<RestaurantViewModel>(context, listen: false);
 
-      await vm.fetchFavorites(fromCache: true); // modo offline
-      vm.listenToFavoritesStream(); // stream online
-      await vm.fetchFavorites(); // datos Firestore
+      await vm.fetchFavorites(fromCache: true);
+      vm.listenToFavoritesStream();
+      await vm.fetchFavorites();
 
       if (vm.favorites.isEmpty) return;
 
@@ -77,18 +84,15 @@ class _UserFavoritesPageState extends State<UserFavoritesPage> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text("Total favorites: $total",
-                      style: const TextStyle(fontWeight: FontWeight.bold)),
-                  Text("With active offers: $withOffers",
-                      style: const TextStyle(color: Colors.green)),
-                  Text("Percentage with offers: $percent%",
-                      style: const TextStyle(color: Colors.blue)),
+                  Text("Total favorites: $total"),
+                  Text("With active offers: $withOffers"),
+                  Text("Percentage with offers: $percent%"),
                 ],
               ),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: const Text("Ok"),
+                  child: const Text("OK"),
                 ),
               ],
             ),
@@ -98,7 +102,6 @@ class _UserFavoritesPageState extends State<UserFavoritesPage> {
     });
   }
 
-  /// 🔸 Alerta sin conexión
   void _showOfflineDialog() {
     if (!mounted) return;
     showDialog(
@@ -119,7 +122,6 @@ class _UserFavoritesPageState extends State<UserFavoritesPage> {
     );
   }
 
-  /// 🔸 Alerta conexión restaurada
   void _showOnlineDialog() {
     if (!mounted) return;
     showDialog(
@@ -127,7 +129,7 @@ class _UserFavoritesPageState extends State<UserFavoritesPage> {
       builder: (_) => AlertDialog(
         title: const Text("Back Online"),
         content: const Text(
-          "Your connection has been restored.\nData will sync automatically.",
+          "Your connection has been restored.\nYou can now see all your favorite restaurants information.",
           style: TextStyle(fontSize: 15),
         ),
         actions: [
@@ -143,6 +145,7 @@ class _UserFavoritesPageState extends State<UserFavoritesPage> {
   @override
   void dispose() {
     _connectivitySubscription?.cancel();
+    _connectivitySubscription = null;
     Provider.of<RestaurantViewModel>(context, listen: false)
         .cancelFavoritesListener();
     super.dispose();

@@ -10,7 +10,7 @@ class DishFormViewModel extends ChangeNotifier {
   final Dish? dish;
   final formKey = GlobalKey<FormState>();
 
-  final DishRepository _repository = DishRepository();
+  final DishRepository _repository = DishRepository(); // singleton
 
   // Campos editables
   String name = '';
@@ -20,8 +20,6 @@ class DishFormViewModel extends ChangeNotifier {
   String dishType = 'main';
   List<String> dishesTags = [];
   String imageUrl = '';
-
-  // Imagen local seleccionada
   File? imageFile;
 
   DishFormViewModel({required this.restaurantId, this.dish}) {
@@ -36,7 +34,6 @@ class DishFormViewModel extends ChangeNotifier {
     }
   }
 
-  /// Seleccionar imagen desde galería
   Future<void> pickImage() async {
     final picker = ImagePicker();
     final pickedFile = await picker.pickImage(source: ImageSource.gallery);
@@ -59,33 +56,37 @@ class DishFormViewModel extends ChangeNotifier {
   }
 
   Future<void> save(BuildContext context) async {
-    if (formKey.currentState!.validate()) {
-      formKey.currentState!.save();
+    if (!formKey.currentState!.validate()) return;
+    formKey.currentState!.save();
 
-      final newDish = Dish(
-        id: dish?.id ?? '',
-        restaurantId: restaurantId,
-        name: name,
-        price: price,
-        rating: rating,
-        description: description,
-        dishType: dishType,
-        dishesTags: dishesTags,
-        imageUrl: imageUrl, // se reemplaza si hay imageFile
+    final newDish = Dish(
+      id: dish?.id ?? '',
+      restaurantId: restaurantId,
+      name: name,
+      price: price,
+      rating: rating,
+      description: description,
+      dishType: dishType,
+      dishesTags: dishesTags,
+      imageUrl: imageUrl,
+    );
+
+    try {
+      if (dish == null) {
+        await _repository.addDish(restaurantId, newDish, image: imageFile);
+      } else {
+        await _repository.updateDish(restaurantId, newDish, image: imageFile);
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("The dish was saved")),
       );
 
-      try {
-        if (dish == null) {
-          await _repository.addDish(restaurantId, newDish, image: imageFile);
-        } else {
-          await _repository.updateDish(restaurantId, newDish, image: imageFile);
-        }
-        Navigator.pop(context);
-      } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Error saving dish: $e")),
-        );
-      }
+      Navigator.pop(context);
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error saving dish: $e")),
+      );
     }
   }
 }

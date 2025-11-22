@@ -52,7 +52,7 @@ class UserViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// ✅ Alternar favoritos con Timestamp
+  ///  Alternar favoritos con Timestamp
   Future<void> toggleFavoriteRestaurant(String restaurantId) async {
     if (currentUser == null) return;
 
@@ -84,7 +84,7 @@ class UserViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// ✅ Getter auxiliar para Budget
+  ///  Getter auxiliar para Budget
   int? getBudget() {
     if (currentUser == null) return null;
     if (currentUser!.preferences.containsKey("budget")) {

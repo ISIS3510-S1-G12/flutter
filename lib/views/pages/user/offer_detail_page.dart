@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-
-import '../../../models/offer.dart';
-import '../../../viewmodels/offer_viewmodel.dart';
+import '../../../services/connectivity_service.dart';
+import '../../../models/offer.dart'; // Asegúrate de importar tu modelo Offer
 
 class OfferDetailPage extends StatefulWidget {
-  final String offerId; // 👈 Solo pasamos el ID
+  final String offerId;
 
   const OfferDetailPage({super.key, required this.offerId});
 
@@ -15,68 +13,114 @@ class OfferDetailPage extends StatefulWidget {
 }
 
 class _OfferDetailPageState extends State<OfferDetailPage> {
-  String? restaurantName;
-  bool _loadingRestaurant = true;
+  bool _isDialogOpen = false;
+  String? _imageKey;
 
   @override
   void initState() {
     super.initState();
-    // 🔹 Cargamos el detalle usando el ViewModel (con LruCache)
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      final offerVM = context.read<OfferViewModel>();
-      await offerVM.loadOfferDetail(widget.offerId);
-      _loadRestaurantName();
-    });
+    _imageKey = DateTime.now().millisecondsSinceEpoch.toString();
   }
 
-  Future<void> _loadRestaurantName() {
-      final offer = context.read<OfferViewModel>().selectedOffer;
-      if (offer == null) return Future.value();
+  Future<Map<String, dynamic>> _loadOfferAndRestaurant() async {
+    // 1️⃣ Cargar la oferta desde Firestore
+    final offerDoc = await FirebaseFirestore.instance
+        .collection('Offers')
+        .doc(widget.offerId)
+        .get();
 
-      final restaurantId = offer.restaurant_id.trim();
-
-      return FirebaseFirestore.instance
-          .collection('Restaurants')
-          .doc(restaurantId)
-          .get()
-          .then((restaurantDoc) {
-            // ✅ Handler de éxito
-            setState(() {
-              restaurantName = restaurantDoc.data()?['name'] ?? 'Unknown';
-            });
-          })
-          .catchError((e) {
-            // ⚠️ Handler de error
-            setState(() {
-              restaurantName = 'Error loading name';
-            });
-          })
-          .whenComplete(() {
-            // 🔚 Handler que se ejecuta siempre
-            setState(() {
-              _loadingRestaurant = false;
-            });
-          });
+    if (!offerDoc.exists) {
+      throw Exception("Offer not found");
     }
+
+    final offerData = offerDoc.data()!;
+    final offer = Offer.fromMap(offerData, offerDoc.id);
+
+    // 2️⃣ Cargar el restaurante relacionado
+    final restaurantDoc = await FirebaseFirestore.instance
+        .collection('Restaurants')
+        .doc(offer.restaurant_id.trim())
+        .get();
+
+    final restaurantName = restaurantDoc.data()?['name'] ?? 'Unknown';
+
+    return {
+      'offer': offer,
+      'restaurantName': restaurantName,
+    };
+  }
+
+  void _showNoConnectionDialog(ConnectivityService connection) {
+    if (_isDialogOpen || connection.dialogShown) return;
+
+    _isDialogOpen = true;
+    connection.setDialogShown(true);
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.cloud_off, color: Colors.grey),
+            SizedBox(width: 8),
+            Text("Connection Error",
+                style: TextStyle(fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: const Text(
+          "Unable to display this offer because there is no internet connection.",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              _isDialogOpen = false;
+              connection.setDialogShown(false);
+            },
+            child: const Text("OK"),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<OfferViewModel>(
-      builder: (context, offerVM, _) {
-        final offer = offerVM.selectedOffer;
+    final connection = ConnectivityService(); // o context.watch<ConnectivityService>();
+    final hasConnection = connection.hasConnection;
 
-        if (offerVM.isLoading || offer == null) {
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
-          );
-        }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!hasConnection) {
+        _showNoConnectionDialog(connection);
+      } else if (hasConnection && _isDialogOpen) {
+        Navigator.of(context, rootNavigator: true).maybePop();
+        _isDialogOpen = false;
+        connection.setDialogShown(false);
+      }
+    });
 
-        return Scaffold(
-          appBar: AppBar(
-            title: Text(offer.title),
-            backgroundColor: const Color.fromARGB(255, 214, 145, 104),
-          ),
-          body: SingleChildScrollView(
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text("Offer Detail"),
+        backgroundColor: const Color.fromARGB(255, 214, 145, 104),
+      ),
+      body: FutureBuilder<Map<String, dynamic>>(
+        future: _loadOfferAndRestaurant(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          } else if (snapshot.hasError) {
+            return Center(
+                child: Text("Error loading offer: ${snapshot.error}"));
+          } else if (!snapshot.hasData) {
+            return const Center(child: Text("Offer not found"));
+          }
+
+          final offer = snapshot.data!['offer'] as Offer;
+          final restaurantName = snapshot.data!['restaurantName'] as String;
+
+          return SingleChildScrollView(
             padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -86,24 +130,40 @@ class _OfferDetailPageState extends State<OfferDetailPage> {
                     borderRadius: BorderRadius.circular(12),
                     child: Image.network(
                       offer.image!,
+                      key: ValueKey(_imageKey),
                       height: 200,
                       width: double.infinity,
                       fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        if (!hasConnection) {
+                          _showNoConnectionDialog(connection);
+                        }
+                        return const Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.cloud_off,
+                                  size: 70, color: Colors.grey),
+                              SizedBox(height: 8),
+                              Text(
+                                  "Image unavailable — no connection and not cached"),
+                            ],
+                          ),
+                        );
+                      },
                     ),
                   ),
+
                 const SizedBox(height: 20),
 
-                // 🏪 Nombre del restaurante
-                _loadingRestaurant
-                    ? const CircularProgressIndicator()
-                    : Text(
-                        "Restaurant: ${restaurantName ?? 'Unknown'}",
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.brown,
-                        ),
-                      ),
+                Text(
+                  "Restaurant: $restaurantName",
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.brown,
+                  ),
+                ),
 
                 const SizedBox(height: 12),
                 Text(
@@ -117,10 +177,7 @@ class _OfferDetailPageState extends State<OfferDetailPage> {
                   children: [
                     Text(
                       "Price: \$${offer.price.toStringAsFixed(2)}",
-                      style: const TextStyle(
-                        fontSize: 16,
-                        color: Colors.black87,
-                      ),
+                      style: const TextStyle(fontSize: 16),
                     ),
                     Text(
                       "Discount: ${offer.discount_percentage.toStringAsFixed(0)}%",
@@ -139,27 +196,31 @@ class _OfferDetailPageState extends State<OfferDetailPage> {
                   Text(
                     "Valid: ${offer.valid_from!.toLocal().toString().split(' ')[0]} - "
                     "${offer.valid_to!.toLocal().toString().split(' ')[0]}",
-                    style: const TextStyle(fontSize: 14, color: Colors.grey),
+                    style:
+                        const TextStyle(fontSize: 14, color: Colors.grey),
                   ),
 
                 const SizedBox(height: 20),
+
                 if (offer.tags != null && offer.tags!.isNotEmpty)
                   Wrap(
                     spacing: 8,
                     children: offer.tags!
-                        .map((tag) => Chip(
-                              label: Text(tag),
-                              backgroundColor:
-                                  const Color.fromARGB(255, 214, 145, 104)
-                                      .withOpacity(0.2),
-                            ))
+                        .map(
+                          (tag) => Chip(
+                            label: Text(tag),
+                            backgroundColor:
+                                const Color.fromARGB(255, 214, 145, 104)
+                                    .withOpacity(0.2),
+                          ),
+                        )
                         .toList(),
                   ),
               ],
             ),
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 }

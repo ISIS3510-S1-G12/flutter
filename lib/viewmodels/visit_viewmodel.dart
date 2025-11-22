@@ -30,7 +30,7 @@ class VisitViewModel extends ChangeNotifier {
 
       await _visitsRepository.registerVisit(restaurantId, user.uid);
 
-      print("✅ Visit registered successfully");
+      print(" Visit registered successfully");
 
       // refrescar global
       await loadDaysSinceLastVisitGlobal();
@@ -66,7 +66,7 @@ class VisitViewModel extends ChangeNotifier {
         final lastVisit = visits.first; // ya vienen ordenados por fecha desc
         final now = DateTime.now();
         daysSinceLastVisitGlobal = now.difference(lastVisit).inDays;
-        print("✅ Days since last visit (global): $daysSinceLastVisitGlobal");
+        print(" Days since last visit (global): $daysSinceLastVisitGlobal");
       }
 
       isLoading = false;
@@ -151,7 +151,7 @@ class VisitViewModel extends ChangeNotifier {
 
     // Esperar resultado
     final result = await receivePort.first as Map<String, double>;
-    print("✅ Loyalty rates calculated in isolate: $result");
+    print(" Loyalty rates calculated in isolate: $result");
 
     return result;
   } catch (e) {

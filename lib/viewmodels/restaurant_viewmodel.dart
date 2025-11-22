@@ -65,7 +65,7 @@ class RestaurantViewModel extends ChangeNotifier {
   final RestaurantRepository _restaurantRepo;
   final UserRepository _userRepo;
   final OfferRepository _offerRepo;
-  final HiveFavoritesCache _favoritesCache = HiveFavoritesCache(); // 🐝
+  final HiveFavoritesCache _favoritesCache = HiveFavoritesCache(); 
 
   RestaurantViewModel(this._restaurantRepo, this._userRepo, this._offerRepo);
 
