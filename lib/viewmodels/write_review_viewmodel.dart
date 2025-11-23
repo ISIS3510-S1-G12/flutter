@@ -68,4 +68,50 @@ class WriteReviewViewModel extends ChangeNotifier {
     loading = false;
     notifyListeners();
   }
+
+  Future<List<Map<String, dynamic>>> getTopRestaurantsBySatisfaction() async {
+  final rawReviews = await FirebaseFirestore.instance
+      .collection("Reviews")
+      .get();
+
+  final Map<String, List<int>> groupedRatings = {};
+
+  // Agrupar ratings por restaurant_id
+  for (var doc in rawReviews.docs) {
+    final restaurantId = doc["restaurant_id"];
+    final stars = doc["stars"] ?? 0;
+
+    if (!groupedRatings.containsKey(restaurantId)) {
+      groupedRatings[restaurantId] = [];
+    }
+    groupedRatings[restaurantId]!.add(stars);
+  }
+
+  // Construir lista con promedios
+  final List<Map<String, dynamic>> result = groupedRatings.entries.map((entry) {
+    final avg = entry.value.reduce((a, b) => a + b) / entry.value.length;
+
+    return {
+      "restaurant_id": entry.key,
+      "average_rating": double.parse(avg.toStringAsFixed(2)),
+      "reviews": entry.value.length,
+    };
+  }).toList();
+
+  // Ordenar de mayor a menor
+  result.sort((a, b) =>
+      b["average_rating"].compareTo(a["average_rating"]));
+
+  return result;
+}
+
+
+
+
+
+
+
+
+
+
 }

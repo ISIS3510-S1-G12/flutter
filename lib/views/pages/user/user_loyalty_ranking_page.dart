@@ -40,7 +40,7 @@ class UserLoyaltyRankingPage extends StatelessWidget {
             builder: (context, restaurantSnapshot) {
               if (!restaurantSnapshot.hasData) {
                 return const Center(child: CircularProgressIndicator());
-              }
+              } 
 
               final docs = restaurantSnapshot.data!.docs;
 

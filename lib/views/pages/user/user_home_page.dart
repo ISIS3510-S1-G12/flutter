@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:moviles/views/pages/user/visited_restaurants_page.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_in_app_messaging/firebase_in_app_messaging.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
@@ -18,7 +19,9 @@ import 'package:moviles/views/pages/user/user_ofertas_page.dart';
 import 'package:moviles/views/pages/user/user_review_history.dart';
 import 'package:moviles/viewmodels/visit_viewmodel.dart';
 import 'package:moviles/views/pages/user/user_loyalty_ranking_page.dart';
+import 'package:moviles/views/pages/user/top_rated_restaurants_page.dart';
 import 'package:moviles/models/restaurant.dart';
+
 
 class UserHomePage extends StatefulWidget {
   const UserHomePage({super.key});
@@ -43,7 +46,7 @@ class _UserHomePageState extends State<UserHomePage>
   void initState() {
     super.initState();
 
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 5, vsync: this);
     _tabController.addListener(() {
       if (!_tabController.indexIsChanging) {
         analytics.logEvent(name: "tab_changed", parameters: {
@@ -352,6 +355,7 @@ class _UserHomePageState extends State<UserHomePage>
                   Tab(text: "Favorites"),
                   Tab(text: "Offers"),
                   Tab(text: "History review"),
+                  Tab(text: "Visited"),
                 ],
               ),
               const Divider(color: Colors.black, thickness: 1),
@@ -392,6 +396,28 @@ class _UserHomePageState extends State<UserHomePage>
                       },
                     ),
                   ),
+
+                  // 🔸 Botón Top Rated Restaurants
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color.fromARGB(255, 214, 145, 104),
+                        foregroundColor: Colors.white,
+                      ),
+                      icon: const Icon(Icons.star_rate),
+                      label: const Text("View Top Rated Restaurants"),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const TopRatedRestaurantsPage(),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+
 
                   // 🔍 Buscador
                   Padding(
@@ -468,6 +494,7 @@ class _UserHomePageState extends State<UserHomePage>
           const UserFavoritesPage(),
           const UserOfertasPage(),
           const UserReviewHistoryPage(),
+           VisitedRestaurantsPage(),
         ],
       ),
     );

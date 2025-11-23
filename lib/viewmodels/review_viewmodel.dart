@@ -8,7 +8,7 @@ import 'package:moviles/repositories/hive_review_cache.dart'; // Hive
 import 'package:moviles/repositories/local_image_storage.dart'; // Archivos locales
 import 'package:moviles/repositories/restaurant_preferences.dart'; // SharedPreferences
 
-class ReviewViewModel extends ChangeNotifier {
+class ReviewViewModel extends ChangeNotifier { 
   final ReviewRepository _repository;
 
   //  Nuevos repos locales
@@ -84,7 +84,7 @@ class ReviewViewModel extends ChangeNotifier {
 
     isLoading = false;
     notifyListeners();
-  }
+  } 
 
   ///  Crear reseña (y guardar última preferencia)
   Future<void> addReview({
