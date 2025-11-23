@@ -1,15 +1,16 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:moviles/views/pages/user/user_edit_form.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_in_app_messaging/firebase_in_app_messaging.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
-
 import 'package:moviles/viewmodels/restaurant_viewmodel.dart';
 import 'package:moviles/views/widget/restaurant_card.dart';
 import 'package:moviles/views/pages/user/user_favorites_page.dart';
@@ -340,11 +341,22 @@ class _UserHomePageState extends State<UserHomePage>
               "images/483891256-e6bd4888-8904-4028-911f-dff62cc98965.png",
               height: MediaQuery.of(context).size.height * 0.08,
             ),
-            const CircleAvatar(
+            GestureDetector(
+            onTap: () {
+              print("👤 Opening UserEditForm");
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const UserEditForm(),
+                ),
+              );
+            },
+            child: const CircleAvatar(
               radius: 28,
               backgroundColor: Color.fromARGB(255, 214, 145, 104),
               child: Icon(Icons.person, color: Colors.white),
             ),
+          )
           ],
         ),
         bottom: PreferredSize(

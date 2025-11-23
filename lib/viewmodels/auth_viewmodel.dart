@@ -20,22 +20,19 @@ class AuthViewModel extends ChangeNotifier {
   String? get error => _error;
   bool get isOnline => _isOnline;
 
-  /// Inicializa el listener de conectividad
   void _initConnectivity() {
     Connectivity().onConnectivityChanged.listen((_) async {
       final prevOnline = _isOnline;
       _isOnline = await _hasInternetConnection();
       notifyListeners();
 
-      // Si antes estaba offline y ahora volvió la conexión, sincronizar
       if (!prevOnline && _isOnline) {
         await syncPendingRegistrations();
-        await syncPendingLogins(); // 🔹 Nuevo
+        await syncPendingLogins();
       }
     });
   }
 
-  /// Verifica conexión a internet real
   Future<bool> _hasInternetConnection() async {
     try {
       final result = await InternetAddress.lookup('example.com');
@@ -45,7 +42,6 @@ class AuthViewModel extends ChangeNotifier {
     }
   }
 
-  /// Registrar usuario normalmente (solo online)
   Future<void> register(String who, String name, String email, String password) async {
     if (!_isOnline) {
       _error = "No internet connection. Try again later.";
@@ -65,7 +61,6 @@ class AuthViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Registrar usuario y devolver UID (solo online)
   Future<String> registerAndGetUid(String who, String name, String email, String password) async {
     if (!_isOnline) {
       _error = "No internet connection. Try again later.";
@@ -93,7 +88,6 @@ class AuthViewModel extends ChangeNotifier {
     }
   }
 
-  /// Guardar registro pendiente cuando no hay conexión
   Future<void> savePendingRegistration({
     required String who,
     required String name,
@@ -110,7 +104,6 @@ class AuthViewModel extends ChangeNotifier {
     });
   }
 
-  /// Sincronizar los registros pendientes cuando haya conexión
   Future<void> syncPendingRegistrations() async {
     if (!_isOnline) return;
 
@@ -138,7 +131,6 @@ class AuthViewModel extends ChangeNotifier {
     }
   }
 
-  /// Guardar login pendiente cuando no hay conexión 🔹 NUEVO
   Future<void> savePendingLogin({
     required String who,
     required String email,
@@ -153,7 +145,6 @@ class AuthViewModel extends ChangeNotifier {
     });
   }
 
-  /// Sincronizar logins pendientes cuando vuelva la conexión 🔹 NUEVO
   Future<void> syncPendingLogins() async {
     if (!_isOnline) return;
 
@@ -172,15 +163,14 @@ class AuthViewModel extends ChangeNotifier {
           password: data['password'],
           expectedRole: data['who'],
         );
-        print("✅ Login sincronizado: ${data['email']}");
+        print("Login sincronizado: ${data['email']}");
         await box.deleteAt(i);
       } catch (e) {
-        print("⚠️ Error al sincronizar login ${data['email']}: $e");
+        print("Error al sincronizar login ${data['email']}: $e");
       }
     }
   }
 
-  /// Login
   Future<void> login(String who, String email, String password) async {
     if (!_isOnline) {
       _error = "No internet connection. Try again later.";
@@ -204,7 +194,6 @@ class AuthViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Logout
   Future<void> logout() async {
     await _repo.logout();
   }

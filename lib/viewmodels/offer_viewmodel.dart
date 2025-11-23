@@ -24,7 +24,6 @@ class OfferViewModel extends ChangeNotifier {
     return _offerRepo.getOffersByRestaurant(restaurantId);
   }
 
-  //  Crear o actualizar ofertas
   Future<void> addOffer(Offer offer) async {
     await _offerRepo.createOffer(offer);
     notifyListeners();
@@ -35,7 +34,6 @@ class OfferViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  //  Cargar detalle de una oferta (usa LRU Cache primero)
   Future<void> loadOfferDetail(String offerId) async {
     isLoading = true;
     notifyListeners();
