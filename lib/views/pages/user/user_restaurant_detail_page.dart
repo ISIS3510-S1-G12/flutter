@@ -184,12 +184,13 @@ class _UserRestaurantDetailPageState extends State<UserRestaurantDetailPage> {
                                         child: ElevatedButton.icon(
                                           onPressed: () async {
                                             await analytics.logEvent(
-                                              name: 'favorite_click',
-                                              parameters: {
-                                                'restaurant_id': restaurant.id
-                                              },
-                                            );
-
+                                            name: 'favorite_click',
+                                            parameters: {
+                                              'restaurant_id': restaurant.id,
+                                              'category': fullRestaurant.typeOfFood, 
+                                              'action': vm.isFavorite ? 'removed' : 'added',
+                                            },
+                                          );
                                             if (_offlineHelper.isOnline) {
                                               await vm.toggleFavorite(
                                                   fullRestaurant);
