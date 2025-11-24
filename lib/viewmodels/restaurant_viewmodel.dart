@@ -285,4 +285,9 @@ class RestaurantViewModel extends ChangeNotifier {
     filteredRestaurants = restaurants;
     notifyListeners();
   }
+
+  Future<Restaurant?> getRestaurantById(String id) {
+  return _restaurantRepo.getRestaurantById(id);
+}
+
 }
