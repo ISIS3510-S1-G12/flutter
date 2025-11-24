@@ -1,14 +1,40 @@
+// lib/repositories/review_repository.dart
+import 'dart:async';
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:moviles/models/review.dart' show Review;
 import 'review_cache.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 
 class ReviewRepository {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   final FirebaseStorage _storage = FirebaseStorage.instance;
   final ImagePicker _picker = ImagePicker();
+
+  // Stream que notifica si hay conectividad (true = online)
+  final StreamController<bool> _connectivityController =
+      StreamController<bool>.broadcast();
+
+  ReviewRepository() {
+    // Inicializar escucha de conectividad
+    Connectivity().onConnectivityChanged.listen((result) {
+      final online = result != ConnectivityResult.none;
+      _connectivityController.add(online);
+    });
+    // push initial
+    Connectivity().checkConnectivity().then((r) {
+      _connectivityController.add(r != ConnectivityResult.none);
+    });
+  }
+
+  Stream<bool> get connectivityStream => _connectivityController.stream;
+
+  Future<bool> hasConnection() async {
+    final result = await Connectivity().checkConnectivity();
+    return result != ConnectivityResult.none;
+  }
 
   /// --- Subir imagen de reseña ---
   Future<String?> pickAndUploadImage(String reviewId) async {
@@ -39,15 +65,12 @@ class ReviewRepository {
       "user_id": userId,
       "createdAt": FieldValue.serverTimestamp(),
     });
-
-    // ❗ Limpiar caché de ese restaurante, usuario y plato (por si cambia)
   }
 
   /// --- Obtener reseñas por restaurante (usa cache → Firestore) ---
   Future<List<Review>> getReviewsByRestaurant(String restaurantId) async {
     final cached = ReviewCache.getByRestaurant(restaurantId);
     if (cached != null) {
-      print(" [LRU] Reseñas del restaurante obtenidas desde cache");
       return cached;
     }
 
@@ -61,16 +84,13 @@ class ReviewRepository {
         .toList();
 
     ReviewCache.putByRestaurant(restaurantId, reviews);
-    print(" [Firestore] Reseñas cargadas y cacheadas (${reviews.length})");
-
     return reviews;
-  } 
+  }
 
   /// --- Obtener reseñas por usuario ---
   Future<List<Review>> getReviewsByUser(String userId) async {
     final cached = ReviewCache.getByUser(userId);
     if (cached != null) {
-      print(" [LRU] Reseñas del usuario obtenidas desde cache");
       return cached;
     }
 
@@ -84,8 +104,6 @@ class ReviewRepository {
         .toList();
 
     ReviewCache.putByUser(userId, reviews);
-    print(" [Firestore] Reseñas de usuario cacheadas (${reviews.length})");
-
     return reviews;
   }
 
@@ -93,7 +111,6 @@ class ReviewRepository {
   Future<List<Review>> getReviewsByDish(String dishId) async {
     final cached = ReviewCache.getByDish(dishId);
     if (cached != null) {
-      print(" [LRU] Reseñas del plato obtenidas desde cache");
       return cached;
     }
 
@@ -107,48 +124,33 @@ class ReviewRepository {
         .toList();
 
     ReviewCache.putByDish(dishId, reviews);
-    print(" [Firestore] Reseñas de plato cacheadas (${reviews.length})");
-
     return reviews;
   }
 
   Future<List<QueryDocumentSnapshot<Map<String, dynamic>>>> getAllReviewsRaw() async {
-  final snapshot = await FirebaseFirestore.instance
-      .collection("Reviews")
-      .get();
-  return snapshot.docs;
+    final snapshot = await FirebaseFirestore.instance.collection("Reviews").get();
+    return snapshot.docs;
+  }
 
-  
-}
+  /// --- Update review on Firestore ---
+  Future<void> updateReview({
+    required String reviewId,
+    required String comment,
+    required int stars,
+    String? imageUrl,
+  }) async {
+    await _db.collection("Reviews").doc(reviewId).update({
+      "comment": comment,
+      "stars": stars,
+      if (imageUrl != null) "imageUrl": imageUrl,
+      "updatedAt": FieldValue.serverTimestamp(),
+    });
+    ReviewCache.clear();
+  }
 
-// En ReviewRepository
-Future<void> updateReview({
-  required String reviewId,
-  required String comment,
-  required int stars,
-  String? imageUrl,
-  String? restaurantId, // opcional si lo necesitas
-}) async {
-  await FirebaseFirestore.instance
-      .collection("Reviews")
-      .doc(reviewId)
-      .update({
-    "comment": comment,
-    "stars": stars,
-    if (imageUrl != null) "imageUrl": imageUrl,
-  });
-  ReviewCache.clear(); // ❗ Muy importante
-
-}
-
-
-
-
-
-
-
-
-
-
-
+  void dispose() {
+    try {
+      _connectivityController.close();
+    } catch (_) {}
+  }
 }

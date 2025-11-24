@@ -502,7 +502,8 @@ class _UserHomePageState extends State<UserHomePage>
 
           const UserFavoritesPage(),
           const UserOfertasPage(),
-          const UserReviewHistoryPage(),
+         const UserReviewHistoryPage(),
+
            VisitedRestaurantsPage(),
         ],
       ),
