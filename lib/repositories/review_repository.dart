@@ -64,7 +64,7 @@ class ReviewRepository {
     print(" [Firestore] Reseñas cargadas y cacheadas (${reviews.length})");
 
     return reviews;
-  }
+  } 
 
   /// --- Obtener reseñas por usuario ---
   Future<List<Review>> getReviewsByUser(String userId) async {
@@ -111,4 +111,17 @@ class ReviewRepository {
 
     return reviews;
   }
+
+  Future<List<QueryDocumentSnapshot<Map<String, dynamic>>>> getAllReviewsRaw() async {
+  final snapshot = await FirebaseFirestore.instance
+      .collection("Reviews")
+      .get();
+  return snapshot.docs;
+}
+
+
+
+
+
+
 }

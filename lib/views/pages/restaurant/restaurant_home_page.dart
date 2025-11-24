@@ -23,7 +23,7 @@ class RestaurantHomePage extends StatefulWidget {
 
 class _RestaurantHomePageState extends State<RestaurantHomePage> {
   late final Stream<List<Dish>> _dishesStream;
-  bool _isOffline = false; // 🔹 Estado para conexión
+  bool _isOffline = false;
 
   @override
   void initState() {
@@ -34,7 +34,6 @@ class _RestaurantHomePageState extends State<RestaurantHomePage> {
     _dishesStream =
         dishRepository.getDishesByRestaurant(widget.restaurantId).asBroadcastStream();
 
-    // 🔹 Escuchar cambios de conectividad
     Connectivity().onConnectivityChanged.listen((status) async {
       final offlineNow = status == ConnectivityResult.none;
 
@@ -56,7 +55,6 @@ class _RestaurantHomePageState extends State<RestaurantHomePage> {
         );
       }
 
-      // 🔹 Si vuelve la conexión, sincroniza los platos
       if (status != ConnectivityResult.none) {
         await dishRepository.syncLocalDishes();
       }
@@ -91,15 +89,13 @@ class _RestaurantHomePageState extends State<RestaurantHomePage> {
               id: snapshot.data!.id,
               name: data['name'] ?? '',
               typeOfFood: data['typeOfFood'] ?? '',
-              rating: (data['rating'] is num)
-                  ? (data['rating'] as num).toDouble()
-                  : 0.0,
+              rating:
+                  (data['rating'] is num) ? (data['rating'] as num).toDouble() : 0.0,
               offer: data['offer'] ?? false,
               imageUrl: data['imageUrl'] ?? '',
               address: data['address'] ?? '',
               email: data['email'] ?? '',
-              openingTime:
-                  int.tryParse(data['opening_time']?.toString() ?? '0') ?? 0,
+              openingTime: int.tryParse(data['opening_time']?.toString() ?? '0') ?? 0,
               closingTime:
                   int.tryParse(data['closing_time']?.toString() ?? '0') ?? 0,
             );
@@ -158,7 +154,6 @@ class _RestaurantHomePageState extends State<RestaurantHomePage> {
           },
         ),
 
-        // 🔹 Banner visible solo si está offline
         if (_isOffline)
           Positioned(
             top: 0,
@@ -183,7 +178,9 @@ class _RestaurantHomePageState extends State<RestaurantHomePage> {
     );
   }
 
-  // --- MENU TAB ---
+  // =========================
+  //       MENU TAB
+  // =========================
   Widget _buildMenuTab(BuildContext context, Restaurant restaurant) {
     final visitVM = context.read<VisitViewModel>();
 
@@ -192,7 +189,6 @@ class _RestaurantHomePageState extends State<RestaurantHomePage> {
         children: [
           const SizedBox(height: 12),
 
-          // 🏆 Banner del restaurante más visitado
           FutureBuilder<Map<String, int>>(
             future: visitVM.getWeeklyVisitCounts(),
             builder: (context, snapshot) {
@@ -200,9 +196,8 @@ class _RestaurantHomePageState extends State<RestaurantHomePage> {
                 return const SizedBox();
               }
               final visits = snapshot.data!;
-              final mostVisited = visits.entries.reduce(
-                (a, b) => a.value > b.value ? a : b,
-              );
+              final mostVisited =
+                  visits.entries.reduce((a, b) => a.value > b.value ? a : b);
 
               if (mostVisited.key != restaurant.id) return const SizedBox();
 
@@ -230,7 +225,6 @@ class _RestaurantHomePageState extends State<RestaurantHomePage> {
             },
           ),
 
-          // 🔁 Loyalty Rate
           FutureBuilder<Map<String, double>>(
             future: visitVM.getWeeklyLoyaltyRates(),
             builder: (context, snapshot) {
@@ -268,7 +262,9 @@ class _RestaurantHomePageState extends State<RestaurantHomePage> {
             },
           ),
 
-          // --- Info del restaurante ---
+          // ============================================================
+          //     INFO DEL RESTAURANTE (AQUÍ AGREGUÉ EL RATING DINÁMICO)
+          // ============================================================
           Padding(
             padding: const EdgeInsets.all(16),
             child: Card(
@@ -295,12 +291,70 @@ class _RestaurantHomePageState extends State<RestaurantHomePage> {
                     ),
                     const SizedBox(width: 12),
                     Expanded(
-                      child: Text(
-                        restaurant.name,
-                        style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            restaurant.name,
+                            style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white),
+                          ),
+
+                          const SizedBox(height: 6),
+
+                          // ⭐⭐⭐⭐⭐ RATING CALCULADO SEGÚN REVIEWS
+                          FutureBuilder<QuerySnapshot>(
+                            future: FirebaseFirestore.instance
+                                .collection("Reviews")
+                                .where("restaurant_id", isEqualTo: restaurant.id)
+                                .get(),
+                            builder: (context, snapshot) {
+                              if (!snapshot.hasData) {
+                                return const SizedBox(
+                                  height: 20,
+                                  child: LinearProgressIndicator(),
+                                );
+                              }
+
+                              final reviews = snapshot.data!.docs;
+
+                              if (reviews.isEmpty) {
+                                return const Text(
+                                  "Rating: No reviews yet",
+                                  style: TextStyle(color: Colors.white),
+                                );
+                              }
+
+                              double avg = 0;
+                              for (var r in reviews) {
+                                avg += (r["stars"] ?? 0).toDouble();
+                              }
+                              avg /= reviews.length;
+
+                              return Row(
+                                children: [
+                                  Text(
+                                    "Rating: ${avg.toStringAsFixed(1)} ",
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  ...List.generate(
+                                    5,
+                                    (i) => Icon(
+                                      i < avg ? Icons.star : Icons.star_border,
+                                      color: Colors.amber,
+                                      size: 18,
+                                    ),
+                                  ),
+                                ],
+                              );
+                            },
+                          )
+                        ],
                       ),
                     ),
                   ],
@@ -309,7 +363,8 @@ class _RestaurantHomePageState extends State<RestaurantHomePage> {
             ),
           ),
 
-          // --- Lista de platos ---
+
+
           StreamBuilder<List<Dish>>(
             stream: _dishesStream,
             builder: (context, snapshot) {
@@ -331,8 +386,7 @@ class _RestaurantHomePageState extends State<RestaurantHomePage> {
               _processDishesInIsolate(dishes);
 
               return Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 child: Column(
                   children: dishes.map((dish) {
                     return Card(
@@ -348,7 +402,8 @@ class _RestaurantHomePageState extends State<RestaurantHomePage> {
                             : const Icon(Icons.image_not_supported, size: 60),
                         title: Text(
                           dish.name,
-                          style: const TextStyle(fontWeight: FontWeight.bold),
+                          style:
+                              const TextStyle(fontWeight: FontWeight.bold),
                         ),
                         subtitle: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -384,7 +439,8 @@ class _RestaurantHomePageState extends State<RestaurantHomePage> {
                   : const Color.fromARGB(255, 214, 145, 104),
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12)),
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
             ),
             onPressed: _isOffline
                 ? null
@@ -392,7 +448,8 @@ class _RestaurantHomePageState extends State<RestaurantHomePage> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => EditMenuPage(restaurantId: restaurant.id),
+                        builder: (_) =>
+                            EditMenuPage(restaurantId: restaurant.id),
                       ),
                     );
                   },
@@ -406,7 +463,9 @@ class _RestaurantHomePageState extends State<RestaurantHomePage> {
     );
   }
 
-  // --- REVIEWS TAB ---
+  // =========================
+  //       REVIEWS TAB
+  // =========================
   Widget _buildReviewsTab(Restaurant restaurant) {
     return FutureBuilder<List<Review>>(
       future: ReviewRepository().getReviewsByRestaurant(restaurant.id),
@@ -428,14 +487,16 @@ class _RestaurantHomePageState extends State<RestaurantHomePage> {
               child: Padding(
                 padding: const EdgeInsets.all(12),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment:
+                      CrossAxisAlignment.start,
                   children: [
                     Row(
                       children: [
                         const CircleAvatar(
                           radius: 18,
                           backgroundColor: Colors.grey,
-                          child: Icon(Icons.person, color: Colors.white),
+                          child:
+                              Icon(Icons.person, color: Colors.white),
                         ),
                         const SizedBox(width: 8),
                         FutureBuilder<DocumentSnapshot>(
@@ -447,8 +508,9 @@ class _RestaurantHomePageState extends State<RestaurantHomePage> {
                             if (!userSnapshot.hasData) {
                               return const Text("Loading...");
                             }
-                            final userData =
-                                userSnapshot.data!.data() as Map<String, dynamic>?;
+                            final userData = userSnapshot.data!
+                                    .data()
+                                as Map<String, dynamic>?;
                             final userName =
                                 userData?['name'] ?? "Unknown User";
                             return Text(

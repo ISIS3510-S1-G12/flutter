@@ -108,7 +108,7 @@ class _UserReviewHistoryPageState extends State<UserReviewHistoryPage> {
                   onChanged: (query) {},
                 ),
               ),
-
+ 
               // 🔹 Lista de reseñas
               Expanded(
                 child: vm.isLoading

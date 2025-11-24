@@ -111,7 +111,7 @@ class VisitViewModel extends ChangeNotifier {
     return {};
   }
 }
-
+ 
 
   
     /// 🔹 Calcula la tasa de lealtad semanal basada en número total de visitas (no usuarios).
@@ -186,6 +186,29 @@ static void _loyaltyIsolate(List<dynamic> args) {
   sendPort.send(loyaltyRates);
 }
 
+Future<List<Map<String, dynamic>>> getUserVisitedRestaurants() async {
+  try {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return [];
+
+    final visits = await FirebaseFirestore.instance
+        .collection("Visits")
+        .where("userId", isEqualTo: user.uid)
+        .orderBy("visitedAt", descending: true)
+        .get();
+
+    return visits.docs.map((doc) {
+      final data = doc.data();
+      return {
+        "restaurantId": data["restaurantId"],
+        "visitedAt": (data["visitedAt"] as Timestamp?)?.toDate(),
+      };
+    }).toList();
+  } catch (e) {
+    print("❌ Error loading user visits: $e");
+    return [];
+  }
+}
 
 
 
