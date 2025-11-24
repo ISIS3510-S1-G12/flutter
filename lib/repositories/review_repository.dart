@@ -117,7 +117,34 @@ class ReviewRepository {
       .collection("Reviews")
       .get();
   return snapshot.docs;
+
+  
 }
+
+// En ReviewRepository
+Future<void> updateReview({
+  required String reviewId,
+  required String comment,
+  required int stars,
+  String? imageUrl,
+  String? restaurantId, // opcional si lo necesitas
+}) async {
+  await FirebaseFirestore.instance
+      .collection("Reviews")
+      .doc(reviewId)
+      .update({
+    "comment": comment,
+    "stars": stars,
+    if (imageUrl != null) "imageUrl": imageUrl,
+  });
+  ReviewCache.clear(); // ❗ Muy importante
+
+}
+
+
+
+
+
 
 
 
