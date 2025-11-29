@@ -11,6 +11,8 @@ import 'package:provider/provider.dart';
 import 'package:moviles/viewmodels/visit_viewmodel.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'dart:isolate';
+import 'restaurant_edit_form.dart'; 
+
 
 class RestaurantHomePage extends StatefulWidget {
   final String restaurantId;
@@ -113,6 +115,18 @@ class _RestaurantHomePageState extends State<RestaurantHomePage> {
                       Image.asset(
                         "images/483891256-e6bd4888-8904-4028-911f-dff62cc98965.png",
                         height: MediaQuery.of(context).size.height * 0.08,
+                      ),
+                       GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => RestaurantEditForm(
+                                restaurantId: restaurant.id,
+                              ),
+                            ),
+                          );
+                        },
                       ),
                       const CircleAvatar(
                         radius: 28,
