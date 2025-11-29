@@ -11,6 +11,25 @@ class UserViewModel extends ChangeNotifier {
 
   UserViewModel(this._repository);
 
+  Future<void> updateProfilePicture(String uid, String filePath) async {
+    final url = await _repository.uploadProfilePicture(uid, filePath);
+    if (currentUser != null) {
+      currentUser = User(
+        id: currentUser!.id,
+        name: currentUser!.name,
+        email: currentUser!.email,
+        ownerUid: currentUser!.ownerUid,
+        role: currentUser!.role,
+        preferences: currentUser!.preferences,
+        favoriteRestaurants: currentUser!.favoriteRestaurants,
+        profilePicture: url,
+        createdAt: currentUser!.createdAt,
+        updatedAt: currentUser!.updatedAt,
+      );
+      notifyListeners();
+    }
+  }
+
   Future<void> loadUser(String userId) async {
     isLoading = true;
     notifyListeners();

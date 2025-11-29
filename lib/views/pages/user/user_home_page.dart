@@ -1,9 +1,12 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:moviles/utils/connectivity_ui_controller.dart';
+import 'package:moviles/viewmodels/user_viewmodel.dart';
 import 'package:moviles/views/pages/user/user_edit_form.dart';
 import 'package:moviles/views/pages/user/visited_restaurants_page.dart';
 import 'package:provider/provider.dart';
@@ -22,7 +25,6 @@ import 'package:moviles/viewmodels/visit_viewmodel.dart';
 import 'package:moviles/views/pages/user/user_loyalty_ranking_page.dart';
 import 'package:moviles/views/pages/user/top_rated_restaurants_page.dart';
 import 'package:moviles/models/restaurant.dart';
-
 
 class UserHomePage extends StatefulWidget {
   const UserHomePage({super.key});
@@ -59,60 +61,60 @@ class _UserHomePageState extends State<UserHomePage>
     fiam.setMessagesSuppressed(false);
     _triggerMealEvent();
 
-    // 🔌 Escucha de conectividad (versión 6.x)
     _connectivitySubscription =
-        Connectivity().onConnectivityChanged.listen((List<ConnectivityResult> results) {
-      final result = results.isNotEmpty ? results.first : ConnectivityResult.none;
-      final connected = result != ConnectivityResult.none;
+      Connectivity().onConnectivityChanged.listen((List<ConnectivityResult> results) {
+    final result = results.isNotEmpty ? results.first : ConnectivityResult.none;
+    final connected = result != ConnectivityResult.none;
 
-      if (connected != _isConnected) {
-        setState(() => _isConnected = connected);
+    if (connected != _isConnected) {
+      setState(() => _isConnected = connected);
 
-        if (!connected) {
-          if (mounted && _tabController.index == 0) { // solo en Home
-            showDialog(
-              context: context,
-              barrierDismissible: false,
-              builder: (context) => AlertDialog(
-                title: const Text("No Internet Connection"),
-                content: const Text(
-                  "You are now offline.\nCached restaurants will be displayed until the connection is restored.",
-                  style: TextStyle(fontSize: 16),
-                ),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text("OK", style: TextStyle(color: Colors.red)),
-                  ),
-                ],
+      if (!ConnectivityUIController.allowHomeAlerts) return; // <-- Evita alertas si Form está abierto
+
+      if (!connected) {
+        if (mounted && _tabController.index == 0) {
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (context) => AlertDialog(
+              title: const Text("No Internet Connection"),
+              content: const Text(
+                "You are now offline.\nCached restaurants will be displayed until the connection is restored.",
+                style: TextStyle(fontSize: 16),
               ),
-            );
-          }
-        } else {
-          if (mounted && _tabController.index == 0) { // solo en Home
-            showDialog(
-              context: context,
-              builder: (context) => AlertDialog(
-                title: const Text("Connection Restored"),
-                content: const Text(
-                  "Internet connection is back.\nData will sync automatically.",
-                  style: TextStyle(fontSize: 16),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text("OK", style: TextStyle(color: Colors.red)),
                 ),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text("OK"),
-                  ),
-                ],
-              ),
-            );
-          }
+              ],
+            ),
+          );
         }
-
-
+      } else {
+        if (mounted && _tabController.index == 0) {
+          showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: const Text("Connection Restored"),
+              content: const Text(
+                "Internet connection is back.\nData will sync automatically.",
+                style: TextStyle(fontSize: 16),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text("OK"),
+                ),
+              ],
+            ),
+          );
+        }
       }
-    });
-    //  Cargar restaurantes desde caché y luego red
+    }
+  });
+
+
     Future.microtask(() async {
       final vm = context.read<RestaurantViewModel>();
 
@@ -144,55 +146,52 @@ class _UserHomePageState extends State<UserHomePage>
       await _loadRestaurantLocations(vm);
     });
 
-    //  Mensaje de última visita
-  Future.delayed(const Duration(seconds: 10), () {
-  if (!mounted) return;
-  final visitVM = context.read<VisitViewModel>();
+    Future.delayed(const Duration(seconds: 10), () {
+      if (!mounted) return;
+      final visitVM = context.read<VisitViewModel>();
 
-  visitVM.loadDaysSinceLastVisitGlobal().then((_) {
-    if (!mounted) return;
+      visitVM.loadDaysSinceLastVisitGlobal().then((_) {
+        if (!mounted) return;
 
-    int? days = visitVM.daysSinceLastVisitGlobal;
-    String message;
+        int? days = visitVM.daysSinceLastVisitGlobal;
+        String message;
 
-    if (days == null) {
-      message = "You have not visited any restaurant yet.";
-    } else if (days == 0) {
-      message = "You visited a restaurant today.";
-    } else if (days == 1) {
-      message = "It’s been 1 day since your last restaurant visit.";
-    } else {
-      message = "It’s been $days days since your last restaurant visit.";
-    }
+        if (days == null) {
+          message = "You have not visited any restaurant yet.";
+        } else if (days == 0) {
+          message = "You visited a restaurant today.";
+        } else if (days == 1) {
+          message = "It’s been 1 day since your last restaurant visit.";
+        } else {
+          message = "It’s been $days days since your last restaurant visit.";
+        }
 
-    if (mounted) {
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text("Last visit"),
-          content: Text(message),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text("OK"),
+        if (mounted) {
+          showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: const Text("Last visit"),
+              content: Text(message),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text("OK"),
+                ),
+              ],
             ),
-          ],
-        ),
-      );
-    }
-  });
-});
+          );
+        }
+      });
+    });
   }
 
   Future<void> _loadRestaurantLocations(RestaurantViewModel vm) {
     final List<LatLng> coords = [];
 
-    // Handler principal
     return Future(() async {
       for (final r in vm.filteredRestaurants) {
         try {
           if (r.address != null && r.address!.isNotEmpty) {
-            // Aquí seguimos usando async/await dentro del handler
             final locations = await locationFromAddress(r.address!);
             if (locations.isNotEmpty) {
               final loc = locations.first;
@@ -215,7 +214,6 @@ class _UserHomePageState extends State<UserHomePage>
       debugPrint("Error en _loadRestaurantLocations: $error");
     });
   }
-
 
   void _triggerMealEvent() {
     final now = DateTime.now();
@@ -345,21 +343,40 @@ class _UserHomePageState extends State<UserHomePage>
               height: MediaQuery.of(context).size.height * 0.08,
             ),
             GestureDetector(
-            onTap: () {
-              print("👤 Opening UserEditForm");
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const UserEditForm(),
-                ),
-              );
-            },
-            child: const CircleAvatar(
-              radius: 28,
-              backgroundColor: Color.fromARGB(255, 214, 145, 104),
-              child: Icon(Icons.person, color: Colors.white),
+              onTap: () {
+                ConnectivityUIController.allowHomeAlerts = false;
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const UserEditForm()),
+                ).then((_) {
+                  ConnectivityUIController.allowHomeAlerts = true; // se restablece al volver
+                });
+              },
+              child: Consumer<UserViewModel>(
+              builder: (context, userVM, child) {
+                if (userVM.currentUser == null) {
+                  return const CircleAvatar(
+                    radius: 28,
+                    backgroundColor: Color.fromARGB(255, 214, 145, 104),
+                    child: CircularProgressIndicator(
+                      color: Colors.white,
+                      strokeWidth: 2,
+                    ),
+                  );
+                }
+
+                final profileUrl = userVM.currentUser!.profilePicture;
+
+                return CircleAvatar(
+                  radius: 28,
+                  backgroundColor: const Color.fromARGB(255, 214, 145, 104),
+                  backgroundImage: profileUrl != null ? NetworkImage(profileUrl) : null,
+                  child: profileUrl == null ? const Icon(Icons.person, color: Colors.white) : null,
+                );
+              },
+              ),
+
             ),
-          )
           ],
         ),
         bottom: PreferredSize(
@@ -387,7 +404,6 @@ class _UserHomePageState extends State<UserHomePage>
       body: TabBarView(
         controller: _tabController,
         children: [
-          // 🏠 Home Tab con mapa, ranking, buscador y lista
           Consumer<RestaurantViewModel>(
             builder: (context, vm, child) {
               if (vm.isLoading) return const Center(child: CircularProgressIndicator());
@@ -397,7 +413,6 @@ class _UserHomePageState extends State<UserHomePage>
 
               return Column(
                 children: [
-                  // 🔸 Botón ranking
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     child: ElevatedButton.icon(
@@ -418,7 +433,6 @@ class _UserHomePageState extends State<UserHomePage>
                     ),
                   ),
 
-                  // 🔸 Botón Top Rated Restaurants
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     child: ElevatedButton.icon(
@@ -439,8 +453,6 @@ class _UserHomePageState extends State<UserHomePage>
                     ),
                   ),
 
-
-                  // 🔍 Buscador
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     child: Row(
@@ -482,10 +494,8 @@ class _UserHomePageState extends State<UserHomePage>
                     ),
                   ),
 
-                  // 🗺️ Mapa
                   _buildMap(theme, vm),
 
-                  // 📋 Lista
                   Expanded(
                     child: ListView.builder(
                       padding: const EdgeInsets.all(16),
@@ -514,11 +524,23 @@ class _UserHomePageState extends State<UserHomePage>
 
           const UserFavoritesPage(),
           const UserOfertasPage(),
-         const UserReviewHistoryPage(),
-
-           VisitedRestaurantsPage(),
+          const UserReviewHistoryPage(),
+          VisitedRestaurantsPage(),
         ],
       ),
     );
   }
 }
+
+Future<Map<String, dynamic>?> _getUserData() async {
+  try {
+    final uid = FirebaseAuth.instance.currentUser!.uid;
+    final doc = await FirebaseFirestore.instance.collection("Users").doc(uid).get();
+    if (!doc.exists) return null;
+    return doc.data();
+  } catch (e) {
+    debugPrint("Error loading user data: $e");
+    return null;
+  }
+}
+
