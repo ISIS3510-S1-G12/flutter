@@ -1,9 +1,16 @@
+import 'dart:async';
 import 'dart:io';
+import 'package:firebase_auth/firebase_auth.dart' as fbAuth;
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:moviles/viewmodels/user_viewmodel.dart';
+import 'package:provider/provider.dart';
+
+import '/cache/user_cache.dart';
+import '/repositories/user_repository.dart';
+import '/models/user.dart';
+import '/utils/current_screen.dart';
 
 class UserEditForm extends StatefulWidget {
   const UserEditForm({super.key});
@@ -13,221 +20,332 @@ class UserEditForm extends StatefulWidget {
 }
 
 class _UserEditFormState extends State<UserEditForm> {
-  bool loading = true;
-
-  // Controllers
   final nameController = TextEditingController();
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
   final budgetController = TextEditingController();
   final dietController = TextEditingController();
 
-  File? newProfileImage;
-  String? profilePictureUrl;
+  final UserRepository _userRepo = UserRepository();
+
+  bool loading = true;
+  bool _isConnected = true;
+  late StreamSubscription<List<ConnectivityResult>> _connectivitySubscription;
+  File? selectedImage;
+  User? userData;
 
   @override
   void initState() {
     super.initState();
+    CurrentScreenState.active = CurrentScreen.editUser;
+    _listenConnectivity();
     loadUserData();
   }
 
+  @override
+  void dispose() {
+    CurrentScreenState.active = CurrentScreen.home;
+    _connectivitySubscription.cancel();
+    super.dispose();
+  }
+
+  // --- Conectividad ---
+  void _listenConnectivity() {
+    _connectivitySubscription =
+        Connectivity().onConnectivityChanged.listen((List<ConnectivityResult> results) {
+      final result = results.isNotEmpty ? results.first : ConnectivityResult.none;
+      final connected = result != ConnectivityResult.none;
+
+      if (connected != _isConnected) {
+        setState(() => _isConnected = connected);
+
+        if (!_isConnected) {
+          _showOfflineAlert();
+        } else {
+          syncCachedUpdates();
+          _showOnlineAlert();
+        }
+      }
+    });
+  }
+
+  // --- AlertDialogs ---
+  void _showOfflineAlert() {
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text("You're Offline"),
+        content: const Text(
+          "Changes will be saved locally and uploaded once connection returns.",
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("OK"))
+        ],
+      ),
+    );
+  }
+
+  void _showOnlineAlert() {
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text("Connection Restored"),
+        content: const Text("Syncing pending updates..."),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("OK"))
+        ],
+      ),
+    );
+  }
+
+  // --- Cargar info usuario ---
   Future<void> loadUserData() async {
-    print(" Loading user data...");
+    final uid = fbAuth.FirebaseAuth.instance.currentUser!.uid;
+    final user = await _userRepo.getUser(uid);
+    if (user == null) return;
 
-    final uid = FirebaseAuth.instance.currentUser!.uid;
-    print(" Current UID: $uid");
+    userData = user;
 
-    final doc = await FirebaseFirestore.instance.collection("Users").doc(uid).get();
+    nameController.text = user.name;
+    emailController.text = user.email;
+    budgetController.text = user.preferences["budget"]?.toString() ?? "";
+    dietController.text = user.preferences["diet"] ?? "";
+    
+    setState(() => loading = false);
+  }
 
-    if (!doc.exists) {
-      print(" User document NOT FOUND");
+  Future<void> selectImage() async {
+    final picked = await ImagePicker().pickImage(source: ImageSource.gallery);
+    if (picked == null) return;
+    setState(() => selectedImage = File(picked.path));
+  }
+
+  // --- Guardar cambios ---
+  Future<void> saveChanges() async {
+    if (userData == null) return;
+
+    final uid = userData!.id;
+
+    // Cambiar contraseña si se ingresó
+    if (passwordController.text.isNotEmpty) {
+      await _updatePassword(passwordController.text);
+    }
+
+    // Subir imagen si hay nueva
+    String? profileUrl = userData!.profilePicture;
+    if (selectedImage != null) {
+      profileUrl = await _userRepo.uploadProfilePicture(uid, selectedImage!.path);
+    }
+
+    // Crear nuevo User con cambios
+    final updatedUser = User(
+      id: uid,
+      name: nameController.text,
+      email: emailController.text,
+      ownerUid: userData!.ownerUid,
+      role: userData!.role,
+      preferences: {
+        "budget": budgetController.text,
+        "diet": dietController.text,
+      },
+      favoriteRestaurants: userData!.favoriteRestaurants,
+      profilePicture: profileUrl,
+      createdAt: userData!.createdAt,
+      updatedAt: userData!.updatedAt,
+    );
+
+    if (!_isConnected) {
+      UserCache.put(uid, updatedUser.toFirestore());
+      _showSnack("Changes saved locally (offline).");
       return;
     }
 
-    final data = doc.data()!;
-    print("User data loaded: $data");
-
-    // Precargar controllers
-    nameController.text = data["name"] ?? "";
-    emailController.text = data["email"] ?? "";
-    passwordController.text = data["password"] ?? "";
-    budgetController.text = data["preferences"]["budget"].toString();
-    dietController.text = data["preferences"]["diet"] ?? "";
-
-    profilePictureUrl = data["profile_picture"];
-
-    // Debug prints
-    print(" name: ${nameController.text}");
-    print(" email: ${emailController.text}");
-    print(" password: ${passwordController.text}");
-    print(" budget: ${budgetController.text}");
-    print(" diet: ${dietController.text}");
-    print(" profile_picture: $profilePictureUrl");
-
-    setState(() {
-      loading = false;
-    });
-
-    print("Finished loading user data");
-  }
-
-  Future selectImage() async {
-    print("Opening gallery...");
-
-    final picked = await ImagePicker().pickImage(source: ImageSource.gallery);
-    if (picked != null) {
-      print("📸 Image selected: ${picked.path}");
-      setState(() {
-        newProfileImage = File(picked.path);
-      });
-    } else {
-      print("No image selected");
+    try {
+      await _userRepo.updateUser(user: updatedUser);
+      userData = updatedUser;
+      final userVM = context.read<UserViewModel>();
+      userVM.currentUser = updatedUser;
+      userVM.notifyListeners();
+      _showSnack("Changes saved successfully!");
+    } catch (e) {
+      _showSnack("Error saving changes: $e");
     }
   }
 
-  Future<String?> uploadProfilePicture() async {
-    if (newProfileImage == null) {
-      print("No new profile image, keeping old one");
-      return profilePictureUrl;
-    }
-
-    print("Uploading new profile picture...");
-
-    final uid = FirebaseAuth.instance.currentUser!.uid;
-    final ref = FirebaseStorage.instance.ref().child("users/$uid.jpg");
+  Future<void> _updatePassword(String newPassword) async {
+    final user = fbAuth.FirebaseAuth.instance.currentUser;
+    if (user == null) return;
 
     try {
-      await ref.putFile(newProfileImage!);
-      final url = await ref.getDownloadURL();
-      print("Image uploaded: $url");
-      return url;
-    } catch (e) {
-      print("Error uploading image: $e");
-      return profilePictureUrl;
+      await user.updatePassword(newPassword);
+      _showSnack("Password updated successfully!");
+    } on fbAuth.FirebaseAuthException catch (e) {
+      if (e.code == 'requires-recent-login') {
+        _showSnack("Please re-login to change your password.");
+      } else {
+        _showSnack("Error updating password: ${e.message}");
+      }
     }
   }
 
-  Future<void> saveChanges() async {
-    print(" Saving changes...");
+  Future<void> syncCachedUpdates() async {
+    if (UserCache.isEmpty()) return;
 
-    final uid = FirebaseAuth.instance.currentUser!.uid;
+    final uid = fbAuth.FirebaseAuth.instance.currentUser!.uid;
+    final pending = UserCache.get(uid);
 
-    print(" Uploading picture (if any)...");
-    final uploadedUrl = await uploadProfilePicture();
+    if (pending == null) return;
 
-    print(" Data being updated:");
-    print({
-      "name": nameController.text,
-      "email": emailController.text,
-      "password": passwordController.text,
-      "preferences": {
-        "budget": int.parse(budgetController.text),
-        "diet": dietController.text
-      },
-      "profile_picture": uploadedUrl
-    });
-
-    await FirebaseFirestore.instance.collection("Users").doc(uid).update({
-      "name": nameController.text,
-      "email": emailController.text,
-      "password": passwordController.text,
-      "preferences": {
-        "budget": int.parse(budgetController.text),
-        "diet": dietController.text,
-      },
-      "profile_picture": uploadedUrl ?? "",
-      "updated_at": DateTime.now(),
-    });
-
-    print("User updated successfully");
-
-    Navigator.pop(context);
+    await _userRepo.updateUser(
+      user: User.fromFirestore(uid, pending),
+    );
+    UserCache.clear();
   }
 
+  void _showSnack(String msg) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+  }
+
+  // --- UI ---
   @override
   Widget build(BuildContext context) {
     if (loading) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF1F8F4),
+      backgroundColor: const Color(0xFFF8F4FF),
       appBar: AppBar(
-        backgroundColor: const Color.fromARGB(255, 214, 145, 104),
-        title: const Text("Edit User"),
-        centerTitle: true,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.pop(context),
-        ),
+        backgroundColor: const Color.fromARGB(255, 170, 98, 153),
+        iconTheme: const IconThemeData(color: Colors.white),
+        title: const Text("Edit Profile", style: TextStyle(color: Colors.white)),
       ),
-
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          children: [
-            GestureDetector(
-              onTap: selectImage,
-              child: CircleAvatar(
-                radius: 60,
-                backgroundColor: Colors.grey[300],
-                backgroundImage: newProfileImage != null
-                    ? FileImage(newProfileImage!)
-                    : (profilePictureUrl != null && profilePictureUrl!.isNotEmpty)
-                        ? NetworkImage(profilePictureUrl!)
-                        : null,
-                child: (newProfileImage == null &&
-                        (profilePictureUrl == null || profilePictureUrl!.isEmpty))
-                    ? const Icon(Icons.camera_alt, size: 40)
-                    : null,
+      body: Padding(
+        padding: const EdgeInsets.all(20),
+        child: SingleChildScrollView(
+          child: Column(
+            children: [
+              // Foto de perfil
+              Stack(
+                alignment: Alignment.bottomRight,
+                children: [
+                  CircleAvatar(
+                    radius: 55,
+                    backgroundColor: const Color(0xFF6A1B9A),
+                    child: CircleAvatar(
+                      radius: 52,
+                      backgroundImage: selectedImage != null
+                          ? FileImage(selectedImage!)
+                          : (userData!.profilePicture != null
+                              ? NetworkImage(userData!.profilePicture!)
+                              : const AssetImage("assets/user.png")) as ImageProvider,
+                    ),
+                  ),
+                  Positioned(
+                    right: 4,
+                    bottom: 4,
+                    child: CircleAvatar(
+                      radius: 18,
+                      backgroundColor: const Color(0xFF6A1B9A),
+                      child: IconButton(
+                        padding: EdgeInsets.zero,
+                        icon: const Icon(Icons.camera_alt, size: 18, color: Colors.white),
+                        onPressed: selectImage,
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ),
 
-            const SizedBox(height: 8),
-            const Text("Tap to change profile picture"),
+              const SizedBox(height: 20),
 
-            const SizedBox(height: 30),
-
-            buildInputField("Name", nameController),
-            buildInputField("Email", emailController),
-            buildInputField("Password", passwordController),
-            buildInputField("Budget", budgetController, type: TextInputType.number),
-            buildInputField("Diet (Vegan, Keto, etc.)", dietController),
-
-            const SizedBox(height: 30),
-
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color.fromARGB(255, 214, 145, 104),
-                minimumSize: const Size(double.infinity, 55),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(25),
+              // Cuadro Name, Email, Password
+              Container(
+                padding: const EdgeInsets.all(15),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: const Color(0xFF6A1B9A)),
+                ),
+                child: Column(
+                  children: [
+                    _field("Name", nameController),
+                    _field("Email", emailController),
+                    _field("Password", passwordController, isPassword: true),
+                  ],
                 ),
               ),
-              onPressed: saveChanges,
-              child: const Text(
-                "Save Changes",
-                style: TextStyle(fontSize: 18),
+
+              const SizedBox(height: 20),
+
+              // Cuadro Budget, Diet
+              Container(
+                padding: const EdgeInsets.all(15),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: const Color(0xFF6A1B9A)),
+                ),
+                child: Column(
+                  children: [
+                    _field("Budget", budgetController, inputType: TextInputType.number),
+                    _field("Diet", dietController),
+                  ],
+                ),
               ),
-            ),
-          ],
+
+              const SizedBox(height: 30),
+
+              // Botón guardar
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: saveChanges,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF6A1B9A),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  child: const Text("Save Changes", style: TextStyle(color: Colors.white)),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget buildInputField(String label, TextEditingController controller,
-      {TextInputType type = TextInputType.text}) {
+  Widget _field(
+    String label,
+    TextEditingController controller, {
+    bool isPassword = false,
+    TextInputType? inputType,
+  }) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 20),
+      padding: const EdgeInsets.only(bottom: 15),
       child: TextField(
         controller: controller,
-        keyboardType: type,
+        obscureText: isPassword,
+        keyboardType: inputType,
         decoration: InputDecoration(
           labelText: label,
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+          labelStyle: const TextStyle(color: Color(0xFF6A1B9A)),
+          filled: true,
+          fillColor: Colors.white,
+          focusedBorder: OutlineInputBorder(
+            borderSide: const BorderSide(color: Color(0xFF6A1B9A), width: 2),
+            borderRadius: BorderRadius.circular(14),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderSide: const BorderSide(color: Color(0xFF6A1B9A)),
+            borderRadius: BorderRadius.circular(14),
+          ),
         ),
       ),
     );
