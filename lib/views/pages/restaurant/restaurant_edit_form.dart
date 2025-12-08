@@ -1,7 +1,3 @@
-// -----------------------------------------
-// RESTAURANT EDIT FORM CON ALERTS/SNACKBARS
-// -----------------------------------------
-
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -44,9 +40,6 @@ class _RestaurantEditFormState extends State<RestaurantEditForm> {
     monitorConnectivity();
   }
 
-  // ----------------------------------------------
-  // 1. DETECTAR ONLINE/OFFLINE
-  // ----------------------------------------------
   void monitorConnectivity() {
     Connectivity().onConnectivityChanged.listen((result) async {
       if (result == ConnectivityResult.none) {
@@ -79,9 +72,6 @@ class _RestaurantEditFormState extends State<RestaurantEditForm> {
     });
   }
 
-  // ----------------------------------------------
-  // 2. CARGAR DATOS
-  // ----------------------------------------------
   Future<void> loadRestaurantData() async {
     final uid = FirebaseAuth.instance.currentUser!.uid;
 
@@ -141,9 +131,6 @@ class _RestaurantEditFormState extends State<RestaurantEditForm> {
     }
   }
 
-  // ----------------------------------------------
-  // 5. GUARDAR (ONLINE/OFFLINE)
-  // ----------------------------------------------
   Future<void> saveChanges() async {
     if (restaurantId == null) return;
 
@@ -160,9 +147,6 @@ class _RestaurantEditFormState extends State<RestaurantEditForm> {
       "imagePath": newImage?.path,
     };
 
-    // ======================================================
-    // OFFLINE → Guardar local con SNACKBAR restaurante
-    // ======================================================
     if (isOffline) {
       final prefs = await SharedPreferences.getInstance();
 
@@ -179,9 +163,6 @@ class _RestaurantEditFormState extends State<RestaurantEditForm> {
       return;
     }
 
-    // ======================================================
-    // ONLINE → Guardar normal
-    // ======================================================
     final uploadedUrl = await uploadImage();
 
     await FirebaseFirestore.instance
@@ -202,9 +183,6 @@ class _RestaurantEditFormState extends State<RestaurantEditForm> {
     Navigator.pop(context);
   }
 
-  // ----------------------------------------------
-  // 6. SINCRONIZAR AL VOLVER ONLINE
-  // ----------------------------------------------
   Future<void> syncPendingChanges() async {
     final prefs = await SharedPreferences.getInstance();
 
@@ -250,7 +228,6 @@ class _RestaurantEditFormState extends State<RestaurantEditForm> {
       await prefs.remove("pendingEdit");
       await prefs.remove("pendingSync");
 
-      // ALERTA DE SINCRONIZACIÓN EXITOSA
       showDialog(
         context: context,
         builder: (_) => AlertDialog(
@@ -267,7 +244,7 @@ class _RestaurantEditFormState extends State<RestaurantEditForm> {
       );
 
     } catch (e) {
-      // ALERTA DE ERROR
+
       showDialog(
         context: context,
         builder: (_) => AlertDialog(
