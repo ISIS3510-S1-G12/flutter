@@ -37,6 +37,7 @@ class _UserEditFormState extends State<UserEditForm> {
   @override
   void initState() {
     super.initState();
+    
     CurrentScreenState.active = CurrentScreen.editUser;
     _listenConnectivity();
     loadUserData();
@@ -44,6 +45,7 @@ class _UserEditFormState extends State<UserEditForm> {
 
   @override
   void dispose() {
+    
     CurrentScreenState.active = CurrentScreen.home;
     _connectivitySubscription.cancel();
     super.dispose();
@@ -51,17 +53,22 @@ class _UserEditFormState extends State<UserEditForm> {
 
   // --- Conectividad ---
   void _listenConnectivity() {
+   
     _connectivitySubscription =
         Connectivity().onConnectivityChanged.listen((List<ConnectivityResult> results) {
       final result = results.isNotEmpty ? results.first : ConnectivityResult.none;
       final connected = result != ConnectivityResult.none;
 
+     
+
       if (connected != _isConnected) {
         setState(() => _isConnected = connected);
 
         if (!_isConnected) {
+          
           _showOfflineAlert();
         } else {
+          
           syncCachedUpdates();
           _showOnlineAlert();
         }
@@ -71,6 +78,7 @@ class _UserEditFormState extends State<UserEditForm> {
 
   // --- AlertDialogs ---
   void _showOfflineAlert() {
+    
     if (!mounted) return;
     showDialog(
       context: context,
@@ -87,6 +95,7 @@ class _UserEditFormState extends State<UserEditForm> {
   }
 
   void _showOnlineAlert() {
+   
     if (!mounted) return;
     showDialog(
       context: context,
@@ -102,9 +111,17 @@ class _UserEditFormState extends State<UserEditForm> {
 
   // --- Cargar info usuario ---
   Future<void> loadUserData() async {
+   
     final uid = fbAuth.FirebaseAuth.instance.currentUser!.uid;
+
     final user = await _userRepo.getUser(uid);
-    if (user == null) return;
+
+    if (user == null) {
+      
+      return;
+    }
+
+    
 
     userData = user;
 
@@ -112,34 +129,35 @@ class _UserEditFormState extends State<UserEditForm> {
     emailController.text = user.email;
     budgetController.text = user.preferences["budget"]?.toString() ?? "";
     dietController.text = user.preferences["diet"] ?? "";
-    
+
     setState(() => loading = false);
   }
 
   Future<void> selectImage() async {
+    
     final picked = await ImagePicker().pickImage(source: ImageSource.gallery);
-    if (picked == null) return;
+    if (picked == null) {
+     
+      return;
+    }
+   
     setState(() => selectedImage = File(picked.path));
   }
 
-  // --- Guardar cambios ---
+
   Future<void> saveChanges() async {
-    if (userData == null) return;
-
+    if (userData == null) {
+      return;
+    }
     final uid = userData!.id;
-
-    // Cambiar contraseña si se ingresó
     if (passwordController.text.isNotEmpty) {
+     
       await _updatePassword(passwordController.text);
     }
-
-    // Subir imagen si hay nueva
     String? profileUrl = userData!.profilePicture;
     if (selectedImage != null) {
-      profileUrl = await _userRepo.uploadProfilePicture(uid, selectedImage!.path);
+      profileUrl = await _userRepo.uploadProfilePicture(uid, selectedImage!.path);   
     }
-
-    // Crear nuevo User con cambios
     final updatedUser = User(
       id: uid,
       name: nameController.text,
@@ -155,13 +173,11 @@ class _UserEditFormState extends State<UserEditForm> {
       createdAt: userData!.createdAt,
       updatedAt: userData!.updatedAt,
     );
-
     if (!_isConnected) {
       UserCache.put(uid, updatedUser.toFirestore());
       _showSnack("Changes saved locally (offline).");
       return;
     }
-
     try {
       await _userRepo.updateUser(user: updatedUser);
       userData = updatedUser;
@@ -170,18 +186,20 @@ class _UserEditFormState extends State<UserEditForm> {
       userVM.notifyListeners();
       _showSnack("Changes saved successfully!");
     } catch (e) {
-      _showSnack("Error saving changes: $e");
     }
   }
 
   Future<void> _updatePassword(String newPassword) async {
+
     final user = fbAuth.FirebaseAuth.instance.currentUser;
     if (user == null) return;
 
     try {
       await user.updatePassword(newPassword);
+      
       _showSnack("Password updated successfully!");
     } on fbAuth.FirebaseAuthException catch (e) {
+      
       if (e.code == 'requires-recent-login') {
         _showSnack("Please re-login to change your password.");
       } else {
@@ -190,31 +208,50 @@ class _UserEditFormState extends State<UserEditForm> {
     }
   }
 
-  Future<void> syncCachedUpdates() async {
-    if (UserCache.isEmpty()) return;
+    Future<void> syncCachedUpdates() async {
+    
+
+    if (UserCache.isEmpty()) {
+     
+      return;
+    }
 
     final uid = fbAuth.FirebaseAuth.instance.currentUser!.uid;
     final pending = UserCache.get(uid);
 
-    if (pending == null) return;
+    if (pending == null) {
+      
+      return;
+    }
 
-    await _userRepo.updateUser(
-      user: User.fromFirestore(uid, pending),
-    );
-    UserCache.clear();
+   
+
+    try {
+      await _userRepo.updateUserRaw(uid: uid, data: pending);
+      
+      UserCache.clear();
+      
+    } catch (e) {
+     
+    }
   }
 
+
   void _showSnack(String msg) {
+    
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
 
-  // --- UI ---
+  // UI
   @override
   Widget build(BuildContext context) {
     if (loading) {
+      
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
+
+   
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F4FF),
@@ -228,7 +265,7 @@ class _UserEditFormState extends State<UserEditForm> {
         child: SingleChildScrollView(
           child: Column(
             children: [
-              // Foto de perfil
+              // Foto
               Stack(
                 alignment: Alignment.bottomRight,
                 children: [
@@ -262,7 +299,7 @@ class _UserEditFormState extends State<UserEditForm> {
 
               const SizedBox(height: 20),
 
-              // Cuadro Name, Email, Password
+              // Panel 1
               Container(
                 padding: const EdgeInsets.all(15),
                 decoration: BoxDecoration(
@@ -281,7 +318,7 @@ class _UserEditFormState extends State<UserEditForm> {
 
               const SizedBox(height: 20),
 
-              // Cuadro Budget, Diet
+              // Panel 2
               Container(
                 padding: const EdgeInsets.all(15),
                 decoration: BoxDecoration(

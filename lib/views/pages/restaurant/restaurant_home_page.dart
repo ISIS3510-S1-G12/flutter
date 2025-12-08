@@ -121,9 +121,7 @@ class _RestaurantHomePageState extends State<RestaurantHomePage> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) => RestaurantEditForm(
-                                restaurantId: restaurant.id,
-                              ),
+                              builder: (_) => RestaurantEditForm(),
                             ),
                           );
                         },
@@ -291,18 +289,32 @@ class _RestaurantHomePageState extends State<RestaurantHomePage> {
                 padding: const EdgeInsets.all(12),
                 child: Row(
                   children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: restaurant.imageUrl.isNotEmpty
-                          ? Image.network(
-                              restaurant.imageUrl,
-                              width: 64,
-                              height: 64,
-                              fit: BoxFit.cover,
-                            )
-                          : const Icon(Icons.image_not_supported,
-                              size: 64, color: Colors.white),
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => RestaurantEditForm(),
+                          ),
+                        );
+                      },
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: restaurant.imageUrl.isNotEmpty
+                            ? Image.network(
+                                restaurant.imageUrl,
+                                width: 64,
+                                height: 64,
+                                fit: BoxFit.cover,
+                              )
+                            : const Icon(
+                                Icons.image_not_supported,
+                                size: 64,
+                                color: Colors.white,
+                              ),
+                      ),
                     ),
+
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(

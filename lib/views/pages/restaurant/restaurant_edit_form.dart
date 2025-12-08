@@ -1,13 +1,18 @@
+// -----------------------------------------
+// RESTAURANT EDIT FORM CON ALERTS/SNACKBARS
+// -----------------------------------------
+
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 
 class RestaurantEditForm extends StatefulWidget {
-  final String restaurantId;
-
-  const RestaurantEditForm({super.key, required this.restaurantId});
+  const RestaurantEditForm({super.key});
 
   @override
   State<RestaurantEditForm> createState() => _RestaurantEditFormState();
@@ -15,17 +20,18 @@ class RestaurantEditForm extends StatefulWidget {
 
 class _RestaurantEditFormState extends State<RestaurantEditForm> {
   bool loading = true;
+  bool isOffline = false;
+  String? restaurantId;
 
-  // Controllers
   final nameController = TextEditingController();
   final emailController = TextEditingController();
   final addressController = TextEditingController();
   final typeController = TextEditingController();
   final openingController = TextEditingController();
   final closingController = TextEditingController();
-  final busiestController = TextEditingController(); // string por simplicidad
+  final busiestController = TextEditingController();
   final ratingController = TextEditingController();
-  final offerController = TextEditingController(); // se manejará como Sí/No
+  final offerController = TextEditingController();
   final ownerController = TextEditingController();
 
   File? newImage;
@@ -35,23 +41,65 @@ class _RestaurantEditFormState extends State<RestaurantEditForm> {
   void initState() {
     super.initState();
     loadRestaurantData();
+    monitorConnectivity();
   }
 
-  Future<void> loadRestaurantData() async {
-    print("Loading restaurant data...");
+  // ----------------------------------------------
+  // 1. DETECTAR ONLINE/OFFLINE
+  // ----------------------------------------------
+  void monitorConnectivity() {
+    Connectivity().onConnectivityChanged.listen((result) async {
+      if (result == ConnectivityResult.none) {
+        print("DEBUG: Usuario quedó OFFLINE");
+        isOffline = true;
 
-    final doc = await FirebaseFirestore.instance
-        .collection("restaurants")
-        .doc(widget.restaurantId)
+        // ALERTA de que está offline
+        showDialog(
+          context: context,
+          builder: (_) => AlertDialog(
+            title: const Text("Offline"),
+            content: const Text(
+              "You are currently offline. Changes to the restaurant will be saved locally.",
+            ),
+            actions: [
+              TextButton(
+                child: const Text("Ok"),
+                onPressed: () => Navigator.pop(context),
+              )
+            ],
+          ),
+        );
+
+      } else {
+        print("DEBUG: Usuario ONLINE");
+        isOffline = false;
+        await syncPendingChanges();
+      }
+      setState(() {});
+    });
+  }
+
+  // ----------------------------------------------
+  // 2. CARGAR DATOS
+  // ----------------------------------------------
+  Future<void> loadRestaurantData() async {
+    final uid = FirebaseAuth.instance.currentUser!.uid;
+
+    final query = await FirebaseFirestore.instance
+        .collection("Restaurants")
+        .where("ownerUid", isEqualTo: uid)
+        .limit(1)
         .get();
 
-    if (!doc.exists) {
-      print("Restaurant NOT FOUND");
+    if (query.docs.isEmpty) {
+      setState(() => loading = false);
       return;
     }
 
-    final data = doc.data()!;
-    print("Restaurant data loaded: $data");
+    final doc = query.docs.first;
+    restaurantId = doc.id;
+
+    final data = doc.data();
 
     nameController.text = data["name"] ?? "";
     emailController.text = data["email"] ?? "";
@@ -66,54 +114,38 @@ class _RestaurantEditFormState extends State<RestaurantEditForm> {
 
     imageUrl = data["imageUrl"];
 
-    setState(() {
-      loading = false;
-    });
-
-    print("Finished loading restaurant");
+    setState(() => loading = false);
   }
 
   Future selectImage() async {
-    print("Opening gallery...");
-
     final picked = await ImagePicker().pickImage(source: ImageSource.gallery);
     if (picked != null) {
-      print("Image selected: ${picked.path}");
       setState(() {
         newImage = File(picked.path);
       });
-    } else {
-      print("No image selected");
     }
   }
 
   Future<String?> uploadImage() async {
-    if (newImage == null) {
-      print("No new image selected");
-      return imageUrl;
-    }
-
-    print("Uploading new restaurant image...");
+    if (newImage == null) return imageUrl;
 
     try {
-      final ref = FirebaseStorage.instance
-          .ref()
-          .child("restaurants/${widget.restaurantId}.jpg");
+      final ref =
+          FirebaseStorage.instance.ref().child("restaurants/$restaurantId.jpg");
 
       await ref.putFile(newImage!);
-      final url = await ref.getDownloadURL();
-      print("Uploaded: $url");
-      return url;
+      return await ref.getDownloadURL();
     } catch (e) {
       print("Image upload error: $e");
       return imageUrl;
     }
   }
 
+  // ----------------------------------------------
+  // 5. GUARDAR (ONLINE/OFFLINE)
+  // ----------------------------------------------
   Future<void> saveChanges() async {
-    print("Saving restaurant changes...");
-
-    final uploadedUrl = await uploadImage();
+    if (restaurantId == null) return;
 
     final updateData = {
       "name": nameController.text,
@@ -122,24 +154,149 @@ class _RestaurantEditFormState extends State<RestaurantEditForm> {
       "typeOfFood": typeController.text,
       "opening_time": int.tryParse(openingController.text) ?? 0,
       "closing_time": int.tryParse(closingController.text) ?? 0,
-      "rating": int.tryParse(ratingController.text) ?? 0,
-      "offer": offerController.text.toLowerCase() == "true" ||
-          offerController.text.toLowerCase() == "yes",
-      "busiest_hours": {"1200": busiestController.text},
-      "imageUrl": uploadedUrl ?? "",
-      "updated_at": DateTime.now(),
+      "rating": double.tryParse(ratingController.text) ?? 0.0,
+      "offer": offerController.text.toLowerCase() == "true",
+      "busiest_hours": busiestController.text,
+      "imagePath": newImage?.path,
     };
 
-    print(updateData);
+    // ======================================================
+    // OFFLINE → Guardar local con SNACKBAR restaurante
+    // ======================================================
+    if (isOffline) {
+      final prefs = await SharedPreferences.getInstance();
+
+      await prefs.setString("pendingEdit", updateData.toString());
+      await prefs.setBool("pendingSync", true);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+              "Restaurant changes saved offline. They will be synced later."),
+        ),
+      );
+
+      return;
+    }
+
+    // ======================================================
+    // ONLINE → Guardar normal
+    // ======================================================
+    final uploadedUrl = await uploadImage();
 
     await FirebaseFirestore.instance
-        .collection("restaurants")
-        .doc(widget.restaurantId)
-        .update(updateData);
+        .collection("Restaurants")
+        .doc(restaurantId)
+        .update({
+      ...updateData,
+      "busiest_hours": {"1200": busiestController.text},
+      "imageUrl": uploadedUrl ?? imageUrl,
+      "updated_at": DateTime.now(),
+    });
 
-    print("Restaurant updated!");
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+          content: Text("Restaurant updated successfully.")),
+    );
 
     Navigator.pop(context);
+  }
+
+  // ----------------------------------------------
+  // 6. SINCRONIZAR AL VOLVER ONLINE
+  // ----------------------------------------------
+  Future<void> syncPendingChanges() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    if (!prefs.containsKey("pendingEdit")) return;
+
+    final raw = prefs.getString("pendingEdit");
+    if (raw == null) return;
+
+    print("DEBUG: Sincronizando cambios pendientes: $raw");
+
+    final map = _stringToMap(raw);
+
+    String? finalImageUrl = imageUrl;
+    if (map["imagePath"] != null) {
+      final file = File(map["imagePath"]);
+      if (file.existsSync()) {
+        final ref = FirebaseStorage.instance
+            .ref()
+            .child("restaurants/$restaurantId.jpg");
+        await ref.putFile(file);
+        finalImageUrl = await ref.getDownloadURL();
+      }
+    }
+
+    try {
+      await FirebaseFirestore.instance
+          .collection("Restaurants")
+          .doc(restaurantId)
+          .update({
+        "name": map["name"],
+        "email": map["email"],
+        "address": map["address"],
+        "typeOfFood": map["typeOfFood"],
+        "opening_time": int.tryParse(map["opening_time"] ?? "0") ?? 0,
+        "closing_time": int.tryParse(map["closing_time"] ?? "0") ?? 0,
+        "rating": double.tryParse(map["rating"] ?? "0") ?? 0.0,
+        "offer": map["offer"] == "true",
+        "busiest_hours": {"1200": map["busiest_hours"] ?? ""},
+        "imageUrl": finalImageUrl ?? imageUrl,
+        "updated_at": DateTime.now(),
+      });
+
+      await prefs.remove("pendingEdit");
+      await prefs.remove("pendingSync");
+
+      // ALERTA DE SINCRONIZACIÓN EXITOSA
+      showDialog(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: const Text("Sincronización completada"),
+          content:
+              const Text("Los cambios pendientes del restaurante se sincronizaron correctamente."),
+          actions: [
+            TextButton(
+              child: const Text("Ok"),
+              onPressed: () => Navigator.pop(context),
+            )
+          ],
+        ),
+      );
+
+    } catch (e) {
+      // ALERTA DE ERROR
+      showDialog(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: const Text("Error"),
+          content: Text("No se pudo sincronizar el restaurante: $e"),
+          actions: [
+            TextButton(
+              child: const Text("Ok"),
+              onPressed: () => Navigator.pop(context),
+            )
+          ],
+        ),
+      );
+    }
+  }
+
+  Map<String, dynamic> _stringToMap(String raw) {
+    raw = raw.replaceAll("{", "").replaceAll("}", "");
+    final pairs = raw.split(",");
+
+    final map = <String, dynamic>{};
+
+    for (var p in pairs) {
+      final kv = p.split(":");
+      if (kv.length == 2) {
+        map[kv[0].trim()] = kv[1].trim();
+      }
+    }
+    return map;
   }
 
   @override
@@ -174,7 +331,7 @@ class _RestaurantEditFormState extends State<RestaurantEditForm> {
                 backgroundImage: newImage != null
                     ? FileImage(newImage!)
                     : (imageUrl != null && imageUrl!.isNotEmpty)
-                        ? NetworkImage(imageUrl!) as ImageProvider
+                        ? NetworkImage(imageUrl!)
                         : null,
                 child: (newImage == null &&
                         (imageUrl == null || imageUrl!.isEmpty))
