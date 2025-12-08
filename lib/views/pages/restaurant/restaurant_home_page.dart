@@ -11,6 +11,8 @@ import 'package:provider/provider.dart';
 import 'package:moviles/viewmodels/visit_viewmodel.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'dart:isolate';
+import 'restaurant_edit_form.dart'; 
+
 
 class RestaurantHomePage extends StatefulWidget {
   final String restaurantId;
@@ -113,6 +115,16 @@ class _RestaurantHomePageState extends State<RestaurantHomePage> {
                       Image.asset(
                         "images/483891256-e6bd4888-8904-4028-911f-dff62cc98965.png",
                         height: MediaQuery.of(context).size.height * 0.08,
+                      ),
+                       GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => RestaurantEditForm(),
+                            ),
+                          );
+                        },
                       ),
                       const CircleAvatar(
                         radius: 28,
@@ -277,18 +289,32 @@ class _RestaurantHomePageState extends State<RestaurantHomePage> {
                 padding: const EdgeInsets.all(12),
                 child: Row(
                   children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: restaurant.imageUrl.isNotEmpty
-                          ? Image.network(
-                              restaurant.imageUrl,
-                              width: 64,
-                              height: 64,
-                              fit: BoxFit.cover,
-                            )
-                          : const Icon(Icons.image_not_supported,
-                              size: 64, color: Colors.white),
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => RestaurantEditForm(),
+                          ),
+                        );
+                      },
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: restaurant.imageUrl.isNotEmpty
+                            ? Image.network(
+                                restaurant.imageUrl,
+                                width: 64,
+                                height: 64,
+                                fit: BoxFit.cover,
+                              )
+                            : const Icon(
+                                Icons.image_not_supported,
+                                size: 64,
+                                color: Colors.white,
+                              ),
+                      ),
                     ),
+
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(
