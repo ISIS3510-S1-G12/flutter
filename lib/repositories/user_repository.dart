@@ -7,6 +7,9 @@ class UserRepository {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   final FirebaseStorage _storage = FirebaseStorage.instance;
 
+  // -------------------------------------------------------------
+  // GUARDAR / OBTENER USUARIO
+  // -------------------------------------------------------------
   Future<void> saveUser(User user) async {
     await _db
         .collection("Users")
@@ -20,24 +23,10 @@ class UserRepository {
     return User.fromFirestore(doc.id, doc.data()!);
   }
 
-  Future<void> updateUserPreferences(
-      String userId, Map<String, dynamic> preferences) async {
-    await _db.collection("Users").doc(userId).update({
-      "preferences": preferences,
-      "updated_at": FieldValue.serverTimestamp(),
-    });
-  }
-
-  // --- Nuevo: Subir imagen a Firebase Storage y retornar URL ---
-  Future<String> uploadProfilePictureFile(String userId, File image) async {
-    final ref = _storage.ref().child("users/$userId/profile.jpg");
-    final uploadTask = await ref.putFile(image);
-    return await uploadTask.ref.getDownloadURL();
-  }
-
-  // --- Nuevo: Actualizar usuario completo incluyendo foto ---
-  Future<void> updateUser(
-      {required User user, File? profileImage}) async {
+  // -------------------------------------------------------------
+  // UPDATE COMPLETO (NO USAR PARA SINCRONIZACIÓN OFFLINE)
+  // -------------------------------------------------------------
+  Future<void> updateUser({required User user, File? profileImage}) async {
     String? imageUrl;
 
     if (profileImage != null) {
@@ -53,7 +42,30 @@ class UserRepository {
     await _db.collection("Users").doc(user.id).update(data);
   }
 
-  // Favoritos
+  // -------------------------------------------------------------
+  // 🔥 MÉTODO CLAVE PARA SINCRONIZAR CACHE OFFLINE
+  // -------------------------------------------------------------
+  Future<void> updateUserRaw({
+    required String uid,
+    required Map<String, dynamic> data,
+  }) async {
+    await _db.collection("Users").doc(uid).update(data);
+  }
+
+  // -------------------------------------------------------------
+  // PREFERENCIAS
+  // -------------------------------------------------------------
+  Future<void> updateUserPreferences(
+      String userId, Map<String, dynamic> preferences) async {
+    await _db.collection("Users").doc(userId).update({
+      "preferences": preferences,
+      "updated_at": FieldValue.serverTimestamp(),
+    });
+  }
+
+  // -------------------------------------------------------------
+  // FAVORITOS
+  // -------------------------------------------------------------
   Future<void> addFavoriteRestaurant(String userId, String restaurantId) async {
     await _db.collection("Users").doc(userId).update({
       "favorite_restaurants.$restaurantId": FieldValue.serverTimestamp(),
@@ -68,19 +80,35 @@ class UserRepository {
     });
   }
 
-  Future<void> updateFavorites(String userId, Map<String, Timestamp> favorites) async {
+  Future<void> updateFavorites(
+      String userId, Map<String, Timestamp> favorites) async {
     await _db.collection("Users").doc(userId).update({
       "favorite_restaurants": favorites,
       "updated_at": FieldValue.serverTimestamp(),
     });
   }
 
+  // -------------------------------------------------------------
+  // IMÁGENES
+  // -------------------------------------------------------------
+  Future<String> uploadProfilePictureFile(
+      String userId, File image) async {
+    final ref = _storage.ref().child("users/$userId/profile.jpg");
+    final uploadTask = await ref.putFile(image);
+    return await uploadTask.ref.getDownloadURL();
+  }
+
+  Future<String> uploadProfilePicture(
+      String userId, String filePath) async {
+    final ref = _storage.ref().child("users/$userId/profile.jpg");
+    final uploadTask = await ref.putFile(File(filePath));
+    return await uploadTask.ref.getDownloadURL();
+  }
+
+  // -------------------------------------------------------------
+  // BORRAR USUARIO
+  // -------------------------------------------------------------
   Future<void> deleteUser(String userId) async {
     await _db.collection("Users").doc(userId).delete();
   }
-
-  Future<String> uploadProfilePicture(String userId, String filePath) async { 
-    final ref = _storage.ref().child("users/$userId/profile.jpg"); 
-    final uploadTask = await ref.putFile(File(filePath)); 
-  return await uploadTask.ref.getDownloadURL(); }
 }

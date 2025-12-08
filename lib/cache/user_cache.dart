@@ -1,28 +1,19 @@
+import '../utils/lru_cache.dart'; // tu LruCache genérico
 class UserCache {
-  static final Map<String, Map<String, dynamic>> _pendingUpdates = {};
-
-  /// Guarda una actualización en cache
+  static final LruCache<String, Map<String, dynamic>> _cache = LruCache(capacity: 20);
   static void put(String uid, Map<String, dynamic> data) {
-    _pendingUpdates[uid] = data;
+    _cache.put(uid, data);
   }
-
-  /// Obtiene la actualización en cache para un usuario
   static Map<String, dynamic>? get(String uid) {
-    return _pendingUpdates[uid];
+    return _cache.get(uid);
   }
-
-  /// Verifica si hay un update pendiente
   static bool contains(String uid) {
-    return _pendingUpdates.containsKey(uid);
+    return _cache.contains(uid);
   }
-
-  /// Limpia la cache completamente
   static void clear() {
-    _pendingUpdates.clear();
+    _cache.clear();
   }
-
-  /// Saber si hay elementos en cache
   static bool isEmpty() {
-    return _pendingUpdates.isEmpty;
+    return _cache.isEmpty;
   }
 }

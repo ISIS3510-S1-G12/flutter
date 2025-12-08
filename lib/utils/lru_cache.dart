@@ -3,7 +3,7 @@ class LruCache<K, V> {
   final Map<K, V> _cache = {};
   final List<K> _usageOrder = [];
 
-  LruCache({this.capacity = 10}); 
+  LruCache({this.capacity = 10});
 
   V? get(K key) {
     if (!_cache.containsKey(key)) return null;
@@ -33,4 +33,8 @@ class LruCache<K, V> {
   }
 
   int get length => _cache.length;
+
+  bool get isEmpty => _cache.isEmpty;
+
+  bool get isNotEmpty => _cache.isNotEmpty;
 }
